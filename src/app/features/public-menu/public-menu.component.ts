@@ -58,6 +58,10 @@ export class PublicMenuComponent {
   readonly orderType = signal<OrderType>('DINE_IN');
   readonly selectedTablePreset = signal<string>('1');
 
+  /** true cuando el QR viene de una mesa específica (?mesa=N): la mesa y el
+   *  tipo de pedido quedan bloqueados para el cliente. */
+  readonly tableLocked = signal(false);
+
   readonly orderForm: FormGroup = this.fb.group({
     customerName: ['', [Validators.required, Validators.maxLength(120)]],
     customerPhone: ['', [Validators.maxLength(30)]],
@@ -122,6 +126,8 @@ export class PublicMenuComponent {
     this.route.queryParamMap.subscribe((params) => {
       const mesa = params.get('mesa') || params.get('table') || params.get('m');
       if (mesa) {
+        this.tableLocked.set(true);
+        this.orderType.set('DINE_IN');
         this.selectedTablePreset.set(mesa);
         this.orderForm.patchValue({ tableNumber: `Mesa ${mesa}` });
       }
@@ -266,7 +272,10 @@ export class PublicMenuComponent {
   }
 
   setOrderType(type: OrderType): void {
-    this.orderType.set(type);
+    if (this.tableLocked()) {
+      this.orderType.set('DINE_IN');
+      return;
+    }
     if (type === 'DINE_IN') {
       this.orderForm.patchValue({ tableNumber: `Mesa ${this.selectedTablePreset()}` });
     } else if (type === 'DELIVERY') {
@@ -274,9 +283,11 @@ export class PublicMenuComponent {
     } else {
       this.orderForm.patchValue({ tableNumber: 'Para Llevar' });
     }
+    this.orderType.set(type);
   }
 
   selectTable(num: string): void {
+    if (this.tableLocked()) return;
     this.selectedTablePreset.set(num);
     this.orderForm.patchValue({ tableNumber: `Mesa ${num}` });
   }
@@ -290,7 +301,9 @@ export class PublicMenuComponent {
     const payload = {
       customerName: this.orderForm.value.customerName,
       customerPhone: this.orderForm.value.customerPhone,
-      tableNumber: this.orderForm.value.tableNumber,
+      tableNumber: this.tableLocked()
+        ? `Mesa ${this.selectedTablePreset()}`
+        : (this.orderForm.value.tableNumber ?? ''),
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,
       notes: this.orderForm.value.notes,
@@ -362,7 +375,9 @@ export class PublicMenuComponent {
     const payload = {
       customerName: this.orderForm.value.customerName || 'Cliente WhatsApp',
       customerPhone: this.orderForm.value.customerPhone,
-      tableNumber: this.orderForm.value.tableNumber || 'WhatsApp',
+      tableNumber: this.tableLocked()
+        ? `Mesa ${this.selectedTablePreset()}`
+        : (this.orderForm.value.tableNumber || 'WhatsApp'),
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,
       notes: this.orderForm.value.notes,

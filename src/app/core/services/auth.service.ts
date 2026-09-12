@@ -4,6 +4,7 @@ import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { AuthResponse, TokenUser } from '../models/models';
+import { setCsrfToken } from '../interceptors/csrf.interceptor';
 
 /**
  * Estado de autenticación basado en signals, SIN tokens en localStorage:
@@ -34,13 +35,20 @@ export class AuthService {
     );
   }
 
-  /** Establece la cookie XSRF-TOKEN (GET /auth/csrf). */
+  /** Establece la cookie XSRF-TOKEN (GET /auth/csrf) y guarda el token en memoria. */
   bootstrapCsrf(): Observable<string> {
-    return this.api.get<string>('/auth/csrf').pipe(catchError(() => of('')));
+    return this.api.get<string>('/auth/csrf').pipe(
+      tap((token) => setCsrfToken(token)),
+      catchError(() => {
+        setCsrfToken(null);
+        return of('');
+      }),
+    );
   }
 
   login(email: string, password: string): Observable<TokenUser> {
-    return this.api.post<AuthResponse>('/auth/login', { email, password }).pipe(
+    return this.bootstrapCsrf().pipe(
+      switchMap(() => this.api.post<AuthResponse>('/auth/login', { email, password })),
       tap((r) => {
         this.userSignal.set(r.user);
         try { localStorage.setItem('tavita_user', JSON.stringify(r.user)); } catch {}
@@ -68,7 +76,8 @@ export class AuthService {
     restaurantName: string;
     slug: string;
   }): Observable<TokenUser> {
-    return this.api.post<AuthResponse>('/auth/register', payload).pipe(
+    return this.bootstrapCsrf().pipe(
+      switchMap(() => this.api.post<AuthResponse>('/auth/register', payload)),
       tap((r) => {
         this.userSignal.set(r.user);
         try { localStorage.setItem('tavita_user', JSON.stringify(r.user)); } catch {}
@@ -91,7 +100,8 @@ export class AuthService {
 
   /** Renueva los tokens con la cookie refresh_token (rotación server-side). */
   refresh(): Observable<TokenUser | null> {
-    return this.api.post<AuthResponse>('/auth/refresh').pipe(
+    return this.bootstrapCsrf().pipe(
+      switchMap(() => this.api.post<AuthResponse>('/auth/refresh')),
       tap((r) => this.userSignal.set(r.user)),
       map((r) => r.user),
       catchError(() => of(null)),
@@ -99,12 +109,18 @@ export class AuthService {
   }
 
   logout(): Observable<void> {
-    return this.api.post<void>('/auth/logout').pipe(
+    return this.authLogout().pipe(
       tap(() => this.clearSession()),
       catchError(() => {
         this.clearSession();
         return of(undefined);
       }),
+    );
+  }
+
+  private authLogout(): Observable<void> {
+    return this.bootstrapCsrf().pipe(
+      switchMap(() => this.api.post<void>('/auth/logout')),
     );
   }
 
