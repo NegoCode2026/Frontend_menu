@@ -1,11 +1,13 @@
-<div class="anim-fade-in-up">
-  <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Mi restaurante</h1>
-  <p class="text-stone-500 mt-1">Esta información aparece en tu menú público y en el QR.</p>
+<div class="anim-fade-in-up max-w-3xl mx-auto space-y-6">
+  <div>
+    <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Mi restaurante</h1>
+    <p class="text-stone-500 mt-1">Esta información aparece en tu menú público y en el QR.</p>
+  </div>
 
   @if (message()) {
     <div
       [class]="message()!.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'"
-      class="mt-4 rounded-2xl border px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale"
+      class="rounded-2xl border px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale"
     >
       <span class="text-lg">{{ message()!.type === 'success' ? '✅' : '⚠️' }}</span>
       <span>{{ message()!.text }}</span>
@@ -15,7 +17,7 @@
   @if (!loading()) {
     <!-- ESTADO ABIERTO / CERRADO -->
     <div
-      class="mt-6 bg-white rounded-3xl border shadow-lg p-6 max-w-2xl flex items-center justify-between gap-4 anim-fade-in-up anim-delay-1"
+      class="bg-white rounded-3xl border shadow-lg p-6 flex flex-col sm:flex-row items-center justify-between gap-4 anim-fade-in-up anim-delay-1"
       [class.border-emerald-200]="restaurant()?.open"
       [class.shadow-emerald-100]="restaurant()?.open"
       [class.border-red-200]="!restaurant()?.open"
@@ -46,7 +48,7 @@
         type="button"
         (click)="toggleOpen()"
         [disabled]="togglingOpen()"
-        class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all shrink-0 disabled:opacity-60 disabled:cursor-not-allowed"
+        class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all shrink-0 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
         [class.bg-red-600]="restaurant()?.open"
         [class.hover:bg-red-700]="restaurant()?.open"
         [class.bg-emerald-600]="!restaurant()?.open"
@@ -56,17 +58,17 @@
       </button>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="save()" class="mt-8 bg-white rounded-3xl border border-stone-100 shadow-lg shadow-stone-200/50 p-8 space-y-6 max-w-2xl anim-fade-in-up anim-delay-1">
+    <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-3xl border border-stone-100 shadow-lg shadow-stone-200/50 p-6 sm:p-8 space-y-6 anim-fade-in-up anim-delay-1">
       <!-- Logo Upload -->
-      <div class="flex items-center gap-6">
-        <div class="w-24 h-24 rounded-2xl bg-stone-100 overflow-hidden flex items-center justify-center text-3xl shrink-0 border-2 border-dashed border-stone-200 group">
+      <div class="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-2xl bg-stone-50/70 border border-stone-100">
+        <div class="w-24 h-24 rounded-2xl bg-white overflow-hidden flex items-center justify-center text-3xl shrink-0 border-2 border-dashed border-stone-200 shadow-xs group">
           @if (restaurant()?.logoUrl) {
             <img [src]="restaurant()!.logoUrl" alt="Logo" class="w-full h-full object-cover" />
           } @else {
             <span class="text-stone-300">🏪</span>
           }
         </div>
-        <div>
+        <div class="text-center sm:text-left">
           <label class="block text-sm font-medium text-stone-700 cursor-pointer">
             <span class="inline-flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold rounded-xl px-5 py-2.5 transition-all duration-200">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
@@ -156,11 +158,11 @@
         </div>
       </div>
 
-      <div class="pt-2">
+      <div class="pt-2 flex justify-end">
         <button
           type="submit"
           [disabled]="form.invalid || saving()"
-          class="rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold px-8 py-3 hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-primary-500/20 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 btn-shine"
+          class="w-full sm:w-auto rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold px-8 py-3 hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-primary-500/20 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 btn-shine"
         >
           {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
         </button>
