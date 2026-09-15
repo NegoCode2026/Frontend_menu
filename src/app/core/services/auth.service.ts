@@ -124,10 +124,13 @@ export class AuthService {
     );
   }
 
-  /** Cierra sesión y redirige a /login (no requiere suscripción del llamante). */
+  /** Cierra sesión y redirige a /login (no requiere suscripción del llamante).
+   *  Limpia el estado local ANTES de navegar para que guestGuard no lo devuelva
+   *  al panel; el revoke de las cookies en el backend ocurre en segundo plano. */
   forceLogout(): void {
-    this.logout().subscribe();
+    this.clearSession();
     this.router.navigate(['/login']);
+    this.logout().subscribe();
   }
 
   /** Restaura la sesión llamando a /auth/me (cookies HttpOnly). */
