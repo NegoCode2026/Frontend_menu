@@ -48,6 +48,13 @@
       </div>
       <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Plan</p>
       <p class="text-lg font-extrabold text-stone-900 mt-1">{{ planName() ?? '—' }}</p>
+      @if (planRemaining(); as remaining) {
+        <p
+          [class]="planStatus() === 'ACTIVE' ? 'text-xs text-emerald-600 font-semibold mt-1' : 'text-xs text-red-600 font-semibold mt-1'"
+        >
+          ⏳ {{ remaining }}
+        </p>
+      }
     </div>
   </div>
 
@@ -76,31 +83,5 @@
         </a>
       }
     </div>
-  </div>
-
-  <!-- Quick Actions -->
-  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-    <a routerLink="/admin/categories" class="group bg-white border border-stone-100 rounded-2xl p-6 card-hover anim-fade-in-up anim-delay-4">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
-          🗂️
-        </div>
-        <div>
-          <h3 class="font-bold text-stone-900 group-hover:text-primary-600 transition-colors">Categorías</h3>
-          <p class="text-sm text-stone-500 mt-0.5">Organiza tu menú (Hamburguesas, Combos, Bebidas…)</p>
-        </div>
-      </div>
-    </a>
-    <a routerLink="/admin/products" class="group bg-white border border-stone-100 rounded-2xl p-6 card-hover anim-fade-in-up anim-delay-5">
-      <div class="flex items-center gap-4">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-xl group-hover:scale-110 transition-transform duration-300">
-          🍔
-        </div>
-        <div>
-          <h3 class="font-bold text-stone-900 group-hover:text-primary-600 transition-colors">Productos</h3>
-          <p class="text-sm text-stone-500 mt-0.5">Agrega productos, precios e imágenes</p>
-        </div>
-      </div>
-    </a>
   </div>
 </div>

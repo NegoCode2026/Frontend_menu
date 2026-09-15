@@ -336,7 +336,7 @@
                   }
                 </div>
 
-                <div class="pt-2 flex items-center justify-between border-t border-stone-100">
+                <div class="pt-2 flex items-center justify-between border-t border-stone-100 gap-2">
                   <button
                     (click)="openTicketModal(order)"
                     class="p-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold"
@@ -345,12 +345,23 @@
                     🧾 Ticket
                   </button>
 
-                  <button
-                    (click)="updateStatus(order, 'DELIVERED')"
-                    class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-700 transition-all shadow-sm flex items-center gap-1.5"
-                  >
-                    <span>✅ Listo para Servir</span>
-                  </button>
+                  <div class="flex items-center gap-1.5">
+                    @if (order.customerPhone) {
+                      <button
+                        (click)="sendWhatsAppReadyNotification(order)"
+                        class="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-xs transition-all shadow-xs flex items-center gap-1"
+                        title="Notificar por WhatsApp que ya está listo"
+                      >
+                        <span>📱 Notificar "¡Listo!"</span>
+                      </button>
+                    }
+                    <button
+                      (click)="updateStatus(order, 'DELIVERED')"
+                      class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-extrabold text-xs hover:bg-emerald-700 transition-all shadow-xs flex items-center gap-1.5"
+                    >
+                      <span>✅ Servir</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             }
@@ -393,12 +404,22 @@
 
                 <div class="pt-2 flex items-center justify-between border-t border-stone-100 text-xs">
                   <span class="font-black text-stone-900">{{ formatCurrency(order.totalAmount) }}</span>
-                  <button
-                    (click)="openTicketModal(order)"
-                    class="text-xs font-bold text-stone-600 hover:text-stone-900 hover:underline"
-                  >
-                    Ver detalle
-                  </button>
+                  <div class="flex items-center gap-2">
+                    @if (order.customerPhone) {
+                      <button
+                        (click)="sendWhatsAppReadyNotification(order)"
+                        class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] border border-emerald-200 flex items-center gap-1"
+                      >
+                        <span>📱 Notificar WhatsApp</span>
+                      </button>
+                    }
+                    <button
+                      (click)="openTicketModal(order)"
+                      class="text-xs font-bold text-stone-600 hover:text-stone-900 hover:underline"
+                    >
+                      Ver detalle
+                    </button>
+                  </div>
                 </div>
               </div>
             }
@@ -467,6 +488,15 @@
                   >
                     Ticket
                   </button>
+                  @if (order.customerPhone) {
+                    <button
+                      (click)="sendWhatsAppReadyNotification(order)"
+                      class="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold hover:bg-emerald-600"
+                      title="Notificar WhatsApp que ya está listo"
+                    >
+                      📱 WhatsApp
+                    </button>
+                  }
                   @if (order.status === 'PENDING') {
                     <button
                       (click)="updateStatus(order, 'CONFIRMED')"
@@ -570,25 +600,34 @@
         </div>
 
         <!-- Footer Actions -->
-        <div class="p-4 bg-stone-100 border-t border-stone-200 flex items-center justify-between gap-3">
+        <div class="p-4 bg-stone-100 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
           <button
             (click)="printTicket()"
-            class="flex-1 py-3 bg-stone-900 text-white rounded-2xl font-bold text-xs hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 shadow-sm"
+            class="w-full sm:w-auto flex-1 py-3 bg-stone-900 text-white rounded-2xl font-bold text-xs hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 shadow-xs"
           >
-            <span>🖨️ Imprimir Ticket Térmico</span>
+            <span>🖨️ Imprimir Ticket</span>
           </button>
+
+          @if (selectedTicketOrder()!.customerPhone) {
+            <button
+              (click)="sendWhatsAppReadyNotification(selectedTicketOrder()!)"
+              class="w-full sm:w-auto py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-extrabold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <span>📱 Notificar WhatsApp ("¡Listo!")</span>
+            </button>
+          }
 
           @if (selectedTicketOrder()!.status === 'PENDING') {
             <button
               (click)="updateStatus(selectedTicketOrder()!, 'CONFIRMED')"
-              class="px-4 py-3 bg-blue-600 text-white rounded-2xl font-extrabold text-xs hover:bg-blue-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-2xl font-extrabold text-xs hover:bg-blue-700 transition-colors"
             >
               Cocinar
             </button>
           } @else if (selectedTicketOrder()!.status === 'CONFIRMED') {
             <button
               (click)="updateStatus(selectedTicketOrder()!, 'DELIVERED')"
-              class="px-4 py-3 bg-emerald-600 text-white rounded-2xl font-extrabold text-xs hover:bg-emerald-700 transition-colors"
+              class="w-full sm:w-auto px-4 py-3 bg-emerald-600 text-white rounded-2xl font-extrabold text-xs hover:bg-emerald-700 transition-colors"
             >
               Servir
             </button>

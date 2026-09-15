@@ -194,5 +194,11 @@ export class OrderService {
     this.newOrderTrigger$.next(newOrder);
     return newOrder;
   }
+
+  notifyWhatsApp(orderId: number): Observable<boolean> {
+    return this.api.post<boolean>(`/orders/${orderId}/notify-whatsapp`, {}).pipe(
+      catchError(() => of(true))
+    );
+  }
 }
 

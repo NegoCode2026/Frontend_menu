@@ -65,31 +65,51 @@
       <p class="text-sm text-stone-400 mt-2">Crea tu primera categoría para empezar a armar el menú.</p>
     </div>
   } @else {
-    <div class="mt-8 space-y-3">
-      @for (category of categories(); track category.id) {
-        <div class="bg-white rounded-2xl border border-stone-100 p-5 flex items-center gap-4 card-hover group">
-          <div class="flex flex-col gap-0.5">
-            <button (click)="move(category, -1)" [disabled]="$first" class="text-stone-400 hover:text-primary-600 disabled:opacity-20 text-xs leading-none p-1 rounded hover:bg-primary-50 transition-colors">▲</button>
-            <button (click)="move(category, 1)" [disabled]="$last" class="text-stone-400 hover:text-primary-600 disabled:opacity-20 text-xs leading-none p-1 rounded hover:bg-primary-50 transition-colors">▼</button>
-          </div>
-          <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center text-lg group-hover:scale-110 transition-transform duration-200">
-            🗂️
-          </div>
-          <div class="flex-1 min-w-0">
-            <h3 class="font-bold text-stone-900 group-hover:text-primary-600 transition-colors">{{ category.name }}</h3>
-            @if (category.description) {
-              <p class="text-sm text-stone-400 truncate">{{ category.description }}</p>
-            }
-          </div>
-          <span class="text-xs px-3 py-1.5 rounded-lg font-bold transition-colors" [class]="category.active ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'">
-            {{ category.active ? 'Activa' : 'Inactiva' }}
-          </span>
-          <div class="flex gap-1">
-            <button (click)="startEdit(category)" class="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1.5 rounded-lg transition-all">Editar</button>
-            <button (click)="remove(category)" class="text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all">Eliminar</button>
-          </div>
-        </div>
-      }
+    <div class="mt-8 overflow-x-auto bg-white rounded-3xl border border-stone-100 shadow-sm">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left border-b border-stone-100">
+            <th class="px-6 py-4 font-semibold text-xs text-stone-400 uppercase tracking-wider w-16">Orden</th>
+            <th class="px-6 py-4 font-semibold text-xs text-stone-400 uppercase tracking-wider">Categoría</th>
+            <th class="px-6 py-4 font-semibold text-xs text-stone-400 uppercase tracking-wider">Estado</th>
+            <th class="px-6 py-4 font-semibold text-xs text-stone-400 uppercase tracking-wider text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (category of categories(); track category.id) {
+            <tr class="border-b border-stone-50 last:border-0 hover:bg-stone-50/70 transition-colors group">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-1">
+                  <button (click)="move(category, -1)" [disabled]="$first" class="text-stone-400 hover:text-primary-600 disabled:opacity-20 text-xs p-1 rounded hover:bg-primary-50 transition-colors">▲</button>
+                  <button (click)="move(category, 1)" [disabled]="$last" class="text-stone-400 hover:text-primary-600 disabled:opacity-20 text-xs p-1 rounded hover:bg-primary-50 transition-colors">▼</button>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="flex items-center gap-4">
+                  <div class="w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-200">
+                    🗂️
+                  </div>
+                  <div>
+                    <p class="font-bold text-stone-900">{{ category.name }}</p>
+                    @if (category.description) {
+                      <p class="text-xs text-stone-400 truncate max-w-[250px]">{{ category.description }}</p>
+                    }
+                  </div>
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="text-xs px-3 py-1.5 rounded-lg font-bold transition-all duration-200 inline-block" [class]="category.active ? 'bg-emerald-50 text-emerald-600' : 'bg-stone-100 text-stone-400'">
+                  {{ category.active ? 'Activa' : 'Inactiva' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 text-right whitespace-nowrap">
+                <button (click)="startEdit(category)" class="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1.5 rounded-lg transition-all mr-1">Editar</button>
+                <button (click)="remove(category)" class="text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all">Eliminar</button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
 
     @if (totalPages() > 1) {

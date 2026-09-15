@@ -22,13 +22,13 @@ export class AdminLayoutComponent {
 
   readonly allNavItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: '📊', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/orders', label: 'Pedidos', icon: '📋', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/restaurant', label: 'Mi restaurante', icon: '🏪', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/orders', label: 'Pedidos', icon: '🛒', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/restaurant', label: 'Mi Restaurante', icon: '🏪', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
     { path: '/admin/categories', label: 'Categorías', icon: '🗂️', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/products', label: 'Productos', icon: '🍔', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/qr', label: 'QR del menú', icon: '🔳', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/qr', label: 'Código QR', icon: '📱', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
     { path: '/admin/users', label: 'Usuarios', icon: '👥', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
-    { path: '/admin/settings', label: 'Plan y suscripción', icon: '💳', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
+    { path: '/admin/settings', label: 'Configuración', icon: '⚙️', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
   ];
 
   readonly navItems = computed(() => {

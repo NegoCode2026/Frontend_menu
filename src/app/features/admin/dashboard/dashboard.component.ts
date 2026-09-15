@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
@@ -25,7 +25,27 @@ export class DashboardComponent implements OnInit {
   readonly productCount = signal(0);
   readonly availableCount = signal(0);
   readonly planName = signal<string | null>(null);
+  readonly planEndsAt = signal<string | null>(null);
+  readonly planStatus = signal<string | null>(null);
   readonly loading = signal(true);
+
+  /** Tiempo restante de la suscripción: texto legible (días o fecha de vencimiento). */
+  readonly planRemaining = computed(() => {
+    const status = this.planStatus();
+    if (!status) return null;
+    if (status !== 'ACTIVE') {
+      return status === 'CANCELED' || status === 'PENDING_CANCEL' ? 'Cancelado' : 'Sin plan activo';
+    }
+    const endsAt = this.planEndsAt();
+    if (!endsAt) return null;
+    const ms = new Date(endsAt).getTime() - Date.now();
+    if (ms < 0) return 'Vencido';
+    const days = Math.ceil(ms / 86400000);
+    if (days <= 1) return 'Vence hoy';
+    if (days <= 30) return `Quedan ${days} días`;
+    const date = new Date(endsAt);
+    return `Vence el ${date.toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  });
 
   private readonly router = inject(Router);
 
@@ -54,7 +74,11 @@ export class DashboardComponent implements OnInit {
     });
 
     this.subscriptionService.getMine().subscribe({
-      next: (s) => this.planName.set(s.plan.name),
+      next: (s) => {
+        this.planName.set(s.plan.name);
+        this.planEndsAt.set(s.endsAt);
+        this.planStatus.set(s.status);
+      },
       error: () => undefined,
       complete: () => this.loading.set(false),
     });

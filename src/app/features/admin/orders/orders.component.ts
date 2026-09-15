@@ -235,10 +235,37 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
 
     this.orderService.updateStatusMine(order.id, newStatus).subscribe({
+      next: () => {
+        if (newStatus === 'DELIVERED' && order.customerPhone) {
+          this.sendWhatsAppReadyNotification(order, true);
+        }
+      },
       error: (err) => {
         console.error('Error updating order status:', err);
       },
     });
+  }
+
+  sendWhatsAppReadyNotification(order: Order, openDirectly = false): void {
+    if (!order.customerPhone) {
+      alert('Este pedido no tiene un número de teléfono registrado.');
+      return;
+    }
+
+    // Invocar endpoint del servidor backend
+    this.orderService.notifyWhatsApp(order.id).subscribe();
+
+    let cleanPhone = order.customerPhone.replace(/\D/g, '');
+    if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
+      cleanPhone = '57' + cleanPhone;
+    }
+
+    const message = `¡Hola *${order.customerName}*! 👋\n\n🎉 *¡Tu pedido ${order.orderNumber} ya está listo!* 🍽️\n📍 *Destino/Mesa:* ${order.tableNumber || 'Mesa'}\n\nPuedes pasar a retirarlo o ya va en camino.\n¡Gracias por tu compra! 😊`;
+
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+    if (openDirectly) {
+      window.open(waUrl, '_blank');
+    }
   }
 
   openTicketModal(order: Order): void {
