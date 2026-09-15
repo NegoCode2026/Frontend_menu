@@ -5,6 +5,7 @@ import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
 import { InvoiceService } from '../../core/services/invoice.service';
 import { CartItem, Order, OrderType, PublicMenu } from '../../core/models/models';
+import { PwaBannerComponent } from '../../shared/pwa-banner/pwa-banner.component';
 
 interface DishModalItem {
   id: number;
@@ -17,7 +18,7 @@ interface DishModalItem {
 
 @Component({
   selector: 'app-public-menu',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PwaBannerComponent],
   templateUrl: './public-menu.component.html',
 })
 export class PublicMenuComponent {

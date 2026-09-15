@@ -1,0 +1,30 @@
+{
+  "name": "Tavita — Menús Digitales",
+  "short_name": "Tavita",
+  "description": "Menú digital y pedidos para restaurantes. Escanea el código QR y ordena desde tu celular.",
+  "theme_color": "#f97316",
+  "background_color": "#faf9f7",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

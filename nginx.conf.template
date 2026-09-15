@@ -9,6 +9,23 @@ server {
         try_files $uri $uri/ /index.html;
     }
 
+    # index.html: nunca cachear (el SW maneja la caché)
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
+    # Service Worker: no-cache para siempre revalidar
+    location ~* /ngsw\.(json|js)$ {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Service-Worker-Allowed "/";
+    }
+
+    # Web manifest: MIME type correcto y no cachear
+    location = /manifest.webmanifest {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Content-Type "application/manifest+json";
+    }
+
     # Proxy a la API de Spring Boot (BACKEND_ORIGIN via env al arrancar)
     location /api/ {
         proxy_pass ${BACKEND_ORIGIN};
@@ -24,7 +41,7 @@ server {
         proxy_set_header Host $host;
     }
 
-    # Cache de assets con hash
+    # Cache de assets con hash (JS, CSS, imágenes estáticas)
     location ~* \.(js|css|png|jpg|jpeg|gif|webp|svg|ico)$ {
         expires 7d;
         add_header Cache-Control "public, immutable";

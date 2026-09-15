@@ -1,10 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { PwaBannerComponent } from '../../../shared/pwa-banner/pwa-banner.component';
 
 @Component({
   selector: 'app-admin-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PwaBannerComponent],
   templateUrl: './admin-layout.component.html',
 })
 export class AdminLayoutComponent {
