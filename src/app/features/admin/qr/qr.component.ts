@@ -140,6 +140,47 @@ export class QrComponent implements OnInit {
     return `${origin}/menu/${slug}`;
   });
 
+  constructor() {
+    effect(() => {
+      // Re-trigger live generation when any customization signal updates
+      this.isTableSpecific();
+      this.tablePrefix();
+      this.tableNumber();
+      this.dotStyle();
+      this.eyeFrameStyle();
+      this.eyeBallStyle();
+      this.colorMode();
+      this.gradientAngle();
+      this.qrDarkColor();
+      this.qrDarkColor2();
+      this.qrLightColor();
+      this.customEyeColor();
+      this.qrEyeColor();
+      this.transparentBg();
+      this.showLogo();
+      this.logoType();
+      this.selectedPresetIcon();
+      this.customLogoUrl();
+      this.logoShape();
+      this.logoSize();
+      this.logoBgColor();
+      this.templateStyle();
+      this.callToAction();
+      this.showInstructions();
+      this.instructionsText();
+      this.showWifi();
+      this.wifiNetwork();
+      this.wifiPassword();
+      this.showSocial();
+      this.instagramHandle();
+
+      this.generateQr();
+      if (this.mode() === 'BATCH') {
+        this.generateBatch();
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.restaurantService.getMine().subscribe({
       next: (rest) => {
@@ -555,9 +596,9 @@ export class QrComponent implements OnInit {
   }
 
   // 1. Download Stand Card PNG (1200x1600 px)
-  downloadCardPng(): void {
-    const qrSrc = this.qrDataUrl();
-    if (!qrSrc) return;
+  async downloadCardPng(): Promise<void> {
+    const text = this.currentMenuUrl();
+    const freshQrDataUrl = await this.renderCustomQrCanvas(text, 1024);
 
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
@@ -576,7 +617,6 @@ export class QrComponent implements OnInit {
     if (isGourmet) {
       ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Gold frame gradient
       const borderGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
       borderGrad.addColorStop(0, '#f59e0b');
       borderGrad.addColorStop(0.5, '#d97706');
@@ -587,7 +627,6 @@ export class QrComponent implements OnInit {
     } else if (isNeon) {
       ctx.fillStyle = '#030712';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // Neon glow border
       ctx.strokeStyle = '#06b6d4';
       ctx.lineWidth = 12;
       ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
@@ -595,10 +634,18 @@ export class QrComponent implements OnInit {
       ctx.fillStyle = '#fffbeb';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#ea580c';
-      ctx.fillRect(0, 0, canvas.width, 26);
+      ctx.fillRect(0, 0, canvas.width, 28);
       ctx.strokeStyle = '#fed7aa';
       ctx.lineWidth = 12;
       ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+    } else if (isSticker) {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.arc(canvas.width / 2, canvas.height / 2, 740, 0, Math.PI * 2);
+      ctx.stroke();
     } else {
       // Modern & Acrylic
       ctx.fillStyle = '#ffffff';
@@ -700,7 +747,7 @@ export class QrComponent implements OnInit {
       link.href = canvas.toDataURL('image/png');
       link.click();
     };
-    img.src = qrSrc;
+    img.src = freshQrDataUrl;
   }
 
   // 2. Download Pure QR Code PNG (1024x1024 px)
