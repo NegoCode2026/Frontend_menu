@@ -79,7 +79,10 @@ export class RestaurantComponent implements OnInit {
     this.saving.set(true);
     this.message.set(null);
 
-    this.restaurantService.updateMine(this.form.value).subscribe({
+    this.restaurantService.updateMine({
+      ...this.form.value,
+      logoUrl: this.restaurant()?.logoUrl ?? null,
+    }).subscribe({
       next: (restaurant) => {
         this.restaurant.set(restaurant);
         this.saving.set(false);
