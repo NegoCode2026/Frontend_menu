@@ -169,6 +169,15 @@ export class PublicMenuComponent {
     }
   }
 
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  focusSearch(): void {
+    document.getElementById('menu-search')?.focus({ preventScroll: false });
+    document.getElementById('menu-search')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   setFilterTag(tag: string): void {
     this.activeFilterTag.set(tag);
   }

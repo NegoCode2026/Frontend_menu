@@ -5,14 +5,15 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        API_URL: /api
-        APP_BASE_URL: http://localhost:4200
-        BACKEND_ORIGIN: http://host.docker.internal:8080
+        # Se hornean en el build. En prod pásalos con --env-file .env.prod.
+        API_URL: ${API_URL:-/api}
+        APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4200}
+        BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://host.docker.internal:8080}
     environment:
       # Origen del backend Spring Boot. Para backend local usa
       # http://host.docker.internal:8080, para otro contenedor en la
-      # misma red usa http://backend:8080
-      BACKEND_ORIGIN: http://host.docker.internal:8080
+      # misma red usa http://backend:8080 (.env.prod ya trae ese valor)
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://host.docker.internal:8080}
       PORT: 80
     ports:
       - "4200:80"
