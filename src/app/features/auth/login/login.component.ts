@@ -27,7 +27,10 @@ export class LoginComponent {
     this.errorMessage = null;
 
     this.auth.login(this.form.value.email, this.form.value.password).subscribe({
-      next: () => this.router.navigate(['/admin']),
+      next: (user) => {
+        const role = (user.role ?? '').startsWith('ROLE_') ? user.role.substring(5) : user.role;
+        this.router.navigate([role === 'SUPER_ADMIN' ? '/admin/super-admin/dashboard' : '/admin']);
+      },
       error: (err) => {
         this.loading = false;
         this.errorMessage = err.error?.message ?? 'Credenciales inválidas';

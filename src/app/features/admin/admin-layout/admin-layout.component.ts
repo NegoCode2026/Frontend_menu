@@ -13,7 +13,10 @@ export class AdminLayoutComponent {
   readonly user = this.auth.user;
   readonly mobileMenuOpen = signal(false);
 
-  readonly isSuperAdmin = computed(() => this.user()?.role === 'SUPER_ADMIN');
+  readonly isSuperAdmin = computed(() => {
+    const role = this.user()?.role ?? '';
+    return (role.startsWith('ROLE_') ? role.substring(5) : role) === 'SUPER_ADMIN';
+  });
 
   readonly superNavItems = [
     { path: '/admin/super-admin/dashboard', label: 'Panel Super Admin', icon: '👑' },
@@ -22,18 +25,19 @@ export class AdminLayoutComponent {
   ];
 
   readonly allNavItems = [
-    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/orders', label: 'Pedidos', icon: '🛒', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/restaurant', label: 'Mi Restaurante', icon: '🏪', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
-    { path: '/admin/categories', label: 'Categorías', icon: '🗂️', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/products', label: 'Productos', icon: '🍔', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
-    { path: '/admin/qr', label: 'Código QR', icon: '📱', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
-    { path: '/admin/users', label: 'Usuarios', icon: '👥', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
-    { path: '/admin/settings', label: 'Configuración', icon: '⚙️', roles: ['SUPER_ADMIN', 'RESTAURANT_ADMIN'] },
+    { path: '/admin/dashboard', label: 'Dashboard', icon: '📊', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/orders', label: 'Pedidos', icon: '🛒', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/restaurant', label: 'Mi Restaurante', icon: '🏪', roles: ['RESTAURANT_ADMIN'] },
+    { path: '/admin/categories', label: 'Categorías', icon: '🗂️', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/products', label: 'Productos', icon: '🍔', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/qr', label: 'Código QR', icon: '📱', roles: ['RESTAURANT_ADMIN'] },
+    { path: '/admin/users', label: 'Usuarios', icon: '👥', roles: ['RESTAURANT_ADMIN'] },
+    { path: '/admin/settings', label: 'Configuración', icon: '⚙️', roles: ['RESTAURANT_ADMIN'] },
   ];
 
   readonly navItems = computed(() => {
-    const role = this.user()?.role;
+    const rawRole = this.user()?.role ?? '';
+    const role = rawRole.startsWith('ROLE_') ? rawRole.substring(5) : rawRole;
     if (!role) return [];
     return this.allNavItems.filter((item) => item.roles.includes(role));
   });

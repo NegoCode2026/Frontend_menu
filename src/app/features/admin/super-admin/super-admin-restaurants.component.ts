@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { debounceTime, Subject } from 'rxjs';
 import { AdminService } from '../../../core/services/admin.service';
 import { AdminRestaurant } from '../../../core/models/models';
 
@@ -13,14 +14,21 @@ import { AdminRestaurant } from '../../../core/models/models';
 export class SuperAdminRestaurantsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
   private readonly fb = inject(FormBuilder);
+  private readonly search$ = new Subject<string>();
 
   readonly restaurants = signal<AdminRestaurant[]>([]);
   readonly loading = signal(true);
   readonly searchTerm = signal('');
+  readonly activeFilter = signal<'all' | 'active' | 'inactive'>('all');
+  readonly page = signal(0);
+  readonly size = signal(20);
+  readonly totalElements = signal(0);
+  readonly totalPages = signal(1);
   readonly showModal = signal(false);
   readonly submitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly loadError = signal<string | null>(null);
+  readonly actionError = signal<string | null>(null);
 
   readonly form: FormGroup = this.fb.group({
     restaurantName: ['', [Validators.required, Validators.maxLength(120)]],
@@ -41,39 +49,62 @@ export class SuperAdminRestaurantsComponent implements OnInit {
     planCode: ['NEGOCODE', Validators.required],
   });
 
-  readonly filteredRestaurants = computed(() => {
-    const term = this.searchTerm().trim().toLowerCase();
-    if (!term) return this.restaurants();
-    return this.restaurants().filter(
-      (r) =>
-        r.name.toLowerCase().includes(term) ||
-        r.slug.toLowerCase().includes(term) ||
-        (r.adminEmail && r.adminEmail.toLowerCase().includes(term)) ||
-        (r.planName && r.planName.toLowerCase().includes(term))
-    );
-  });
-
   ngOnInit(): void {
+    this.search$.pipe(debounceTime(400)).subscribe((term) => {
+      this.searchTerm.set(term);
+      this.page.set(0);
+      this.loadRestaurants();
+    });
+    this.loadRestaurants();
+  }
+
+  onSearchInput(value: string): void {
+    this.search$.next(value);
+  }
+
+  setActiveFilter(value: 'all' | 'active' | 'inactive'): void {
+    this.activeFilter.set(value);
+    this.page.set(0);
     this.loadRestaurants();
   }
 
   loadRestaurants(): void {
     this.loading.set(true);
     this.loadError.set(null);
-    this.adminService.listRestaurants().subscribe({
-      next: (list) => {
-        this.restaurants.set(list);
-        this.loading.set(false);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        this.loadError.set(
-          err.status === 401 || err.status === 403
-            ? 'Tu sesión no tiene permisos de Super Admin. Vuelve a iniciar sesión con la cuenta correcta.'
-            : 'No se pudieron cargar los restaurantes. Verifica tu conexión e inténtalo de nuevo.'
-        );
-      },
-    });
+    this.actionError.set(null);
+    const active = this.activeFilter() === 'all' ? undefined : this.activeFilter() === 'active';
+    this.adminService
+      .listRestaurants({ page: this.page(), size: this.size(), search: this.searchTerm().trim() || undefined, active })
+      .subscribe({
+        next: (p) => {
+          this.restaurants.set(p.content);
+          this.totalElements.set(p.totalElements);
+          this.totalPages.set(Math.max(1, p.totalPages));
+          this.loading.set(false);
+        },
+        error: (err) => {
+          this.loading.set(false);
+          this.loadError.set(
+            err.status === 401 || err.status === 403
+              ? 'Tu sesión no tiene permisos de Super Admin. Vuelve a iniciar sesión con la cuenta correcta.'
+              : 'No se pudieron cargar los restaurantes. Verifica tu conexión e inténtalo de nuevo.'
+          );
+        },
+      });
+  }
+
+  nextPage(): void {
+    if (this.page() + 1 < this.totalPages()) {
+      this.page.update((v) => v + 1);
+      this.loadRestaurants();
+    }
+  }
+
+  prevPage(): void {
+    if (this.page() > 0) {
+      this.page.update((v) => v - 1);
+      this.loadRestaurants();
+    }
   }
 
   suggestSlug(): void {
@@ -106,6 +137,7 @@ export class SuperAdminRestaurantsComponent implements OnInit {
       next: () => {
         this.submitting.set(false);
         this.showModal.set(false);
+        this.page.set(0);
         this.loadRestaurants();
       },
       error: (err) => {
@@ -122,12 +154,19 @@ export class SuperAdminRestaurantsComponent implements OnInit {
   }
 
   toggleActive(restaurant: AdminRestaurant): void {
-    const newStatus = !restaurant.active;
+    const previous = restaurant.active;
+    const newStatus = !previous;
+    this.actionError.set(null);
+    // Optimista con reversión si falla
+    this.restaurants.update((list) =>
+      list.map((item) => (item.id === restaurant.id ? { ...item, active: newStatus } : item))
+    );
     this.adminService.toggleRestaurantActive(restaurant.id, newStatus).subscribe({
-      next: () => {
+      error: (err) => {
         this.restaurants.update((list) =>
-          list.map((item) => (item.id === restaurant.id ? { ...item, active: newStatus } : item))
+          list.map((item) => (item.id === restaurant.id ? { ...item, active: previous } : item))
         );
+        this.actionError.set(err.error?.message ?? 'No se pudo cambiar el estado. Reintenta.');
       },
     });
   }

@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { ApiResponse } from '../models/models';
+import { ApiResponse, Page } from '../models/models';
 
 /**
  * Cliente HTTP de la API. Con withCredentials las cookies HttpOnly
@@ -38,6 +38,24 @@ export class ApiService {
 
   raw<T>(path: string): Observable<T> {
     return this.http.get<T>(this.url(path), this.options());
+  }
+
+  /**
+   * GET paginado: acepta Page<T> del backend nuevo o array plano del backend
+   * antiguo y lo adapta a Page para no romper componentes durante el despliegue.
+   */
+  getPaged<T>(path: string, params?: HttpParams): Observable<Page<T>> {
+    return this.http
+      .get<ApiResponse<Page<T> | T[]>>(this.url(path), { ...this.options(), params })
+      .pipe(
+        map((r) => {
+          const data = r.data;
+          if (Array.isArray(data)) {
+            return { content: data, totalElements: data.length, totalPages: 1, number: 0, size: data.length };
+          }
+          return data as Page<T>;
+        })
+      );
   }
 
   private url(path: string): string {

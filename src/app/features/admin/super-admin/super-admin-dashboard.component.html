@@ -1,115 +1,183 @@
 <div class="anim-fade-in-up space-y-8">
-  <!-- Header -->
-  <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold mb-2">
-        <span>👑 Panel Global Super Admin</span>
+  <!-- Hero -->
+  <section class="relative overflow-hidden rounded-3xl border border-amber-200/60 bg-gradient-to-br from-amber-50 via-white to-primary-50/60 shadow-sm">
+    <div
+      class="pointer-events-none absolute inset-0 opacity-[0.5]"
+      style="background-image: radial-gradient(circle at 85% 15%, rgba(249,115,22,.14), transparent 42%), radial-gradient(circle at 10% 90%, rgba(217,119,6,.10), transparent 45%);"
+    ></div>
+    <div class="pointer-events-none absolute -right-10 -top-14 select-none text-[11rem] leading-none opacity-[0.07] rotate-12">👑</div>
+    <div class="relative flex flex-col gap-5 p-6 sm:p-8 md:flex-row md:items-center md:justify-between">
+      <div class="min-w-0">
+        <div class="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-100/80 px-3 py-1 text-xs font-extrabold text-amber-800 shadow-xs">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-500 opacity-60"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-600"></span>
+          </span>
+          PANEL GLOBAL · SUPER ADMIN
+        </div>
+        <h1 class="mt-3 text-3xl font-black tracking-tight text-stone-900 sm:text-4xl">
+          Bienvenido, <span class="bg-gradient-to-r from-primary-600 to-amber-500 bg-clip-text text-transparent">{{ user()?.name }}</span>
+        </h1>
+        <p class="mt-1.5 max-w-xl text-sm leading-relaxed text-stone-500">
+          Supervisión y control total de la plataforma SaaS: restaurantes, usuarios, planes y estado operativo en un vistazo.
+        </p>
       </div>
-      <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Bienvenido, {{ user()?.name }}</h1>
-      <p class="text-stone-500 mt-1">Supervisión y control total de la plataforma SaaS.</p>
+      <div class="flex flex-col sm:flex-row md:flex-col lg:flex-row items-stretch gap-3 shrink-0">
+        <a
+          routerLink="/admin/super-admin/restaurants"
+          class="group inline-flex items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-3 text-sm font-bold text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg active:translate-y-0"
+        >
+          <span class="text-base transition-transform group-hover:scale-110">🏪</span>
+          Gestionar Restaurantes
+          <span class="transition-transform group-hover:translate-x-0.5">→</span>
+        </a>
+        <a
+          routerLink="/admin/super-admin/users"
+          class="inline-flex items-center justify-center gap-2 rounded-2xl border border-stone-200 bg-white/80 px-5 py-3 text-sm font-bold text-stone-700 shadow-sm backdrop-blur transition-all hover:-translate-y-0.5 hover:border-stone-300 hover:shadow active:translate-y-0"
+        >
+          <span>👥</span>
+          Ver Usuarios
+        </a>
+      </div>
     </div>
-    <div class="flex items-center gap-3">
-      <a
-        routerLink="/admin/super-admin/restaurants"
-        class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold text-sm hover:from-primary-700 hover:to-primary-600 transition-all shadow-md shadow-primary-500/20 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-      >
-        <span>🏪 Gestionar Restaurantes</span>
-      </a>
+  </section>
+
+  <!-- KPI header row -->
+  <div class="flex items-end justify-between">
+    <div>
+      <p class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-stone-400">Resumen operativo</p>
+      <h2 class="text-lg font-extrabold text-stone-900">Salud de la plataforma</h2>
     </div>
+    @if (stats()) {
+      <span class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700">
+        <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        Datos en vivo
+      </span>
+    }
   </div>
 
   <!-- KPI Grid -->
   @if (loading()) {
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
       @for (item of [1,2,3,4,5]; track $index) {
-        <div class="h-28 bg-stone-100 rounded-2xl animate-pulse"></div>
+        <div class="rounded-2xl border border-stone-100 bg-white p-5 shadow-sm">
+          <div class="mb-4 flex items-center justify-between">
+            <div class="h-10 w-10 animate-pulse rounded-xl bg-stone-100"></div>
+            <div class="h-5 w-14 animate-pulse rounded-full bg-stone-100"></div>
+          </div>
+          <div class="h-3 w-20 animate-pulse rounded bg-stone-100"></div>
+          <div class="mt-2 h-8 w-12 animate-pulse rounded-lg bg-stone-100"></div>
+        </div>
       }
     </div>
   } @else if (stats()) {
-    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+    <div class="grid grid-cols-2 gap-4 lg:grid-cols-5">
       <!-- Total Restaurants -->
-      <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-1 group">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <span class="text-lg">🏢</span>
-          </div>
-          <span class="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">SaaS</span>
+      <div class="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg anim-fade-in-up anim-delay-1">
+        <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-amber-500 to-amber-300"></span>
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 text-lg ring-1 ring-amber-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">🏢</div>
+          <span class="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-extrabold text-amber-700 ring-1 ring-amber-200/60">SaaS</span>
         </div>
-        <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Restaurantes</p>
-        <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ stats()?.totalRestaurants }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Restaurantes</p>
+        <p class="mt-1 text-3xl font-black tabular-nums text-stone-900">{{ stats()?.totalRestaurants }}</p>
+        <p class="mt-1 text-[11px] font-semibold text-stone-400">cuentas registradas</p>
       </div>
 
       <!-- Active Restaurants -->
-      <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-2 group">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <span class="text-lg">✅</span>
-          </div>
-          <span class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">Activos</span>
+      <div class="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg anim-fade-in-up anim-delay-2">
+        <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-300"></span>
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-lg ring-1 ring-emerald-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">✅</div>
+          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-extrabold text-emerald-700 ring-1 ring-emerald-200/60">Activos</span>
         </div>
-        <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Activos</p>
-        <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ stats()?.activeRestaurants }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">En operación</p>
+        <p class="mt-1 text-3xl font-black tabular-nums text-stone-900">{{ stats()?.activeRestaurants }}</p>
+        <p class="mt-1 text-[11px] font-semibold text-stone-400">de {{ stats()?.totalRestaurants }} totales</p>
       </div>
 
       <!-- Total Users -->
-      <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-3 group">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <span class="text-lg">👥</span>
-          </div>
-          <span class="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">Global</span>
+      <div class="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg anim-fade-in-up anim-delay-3">
+        <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-sky-300"></span>
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-lg ring-1 ring-blue-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">👥</div>
+          <span class="rounded-full bg-blue-50 px-2.5 py-1 text-[11px] font-extrabold text-blue-700 ring-1 ring-blue-200/60">Global</span>
         </div>
-        <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Usuarios</p>
-        <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ stats()?.totalUsers }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Usuarios</p>
+        <p class="mt-1 text-3xl font-black tabular-nums text-stone-900">{{ stats()?.totalUsers }}</p>
+        <p class="mt-1 text-[11px] font-semibold text-stone-400">todos los roles</p>
       </div>
 
       <!-- Active Subscriptions -->
-      <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-4 group">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <span class="text-lg">💳</span>
-          </div>
-          <span class="text-xs font-bold text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full">Planes</span>
+      <div class="group relative overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg anim-fade-in-up anim-delay-4">
+        <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-violet-500 to-fuchsia-300"></span>
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-lg ring-1 ring-violet-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">💳</div>
+          <span class="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-extrabold text-violet-700 ring-1 ring-violet-200/60">Planes</span>
         </div>
-        <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Suscripciones</p>
-        <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ stats()?.activeSubscriptions }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Suscripciones</p>
+        <p class="mt-1 text-3xl font-black tabular-nums text-stone-900">{{ stats()?.activeSubscriptions }}</p>
+        <p class="mt-1 text-[11px] font-semibold text-stone-400">activas este ciclo</p>
       </div>
 
       <!-- Total Products -->
-      <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-5 group col-span-2 lg:col-span-1">
-        <div class="flex items-center justify-between mb-3">
-          <div class="w-10 h-10 rounded-xl bg-rose-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-            <span class="text-lg">🍔</span>
-          </div>
-          <span class="text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-full">Platos</span>
+      <div class="group relative col-span-2 overflow-hidden rounded-2xl border border-stone-100 bg-white p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg anim-fade-in-up anim-delay-5 lg:col-span-1">
+        <span class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary-500 to-rose-300"></span>
+        <div class="mb-3 flex items-center justify-between">
+          <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-500/10 text-lg ring-1 ring-primary-500/20 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">🍔</div>
+          <span class="rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-extrabold text-primary-700 ring-1 ring-primary-200/60">Platos</span>
         </div>
-        <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Productos Totales</p>
-        <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ stats()?.totalProducts }}</p>
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">Productos totales</p>
+        <p class="mt-1 text-3xl font-black tabular-nums text-stone-900">{{ stats()?.totalProducts }}</p>
+        <p class="mt-1 text-[11px] font-semibold text-stone-400">en todos los menús</p>
       </div>
+    </div>
+  } @else if (loadError(); as error) {
+    <div class="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex items-start gap-3">
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100 text-base">⚠️</span>
+        <div>
+          <p class="text-sm font-extrabold text-red-800">No se pudieron cargar las métricas</p>
+          <p class="text-xs font-semibold text-red-600">{{ error }}</p>
+        </div>
+      </div>
+      <button (click)="retry()" class="shrink-0 rounded-xl bg-red-600 px-4 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-red-700">Reintentar</button>
     </div>
   }
 
-  <!-- Quick Action Navigation Cards -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- Quick actions -->
+  <div class="flex items-end justify-between">
+    <div>
+      <p class="text-[11px] font-extrabold uppercase tracking-[0.14em] text-stone-400">Accesos directos</p>
+      <h2 class="text-lg font-extrabold text-stone-900">¿Qué quieres revisar hoy?</h2>
+    </div>
+  </div>
+  <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
     <a
       routerLink="/admin/super-admin/restaurants"
-      class="group relative bg-white border border-stone-100 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+      class="group relative overflow-hidden rounded-3xl border border-stone-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-200 hover:shadow-xl"
     >
-      <div class="absolute -right-6 -bottom-6 text-8xl opacity-10 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
-        🏢
-      </div>
-      <div class="flex items-start gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center text-2xl group-hover:bg-amber-500 group-hover:text-white transition-all duration-300 shrink-0">
-          🏢
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-stone-900 group-hover:text-amber-600 transition-colors">Gestión de Restaurantes</h3>
-          <p class="text-stone-500 text-sm mt-1 leading-relaxed">
-            Ver todos los restaurantes registrados, registrar nuevos clientes SaaS, habilitar o suspender cuentas y ver sus usuarios asignados.
+      <div
+        class="pointer-events-none absolute inset-0 opacity-60"
+        style="background-image: radial-gradient(circle at 90% 110%, rgba(217,119,6,.12), transparent 55%);"
+      ></div>
+      <div class="pointer-events-none absolute -bottom-8 -right-4 select-none text-8xl opacity-10 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-6">🏢</div>
+      <div class="relative flex items-start gap-4">
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-2xl text-white shadow-md shadow-amber-500/25 transition-all duration-300 group-hover:scale-105">🏢</div>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h3 class="text-xl font-extrabold tracking-tight text-stone-900 transition-colors group-hover:text-amber-700">Gestión de Restaurantes</h3>
+          </div>
+          <p class="mt-1 text-sm leading-relaxed text-stone-500">
+            Altas de clientes SaaS, suspensión y reactivación de cuentas, planes y administradores asignados.
           </p>
-          <div class="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-amber-600 group-hover:translate-x-1 transition-transform">
-            <span>Administrar Restaurantes</span>
-            <span>→</span>
+          <div class="mt-4 flex items-center gap-3">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-500 px-3.5 py-1.5 text-sm font-bold text-white shadow-sm transition-transform group-hover:translate-x-1">
+              Administrar <span>→</span>
+            </span>
+            @if (stats()) {
+              <span class="text-xs font-bold text-stone-400 tabular-nums">{{ stats()?.totalRestaurants }} registrados · {{ stats()?.activeRestaurants }} activos</span>
+            }
           </div>
         </div>
       </div>
@@ -117,23 +185,27 @@
 
     <a
       routerLink="/admin/super-admin/users"
-      class="group relative bg-white border border-stone-100 rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden"
+      class="group relative overflow-hidden rounded-3xl border border-stone-100 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-blue-200 hover:shadow-xl"
     >
-      <div class="absolute -right-6 -bottom-6 text-8xl opacity-10 group-hover:scale-110 transition-transform duration-300 pointer-events-none">
-        👥
-      </div>
-      <div class="flex items-start gap-4">
-        <div class="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center text-2xl group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 shrink-0">
-          👥
-        </div>
-        <div>
-          <h3 class="text-xl font-bold text-stone-900 group-hover:text-blue-600 transition-colors">Usuarios Globales</h3>
-          <p class="text-stone-500 text-sm mt-1 leading-relaxed">
-            Inspeccionar todos los usuarios del sistema, filtrar por rol (Super Admin, Admin Restaurante, Operativo) y gestionar accesos activos.
+      <div
+        class="pointer-events-none absolute inset-0 opacity-60"
+        style="background-image: radial-gradient(circle at 90% 110%, rgba(37,99,235,.12), transparent 55%);"
+      ></div>
+      <div class="pointer-events-none absolute -bottom-8 -right-4 select-none text-8xl opacity-10 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">👥</div>
+      <div class="relative flex items-start gap-4">
+        <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-sky-500 text-2xl text-white shadow-md shadow-blue-500/25 transition-all duration-300 group-hover:scale-105">👥</div>
+        <div class="min-w-0">
+          <h3 class="text-xl font-extrabold tracking-tight text-stone-900 transition-colors group-hover:text-blue-700">Usuarios Globales</h3>
+          <p class="mt-1 text-sm leading-relaxed text-stone-500">
+            Todos los accesos de la plataforma por rol y restaurante: audita, filtra y gestiona estados.
           </p>
-          <div class="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 group-hover:translate-x-1 transition-transform">
-            <span>Ver Todos los Usuarios</span>
-            <span>→</span>
+          <div class="mt-4 flex items-center gap-3">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3.5 py-1.5 text-sm font-bold text-white shadow-sm transition-transform group-hover:translate-x-1">
+              Ver usuarios <span>→</span>
+            </span>
+            @if (stats()) {
+              <span class="text-xs font-bold text-stone-400 tabular-nums">{{ stats()?.totalUsers }} cuentas</span>
+            }
           </div>
         </div>
       </div>

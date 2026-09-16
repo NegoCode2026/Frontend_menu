@@ -10,6 +10,9 @@ import { setCsrfToken } from '../interceptors/csrf.interceptor';
  * Estado de autenticación basado en signals, SIN tokens en localStorage:
  * los JWT viven en cookies HttpOnly gestionadas por el backend y el
  * usuario autenticado se mantiene en memoria (recuperable con /auth/me).
+ *
+ * Roles canónicos SIN prefijo ROLE_: SUPER_ADMIN, RESTAURANT_ADMIN, RESTAURANT_USER.
+ * normalizeRole() elimina un eventual prefijo ROLE_ heredado de cachés antiguas.
  */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -50,22 +53,11 @@ export class AuthService {
     return this.bootstrapCsrf().pipe(
       switchMap(() => this.api.post<AuthResponse>('/auth/login', { email, password })),
       tap((r) => {
-        this.userSignal.set(r.user);
-        try { localStorage.setItem('tavita_user', JSON.stringify(r.user)); } catch {}
+        const user = this.normalizeUser(r.user);
+        this.userSignal.set(user);
+        try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
       }),
-      map((r) => r.user),
-      catchError(() => {
-        const demoUser: TokenUser = {
-          id: 1,
-          email: email || 'admin@negobistro.com',
-          name: (email.split('@')[0] || 'Admin').replace('.', ' '),
-          role: email.toLowerCase().includes('super') ? 'ROLE_SUPER_ADMIN' : 'ROLE_RESTAURANT_ADMIN',
-          restaurantId: 1,
-        };
-        this.userSignal.set(demoUser);
-        try { localStorage.setItem('tavita_user', JSON.stringify(demoUser)); } catch {}
-        return of(demoUser);
-      })
+      map((r) => this.normalizeUser(r.user)),
     );
   }
 
@@ -79,22 +71,11 @@ export class AuthService {
     return this.bootstrapCsrf().pipe(
       switchMap(() => this.api.post<AuthResponse>('/auth/register', payload)),
       tap((r) => {
-        this.userSignal.set(r.user);
-        try { localStorage.setItem('tavita_user', JSON.stringify(r.user)); } catch {}
+        const user = this.normalizeUser(r.user);
+        this.userSignal.set(user);
+        try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
       }),
-      map((r) => r.user),
-      catchError(() => {
-        const demoUser: TokenUser = {
-          id: 1,
-          email: payload.email,
-          name: payload.name,
-          role: 'ROLE_RESTAURANT_ADMIN',
-          restaurantId: 1,
-        };
-        this.userSignal.set(demoUser);
-        try { localStorage.setItem('tavita_user', JSON.stringify(demoUser)); } catch {}
-        return of(demoUser);
-      })
+      map((r) => this.normalizeUser(r.user)),
     );
   }
 
@@ -102,8 +83,8 @@ export class AuthService {
   refresh(): Observable<TokenUser | null> {
     return this.bootstrapCsrf().pipe(
       switchMap(() => this.api.post<AuthResponse>('/auth/refresh')),
-      tap((r) => this.userSignal.set(r.user)),
-      map((r) => r.user),
+      tap((r) => this.userSignal.set(this.normalizeUser(r.user))),
+      map((r) => this.normalizeUser(r.user)),
       catchError(() => of(null)),
     );
   }
@@ -137,15 +118,16 @@ export class AuthService {
   restoreSession(): Observable<TokenUser | null> {
     return this.api.get<TokenUser>('/auth/me').pipe(
       tap((user) => {
-        this.userSignal.set(user);
-        try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
+        const normalized = this.normalizeUser(user);
+        this.userSignal.set(normalized);
+        try { localStorage.setItem('tavita_user', JSON.stringify(normalized)); } catch {}
       }),
-      map((user) => user),
+      map((user) => this.normalizeUser(user)),
       catchError(() => {
         try {
           const cached = localStorage.getItem('tavita_user');
           if (cached) {
-            const user = JSON.parse(cached);
+            const user = this.normalizeUser(JSON.parse(cached));
             this.userSignal.set(user);
             return of(user);
           }
@@ -157,14 +139,28 @@ export class AuthService {
   }
 
   updateUser(user: TokenUser): void {
-    this.userSignal.set(user);
-    try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
+    const normalized = this.normalizeUser(user);
+    this.userSignal.set(normalized);
+    try { localStorage.setItem('tavita_user', JSON.stringify(normalized)); } catch {}
   }
 
   clearSession(): void {
     this.userSignal.set(null);
     try { localStorage.removeItem('tavita_user'); } catch {}
   }
+
+  /** Rol canónico sin prefijo ROLE_ (migra cachés antiguas). */
+  normalizeRole(role: string | null | undefined): string {
+    if (!role) return '';
+    return role.startsWith('ROLE_') ? role.substring(5) : role;
+  }
+
+  private normalizeUser(user: TokenUser): TokenUser {
+    if (!user) return user;
+    return { ...user, role: this.normalizeRole(user.role) };
+  }
+
+  readonly isSuperAdmin = computed(() => this.normalizeRole(this.userSignal()?.role) === 'SUPER_ADMIN');
 
   redirectToLogin(): void {
     this.clearSession();
