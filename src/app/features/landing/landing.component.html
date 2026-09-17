@@ -1,0 +1,147 @@
+<!-- LANDING TAVITA · réplica de referencia -->
+<div class="min-h-screen bg-[#FBF9F5] text-[#1C1917] antialiased">
+
+  <!-- Nav -->
+  <header class="border-b border-stone-900/10">
+    <div class="mx-auto flex max-w-[1200px] items-center justify-between gap-4 px-6 py-4">
+      <a routerLink="/" class="flex items-center gap-2">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#D97745]">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="h-5 w-5" aria-hidden="true"><path d="M12 22c4.4 0 7.5-3 7.5-7.2 0-3.1-1.7-5.3-3.2-7C14.7 6 13.5 4.5 13 2c-3 2-4.5 4.3-5.3 6.5-.4-1-.6-2-.7-3.2C5.6 6.9 4.5 9.4 4.5 12 4.5 17 7.6 22 12 22zm0-4.5a2.75 2.75 0 0 1-2.75-2.75c0-1.2.7-2.1 1.3-2.9.5-.7 1-1.3 1.2-2.1.9.7 2.05 1.9 2.05 3.9 0 2.15-1.2 3.85-1.8 3.85z" /></svg>
+        </span>
+        <span class="landing-serif text-[22px] font-bold tracking-tight">Tavita</span>
+      </a>
+      <nav class="hidden items-center gap-8 text-[13px] font-normal text-stone-500 md:flex">
+        <a routerLink="/" fragment="como-funciona" class="transition-colors hover:text-[#1C1917]">Cómo funciona</a>
+        <a routerLink="/" fragment="menu-digital" class="transition-colors hover:text-[#1C1917]">Menú digital</a>
+        <a routerLink="/" fragment="precios" class="transition-colors hover:text-[#1C1917]">Precios</a>
+      </nav>
+      <div class="flex items-center gap-5">
+        <a routerLink="/login" class="hidden text-[13px] font-normal text-stone-500 transition-colors hover:text-[#1C1917] sm:inline">Iniciar sesión</a>
+        <a routerLink="/register" class="landing-btn-dark">Crear mi restaurante <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="mx-auto grid max-w-[1200px] items-center gap-12 px-6 pb-20 pt-14 lg:grid-cols-2 lg:pt-20">
+    <div class="anim-fade-in-up">
+      <p class="landing-eyebrow">La operación de tu restaurante, en una sola mesa</p>
+      <h1 class="landing-serif mt-6 text-[56px] font-medium leading-[1.04] tracking-[-0.01em] sm:text-[76px] lg:text-[88px]">
+        Sirve mejor.<br />
+        <em class="font-medium text-[#D97745]">Crece tranquilo.</em>
+      </h1>
+      <p class="mt-6 max-w-[46ch] text-[15px] leading-relaxed text-stone-500">
+        Tavita reúne tu menú digital, pedidos y códigos QR para que puedas volver
+        a hacer lo que más te gusta: cuidar la experiencia.
+      </p>
+      <div class="mt-8 flex flex-wrap items-center gap-5">
+        <a routerLink="/register" class="landing-btn-dark">Empieza gratis <span aria-hidden="true">→</span></a>
+        <p class="text-[12px] font-normal text-stone-400">Sin tarjeta · Configuración en 5 minutos</p>
+      </div>
+    </div>
+
+    <!-- Mock panel -->
+    <div class="relative mx-auto w-full max-w-[520px] anim-fade-in-up anim-delay-2">
+      <div class="pointer-events-none absolute -right-10 top-1/2 h-[420px] w-[420px] -translate-y-1/2 rounded-full border border-[#D97745]/40" aria-hidden="true"></div>
+      <div class="relative rotate-2 rounded-lg bg-white p-7 shadow-[0_30px_60px_-20px_rgba(28,25,23,0.18)]">
+        <p class="text-[12px] font-normal text-stone-400">Viernes, 24 mayo</p>
+        <p class="landing-serif mt-2 text-[28px] font-medium">Buenas noches, <em class="text-[#D97745]">Marcos.</em></p>
+        <div class="mt-6 grid grid-cols-2 gap-6 border-t border-stone-100 pt-6">
+          <div>
+            <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-400">Pedidos</p>
+            <p class="landing-serif mt-1 text-[40px] font-medium leading-none">24</p>
+            <p class="mt-1 text-[11px] font-normal text-stone-400">+4 esta semana</p>
+          </div>
+          <div>
+            <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-400">Carta al día</p>
+            <p class="landing-serif mt-1 text-[40px] font-medium leading-none">83%</p>
+            <p class="mt-1 text-[11px] font-normal text-stone-400">68 de 82 platos</p>
+          </div>
+        </div>
+        <div class="mt-6 flex items-center justify-between border-t border-stone-100 pt-5">
+          <div>
+            <p class="text-[13px] font-bold">Orden en marcha</p>
+            <p class="text-[11px] font-normal text-stone-400">M4 · 2 cubiertos</p>
+          </div>
+          <span class="rounded bg-[#F7DCC3] px-2.5 py-1 text-[11px] font-bold text-[#B85C32]">En preparación</span>
+        </div>
+      </div>
+      <div class="absolute -right-3 top-6 flex -rotate-2 items-center gap-2.5 rounded-md bg-white px-4 py-3 shadow-[0_16px_40px_-12px_rgba(28,25,23,0.25)] sm:-right-8">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 text-[#D97745]" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zM3 9h18M8 2v4M16 2v4" /></svg>
+        <div>
+          <p class="text-[12px] font-bold">Nuevo pedido</p>
+          <p class="text-[11px] font-normal text-stone-400">Mesa 4 · 20:45</p>
+        </div>
+      </div>
+      <div class="absolute -left-3 bottom-8 flex rotate-1 items-center gap-2.5 rounded-md bg-white px-4 py-3 shadow-[0_16px_40px_-12px_rgba(28,25,23,0.25)] sm:-left-8">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 text-[#D97745]" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" /></svg>
+        <p class="text-[12px] font-bold">Menú actualizado</p>
+        <span class="flex h-6 w-6 items-center justify-center rounded-full bg-[#D97745] text-[11px] font-bold text-white">12</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Strip -->
+  <section class="border-y border-stone-900/10">
+    <div class="mx-auto grid max-w-[1200px] grid-cols-2 gap-4 px-6 py-5 text-[13px] md:grid-cols-5">
+      <p class="col-span-2 font-bold md:col-span-1">Todo lo que necesitas para una noche redonda</p>
+      <p class="font-normal text-stone-500">Pedidos</p>
+      <p class="font-normal text-stone-500">Menú digital</p>
+      <p class="font-normal text-stone-500">Código QR</p>
+      <p class="font-normal text-stone-500">Planes</p>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="como-funciona" class="mx-auto grid max-w-[1200px] gap-12 px-6 py-20 lg:grid-cols-2">
+    <div>
+      <p class="landing-eyebrow">Diseñado para hostelería real</p>
+      <div class="mt-16">
+        <div class="flex gap-5 border-t border-stone-900/10 py-7">
+          <span class="landing-serif text-[13px] font-medium text-[#D97745]">01</span>
+          <div>
+            <h3 class="landing-serif text-[21px] font-medium">Tu restaurante en un vistazo</h3>
+            <p class="mt-1 text-[13px] font-normal text-stone-500">Una vista clara de lo que sucede ahora, sin ruido.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 border-t border-stone-900/10 py-7">
+          <span class="landing-serif text-[13px] font-medium text-[#D97745]">02</span>
+          <div>
+            <h3 class="landing-serif text-[21px] font-medium">Comparte tu menú con un QR</h3>
+            <p class="mt-1 text-[13px] font-normal text-stone-500">Tu carta lista para la mesa, Instagram y Google.</p>
+          </div>
+        </div>
+        <div class="flex gap-5 border-y border-stone-900/10 py-7">
+          <span class="landing-serif text-[13px] font-medium text-[#D97745]">03</span>
+          <div>
+            <h3 class="landing-serif text-[21px] font-medium">El equipo, alineado</h3>
+            <p class="mt-1 text-[13px] font-normal text-stone-500">Todos saben qué toca, desde cocina hasta sala.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="lg:pl-10 lg:pt-24">
+      <h2 class="landing-serif text-[44px] font-medium leading-[1.08] tracking-[-0.01em] sm:text-[56px]">
+        Menos pestañas.<br />
+        <em class="text-[#D97745]">Más servicio.</em>
+      </h2>
+    </div>
+  </section>
+
+  <!-- Footer mínimo -->
+  <footer class="border-t border-stone-900/10">
+    <div class="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-6 py-6">
+      <div class="flex items-center gap-2">
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-[#D97745]">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="h-4 w-4" aria-hidden="true"><path d="M12 22c4.4 0 7.5-3 7.5-7.2 0-3.1-1.7-5.3-3.2-7C14.7 6 13.5 4.5 13 2c-3 2-4.5 4.3-5.3 6.5-.4-1-.6-2-.7-3.2C5.6 6.9 4.5 9.4 4.5 12 4.5 17 7.6 22 12 22z" /></svg>
+        </span>
+        <span class="landing-serif text-[17px] font-bold">Tavita</span>
+      </div>
+      <p class="text-[12px] font-normal text-stone-400">© 2026 Tavita — Menús digitales para restaurantes</p>
+      <div class="flex items-center gap-5 text-[12px] font-normal text-stone-500">
+        <a routerLink="/login" class="transition-colors hover:text-[#1C1917]">Iniciar sesión</a>
+        <a routerLink="/register" class="transition-colors hover:text-[#1C1917]">Crear mi restaurante</a>
+      </div>
+    </div>
+  </footer>
+</div>

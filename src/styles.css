@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700&family=Inter:wght@400;500&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500;1,600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -246,6 +246,20 @@ a,
     border-color: transparent;
   }
     @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold;
+  }
+  /* Landing Tavita: serif editorial de la referencia + terracota */
+  .landing-serif {
+    font-family: "Playfair Display", Georgia, serif;
+  }
+  .landing-eyebrow {
+    @apply flex items-center gap-3 text-[11px] font-medium uppercase tracking-[0.18em] text-stone-500;
+  }
+  .landing-eyebrow::before {
+    content: "";
+    @apply block h-px w-6 bg-[#D97745];
+  }
+  .landing-btn-dark {
+    @apply inline-flex items-center gap-2 bg-[#1C1917] px-6 py-3 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#B85C32] active:scale-[0.98];
   }
   .tbl-head {
     @apply text-[11px] font-semibold uppercase tracking-[0.08em] text-stone-400;
