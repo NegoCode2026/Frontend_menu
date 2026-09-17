@@ -97,8 +97,8 @@ export class DashboardComponent implements OnInit {
   /** Pedidos no finalizados, los más antiguos primero (cola de cocina). */
   readonly activeOrders = computed(() =>
     this.allOrders()
-      .filter((o) => ACTIVE_ORDER_STATUS.includes(o.status))
-      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+      .filter((o) => o && ACTIVE_ORDER_STATUS.includes(o.status))
+      .sort((a, b) => this.safeTime(a.createdAt) - this.safeTime(b.createdAt))
   );
 
   readonly pendingCount = computed(() => this.activeOrders().filter((o) => o.status === 'PENDING').length);
@@ -106,14 +106,15 @@ export class DashboardComponent implements OnInit {
   /** Últimos pedidos para actividad reciente. */
   readonly recentOrders = computed(() =>
     [...this.allOrders()]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .filter((o) => !!o)
+      .sort((a, b) => this.safeTime(b.createdAt) - this.safeTime(a.createdAt))
       .slice(0, 3)
   );
 
   /** Pedidos creados en los últimos 7 días. */
   readonly weekOrders = computed(() => {
     const weekAgo = Date.now() - 7 * 86400000;
-    return this.allOrders().filter((o) => new Date(o.createdAt).getTime() >= weekAgo).length;
+    return this.allOrders().filter((o) => o && this.safeTime(o.createdAt) >= weekAgo).length;
   });
 
   /** Mesas con pedidos activos (único dato real de ocupación disponible). */
@@ -153,19 +154,31 @@ export class DashboardComponent implements OnInit {
   });
 
   statusLabel(status: Order['status']): string {
-    return ORDER_STATUS_LABELS[status];
+    return ORDER_STATUS_LABELS[status] ?? status;
   }
 
-  elapsedMin(createdAt: string): number {
-    return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60000));
+  private safeTime(value: string | null | undefined): number {
+    if (!value) return 0;
+    const t = new Date(value).getTime();
+    return Number.isNaN(t) ? 0 : t;
   }
 
-  orderTime(createdAt: string): string {
-    return new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(createdAt));
+  elapsedMin(createdAt: string | null | undefined): string {
+    const t = this.safeTime(createdAt);
+    if (!t) return '—';
+    return `${Math.max(0, Math.floor((Date.now() - t) / 60000))} min`;
+  }
+
+  orderTime(createdAt: string | null | undefined): string {
+    const t = this.safeTime(createdAt);
+    if (!t) return '—';
+    return new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' }).format(new Date(t));
   }
 
   itemsSummary(order: Order): string {
-    return order.items
+    const items = order.items ?? [];
+    if (items.length === 0) return 'Sin detalle';
+    return items
       .slice(0, 2)
       .map((i) => `${i.quantity}x ${i.productName}`)
       .join(' · ');
@@ -192,25 +205,29 @@ export class DashboardComponent implements OnInit {
         this.menuSlug.set(r.slug);
         this.buildMenuQr(r.slug);
       },
+      error: () => undefined,
     });
 
     this.categoryService.list(0, 100).subscribe({
-      next: (categories) => this.categoryCount.set(categories.totalElements),
+      next: (categories) => this.categoryCount.set(categories?.totalElements ?? 0),
+      error: () => undefined,
     });
 
     this.productService.list(undefined, 0, 100).subscribe({
       next: (products) => {
-        this.productCount.set(products.totalElements);
-        this.availableCount.set(products.content.filter((p) => p.available).length);
-        const latest = products.content[0];
+        const content = products?.content ?? [];
+        this.productCount.set(products?.totalElements ?? 0);
+        this.availableCount.set(content.filter((p) => p.available).length);
+        const latest = content[0];
         this.latestProduct.set(
           latest ? { name: latest.name, price: latest.price, available: latest.available } : null
         );
       },
+      error: () => undefined,
     });
 
     this.orderService.listMine().subscribe({
-      next: (orders) => this.allOrders.set(orders),
+      next: (orders) => this.allOrders.set(Array.isArray(orders) ? orders : []),
       error: () => undefined,
     });
 

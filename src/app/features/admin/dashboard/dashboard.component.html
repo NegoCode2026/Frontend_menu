@@ -15,7 +15,7 @@
         </div>
         <div class="min-w-0 leading-tight">
           <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ restaurantName() ?? 'Mi Negocio' }}</p>
-          <p class="truncate text-[11px] font-normal text-stone-400">{{ planName() ? 'Plan ' + planName() : 'Tavita' }}</p>
+          <p class="truncate text-[11px] font-normal text-stone-400">{{ planName() ?? 'Tavita' }}</p>
         </div>
       </div>
       <div class="flex shrink-0 items-center gap-1">
@@ -97,7 +97,7 @@
               </div>
               <div class="shrink-0 text-right">
                 <p class="text-[11px] font-bold" [class]="order.status === 'PENDING' ? 'text-[#B85C32]' : order.status === 'READY' ? 'text-[#16A34A]' : 'text-[#D97745]'">{{ statusLabel(order.status) }}</p>
-                <p class="admin-data text-[10px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }} min</p>
+                <p class="admin-data text-[10px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }}</p>
               </div>
             </div>
           }
@@ -139,7 +139,7 @@
               <p class="admin-data shrink-0 text-[11px] font-bold text-[#B85C32]">{{ orderTime(order.createdAt) }}</p>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[12px] font-bold text-[#1C1917]">{{ order.customerName }}</p>
-                <p class="truncate text-[11px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ order.items.length }} ítems</p>
+                <p class="truncate text-[11px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ (order.items ?? []).length }} ítems</p>
               </div>
               <p class="shrink-0 text-[11px] font-bold text-stone-500">{{ statusLabel(order.status) }}</p>
             </div>
@@ -268,7 +268,7 @@
               </div>
               <div class="shrink-0 text-right">
                 <p class="text-[12px] font-bold" [class]="order.status === 'PENDING' ? 'text-[#B85C32]' : order.status === 'READY' ? 'text-[#16A34A]' : 'text-[#D97745]'">{{ statusLabel(order.status) }}</p>
-                <p class="admin-data text-[11px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }} min</p>
+                <p class="admin-data text-[11px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }}</p>
               </div>
             </div>
           }
@@ -321,7 +321,7 @@
             <div class="grid grid-cols-[52px_1fr_auto_auto] items-center gap-4 py-3.5">
               <p class="admin-data text-[12px] font-bold text-[#B85C32]">{{ orderTime(order.createdAt) }}</p>
               <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ order.customerName }}</p>
-              <p class="truncate text-[12px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ order.items.length }} ítems</p>
+              <p class="truncate text-[12px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ (order.items ?? []).length }} ítems</p>
               <p class="text-[12px] font-bold text-stone-500">{{ statusLabel(order.status) }}</p>
             </div>
           }
