@@ -70,15 +70,19 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
-    // Vigía de sesión: si las cookies mueren en reposo, a /login.
-    this.sessionWatch = window.setInterval(() => {
-      this.auth.validateSession().subscribe({
+    // Vigía de sesión: si las cookies mueren, a /login.
+    // Periódico + inmediato al volver a la pestaña.
+    const checkSession = () => {
+      this.auth.validateSession(true).subscribe({
         next: (ok) => {
           if (!ok) this.auth.redirectToLogin();
         },
         error: () => undefined,
       });
-    }, 60000);
+    };
+    this.sessionWatch = window.setInterval(checkSession, 30000);
+    window.addEventListener('focus', this.onWindowFocus);
+    document.addEventListener('visibilitychange', this.onWindowFocus);
     if (this.isSuperAdmin()) return;
     this.orders.listMine('PENDING').subscribe({
       next: (orders) => this.pendingOrders.set(orders.length),
@@ -96,10 +100,22 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   private sessionWatch: number | undefined;
 
+  private readonly onWindowFocus = () => {
+    if (document.visibilityState === 'hidden') return;
+    this.auth.validateSession(true).subscribe({
+      next: (ok) => {
+        if (!ok) this.auth.redirectToLogin();
+      },
+      error: () => undefined,
+    });
+  };
+
   ngOnDestroy(): void {
     if (this.sessionWatch !== undefined) {
       window.clearInterval(this.sessionWatch);
     }
+    window.removeEventListener('focus', this.onWindowFocus);
+    document.removeEventListener('visibilitychange', this.onWindowFocus);
   }
 
   readonly navItems = computed(() => {

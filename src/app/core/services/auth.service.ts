@@ -148,13 +148,13 @@ export class AuthService {
 
   private lastValidation = 0;
 
-  /** Valida la sesión contra el backend (máximo 1 vez por minuto).
-   *  401/403 = fuera; error de red = se mantiene la sesión local. */
-  validateSession(): Observable<boolean> {
+  /** Valida la sesión contra el backend (máximo 1 vez por minuto,
+   *  salvo `force`). 401/403 = fuera; error de red = se mantiene la sesión local. */
+  validateSession(force = false): Observable<boolean> {
     if (!this.isAuthenticated()) {
       return this.restoreSession().pipe(map((user) => user != null));
     }
-    if (Date.now() - this.lastValidation < 60000) {
+    if (!force && Date.now() - this.lastValidation < 60000) {
       return of(true);
     }
     return this.api.get<TokenUser>('/auth/me').pipe(
