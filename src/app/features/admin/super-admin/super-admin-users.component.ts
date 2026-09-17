@@ -5,10 +5,11 @@ import { debounceTime, Subject } from 'rxjs';
 import { AdminService } from '../../../core/services/admin.service';
 import { AdminUser } from '../../../core/models/models';
 import { AuthService } from '../../../core/services/auth.service';
+import { SuperAdminMobileNavComponent } from './super-admin-mobile-nav.component';
 
 @Component({
   selector: 'app-super-admin-users',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, SuperAdminMobileNavComponent],
   templateUrl: './super-admin-users.component.html',
 })
 export class SuperAdminUsersComponent implements OnInit {
@@ -45,6 +46,10 @@ export class SuperAdminUsersComponent implements OnInit {
     this.roleFilter.set(role);
     this.page.set(0);
     this.loadUsers();
+  }
+
+  logout(): void {
+    this.auth.forceLogout();
   }
 
   loadUsers(): void {

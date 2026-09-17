@@ -5,14 +5,17 @@ import { RouterLink } from '@angular/router';
 import { debounceTime, Subject } from 'rxjs';
 import { AdminService } from '../../../core/services/admin.service';
 import { AdminRestaurant } from '../../../core/models/models';
+import { AuthService } from '../../../core/services/auth.service';
+import { SuperAdminMobileNavComponent } from './super-admin-mobile-nav.component';
 
 @Component({
   selector: 'app-super-admin-restaurants',
-  imports: [ReactiveFormsModule, DatePipe, RouterLink],
+  imports: [ReactiveFormsModule, DatePipe, RouterLink, SuperAdminMobileNavComponent],
   templateUrl: './super-admin-restaurants.component.html',
 })
 export class SuperAdminRestaurantsComponent implements OnInit {
   private readonly adminService = inject(AdminService);
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
   private readonly search$ = new Subject<string>();
 
@@ -126,6 +129,10 @@ export class SuperAdminRestaurantsComponent implements OnInit {
 
   closeModal(): void {
     this.showModal.set(false);
+  }
+
+  logout(): void {
+    this.auth.forceLogout();
   }
 
   submitCreate(): void {

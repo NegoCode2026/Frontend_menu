@@ -1,7 +1,8 @@
 <div class="min-h-screen bg-stone-50 lg:flex">
   <app-pwa-banner />
 
-  <!-- Mobile Header Bar -->
+  @if (!isSuperAdmin()) {
+  <!-- Mobile Header Bar (resto de roles; Super Admin usa el bottom tab en teléfono) -->
   <header class="lg:hidden bg-white border-b border-stone-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
     <div class="flex items-center gap-2.5">
       <img src="assets/tavita-icon.svg" alt="Tavita" class="w-8 h-8 object-contain" />
@@ -28,6 +29,7 @@
       }
     </button>
   </header>
+  }
 
   <!-- Mobile Overlay Backdrop -->
   @if (mobileMenuOpen()) {
