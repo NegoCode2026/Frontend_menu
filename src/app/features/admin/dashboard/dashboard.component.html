@@ -1,4 +1,4 @@
-<!-- MOBILE · clon visual estilo food-app (misma data) -->
+?<!-- MOBILE · clon visual estilo food-app (misma data) -->
 <div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40">
   <div class="px-6 pt-6 pb-4 bg-white">
     <div class="flex items-center justify-between">
@@ -118,208 +118,181 @@
   <app-business-mobile-nav active="home" />
 </div>
 
-<!-- DESKTOP · se mantiene intacto -->
-<div class="hidden lg:block anim-fade-in-up bg-[#FAFAFA] -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 py-8">
-  <!-- Greeting -->
-  <div class="flex flex-wrap items-end justify-between gap-3">
+<!-- DESKTOP · diseño Resumen de referencia con datos reales -->
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10">
+
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Resumen</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      <a routerLink="/admin/orders" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-600 transition-colors hover:bg-stone-100" aria-label="Pedidos">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        @if (pendingCount() > 0) {
+          <span class="admin-data absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ pendingCount() }}</span>
+        }
+      </a>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="admin-title">Hola, {{ user()?.name }}</h1>
-      <p class="admin-sub">Así va tu casa hoy: carta, plan y menú listos para tus clientes.</p>
+      <p class="landing-eyebrow">{{ todayLine() }}</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05]">
+        {{ greetingPrefix() }}, @if (firstName()) {<em class="text-[#D97745]">{{ firstName() }}.</em>} @else {<em class="text-[#D97745]">tu casa.</em>}
+      </h1>
     </div>
-    @if (planStatus() === 'ACTIVE') {
-      <span class="chip bg-emerald-50 text-[#16A34A] ring-1 ring-emerald-200/70">
-        <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
-        Plan al día
-      </span>
-    } @else if (planStatus()) {
-      <span class="chip bg-amber-50 text-amber-800 ring-1 ring-amber-200/70">
-        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-        Revisar plan
-      </span>
-    }
+    <a routerLink="/admin/products" class="landing-btn-dark">+ Nuevo plato</a>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-1 group">
-      <div class="flex items-center justify-between mb-4">
-        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
-        </div>
-      </div>
-      <p class="admin-label">Restaurante</p>
-      <p class="admin-num mt-1 text-[19px] leading-snug truncate">{{ restaurantName() ?? '—' }}</p>
+  <!-- KPI strip -->
+  <div class="mt-8 grid grid-cols-2 border-y border-stone-900/15 xl:grid-cols-4">
+    <div class="border-b border-dotted border-[#D97745] bg-[#F9DFC2] p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Pedidos activos</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ (activeOrders().length < 10 ? '0' : '') + activeOrders().length }}</p>
+      <p class="mt-2 text-[11px] font-bold text-[#16A34A]">+{{ weekOrders() }} esta semana</p>
     </div>
-
-    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-2 group">
-      <div class="flex items-center justify-between mb-4">
-        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" /></svg>
-        </div>
-      </div>
-      <p class="admin-label">Categorías</p>
-      @if (!loading() && categoryCount() === 0) {
-        <div class="metric-empty flex flex-col gap-2">
-          <svg viewBox="0 0 32 32" class="h-8 w-8 text-[#78716C]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 9a2 2 0 0 1 2-2h6l2 2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
-            <path d="M3 13h26" />
-          </svg>
-          <div>
-            <p class="text-xs font-semibold text-stone-600">Aún no tienes categorías</p>
-            <a routerLink="/admin/categories" class="mt-1 inline-block text-xs font-bold text-primary-600 hover:text-primary-700">Crea tu primera categoría →</a>
-          </div>
-        </div>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Productos al aire</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ availableCount() }}<span class="ml-1 align-middle text-[15px] font-normal text-stone-400">/ {{ productCount() }}</span></p>
+      <p class="mt-2 text-[11px] font-bold text-[#16A34A]">{{ cartaPct() }}% de carta lista</p>
+    </div>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Categorías</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ categoryCount() }}</p>
+      @if (productCount() - availableCount() > 0) {
+        <p class="mt-2 text-[11px] font-bold text-[#B85C32]">● {{ productCount() - availableCount() }} en pausa</p>
       } @else {
-        <p class="admin-num mt-1 text-[28px]">{{ categoryCount() }}</p>
+        <p class="mt-2 text-[11px] font-bold text-[#16A34A]">Todo al aire</p>
       }
     </div>
-
-    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-3 group">
-      <div class="flex items-center justify-between mb-4">
-        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4" /></svg>
-        </div>
-        @if (availableCount() > 0) {
-          <span class="text-[11px] font-bold text-[#16A34A] tabular-nums">{{ availableCount() }} al aire</span>
-        }
-      </div>
-      <p class="admin-label">Productos</p>
-      @if (!loading() && productCount() === 0) {
-        <div class="metric-empty flex flex-col gap-2">
-          <svg viewBox="0 0 32 32" class="h-8 w-8 text-[#78716C]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="16" cy="17" r="10" />
-            <circle cx="16" cy="17" r="4.5" />
-          </svg>
-          <div>
-            <p class="text-xs font-semibold text-stone-600">Tu carta está vacía</p>
-            <a routerLink="/admin/products" class="mt-1 inline-block text-xs font-bold text-primary-600 hover:text-primary-700">Agrega tu primer plato →</a>
-          </div>
-        </div>
-      } @else {
-        <p class="admin-num mt-1 text-[28px]">{{ productCount() }}</p>
-      }
-    </div>
-
-    <!-- Plan: badge premium de cuenta, no métrica operativa -->
-    <div class="card-interactive plan-glow relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-amber-500 p-6 text-white anim-fade-in-up anim-delay-4">
-      <svg class="pointer-events-none absolute inset-0 h-full w-full text-white/[0.08]" aria-hidden="true">
-        <defs>
-          <pattern id="plan-lines" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width="1" height="16" fill="currentColor" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#plan-lines)" />
-      </svg>
-      <div class="relative flex items-center justify-between mb-4">
-        <span class="chip bg-white/15 text-white ring-1 ring-white/25">Premium</span>
-        @if (planAttention()) {
-          <span class="chip bg-[#F59E0B] text-amber-950">Vence pronto</span>
-        }
-      </div>
-      <p class="relative text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Plan</p>
-      <p class="relative mt-1 truncate text-[19px] font-extrabold leading-snug">{{ planName() ?? '—' }}</p>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Plan · {{ planName() ?? 'sin plan' }}</p>
       @if (planProgress(); as progress) {
-        <div class="relative mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-          <div class="h-full rounded-full bg-white transition-all" [style.width.%]="progress.pct"></div>
-        </div>
-        <p class="relative mt-2 text-[11px] font-bold tabular-nums text-white/90">Te quedan {{ progress.days }} días de plan</p>
-      } @else if (planRemaining(); as remaining) {
-        <p class="relative mt-2 text-[11px] font-bold tabular-nums text-white/90">⏳ {{ remaining }}</p>
-        <a routerLink="/admin/settings" class="relative mt-1 inline-block text-[11px] font-bold text-white underline underline-offset-2 hover:text-amber-100">Ver planes →</a>
+        <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ progress.days }}<span class="ml-1 align-middle text-[15px] font-normal text-stone-400">días</span></p>
+        <p class="mt-2 text-[11px] font-bold" [class]="planAttention() ? 'text-[#B85C32]' : 'text-[#16A34A]'">Te quedan {{ progress.days }} días de plan</p>
       } @else {
-        <a routerLink="/admin/settings" class="relative mt-1 inline-block text-[11px] font-bold text-white underline underline-offset-2 hover:text-amber-100">Ver planes →</a>
+        <p class="landing-serif mt-2 text-[30px] font-medium leading-tight text-[#1C1917]">{{ planRemaining() ?? 'Sin plan' }}</p>
+        <a routerLink="/admin/settings" class="mt-2 inline-block text-[11px] font-bold text-[#B85C32] hover:text-[#D97745]">Ver planes →</a>
       }
     </div>
   </div>
-
-  <!-- Hero: menú público con QR real -->
-  <div class="mt-12 bg-[#1C1917] rounded-3xl p-6 sm:p-8 relative overflow-hidden anim-fade-in-up anim-delay-3">
-    <svg class="pointer-events-none absolute inset-0 h-full w-full text-amber-200/[0.07]" aria-hidden="true">
-      <defs>
-        <pattern id="menu-lines" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="1.2" height="18" fill="currentColor" />
-        </pattern>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#menu-lines)" />
-    </svg>
-    <div class="absolute -right-16 -top-20 w-64 h-64 rounded-full bg-primary-500/25 blur-3xl"></div>
-    <div class="absolute -left-10 -bottom-24 w-56 h-56 rounded-full bg-amber-500/20 blur-3xl"></div>
-    <div class="relative z-10 flex flex-col gap-6 md:flex-row md:items-center">
-      <div class="min-w-0 flex-1">
-        <div class="flex items-center gap-3">
-          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-md">
-            <img src="assets/tavita-icon.svg" alt="Tavita" class="h-full w-full object-contain" />
-          </span>
-          <h2 class="font-editorial text-[32px] leading-none text-white">Tu menú público</h2>
+  <!-- Cocina + Mesas -->
+  <div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Cocina en marcha</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32] transition-colors hover:text-[#D97745]">Ver todos <span aria-hidden="true">→</span></a>
+      </div>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Pedidos activos</h2>
+      @if (activeOrders().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-600">Sin pedidos activos — la cocina está al día.</p>
+          <a routerLink="/admin/orders" class="mt-1 inline-block text-xs font-bold text-[#B85C32] hover:text-[#D97745]">Ver pedidos →</a>
         </div>
-        <p class="text-white/70 mt-3 text-sm font-normal max-w-md leading-relaxed">
-          Tu carta vive aquí: compártela o deja el QR sobre cada mesa.
-        </p>
-        @if (menuSlug()) {
-          <div class="mt-5 flex flex-wrap items-center gap-3">
-            <a
-              [href]="'/menu/' + menuSlug()"
-              target="_blank"
-              class="card-interactive inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-stone-900 hover:bg-primary-50 active:scale-[0.98]"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-                <path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.56-.187a.75.75 0 00-.078 1.06.75.75 0 001.06.078l2.21-1.97v3.769a.75.75 0 001.5 0V4.75a.75.75 0 00-.75-.75h-3.5a.75.75 0 000 1.5h1.767l-2.21 1.813z" clip-rule="evenodd" />
-              </svg>
-              /menu/{{ menuSlug() }}
-            </a>
-            <a
-              routerLink="/admin/qr"
-              class="card-interactive inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 hover:border-white/40 hover:text-white active:scale-[0.98]"
-            >
-              Personalizar QR
-            </a>
-          </div>
+      } @else {
+        <div class="mt-2 divide-y divide-stone-100">
+          @for (order of activeOrders().slice(0, 3); track order.id; let idx = $index) {
+            <div class="flex items-center gap-4 py-4">
+              <span class="admin-data shrink-0 bg-[#1C1917] px-2.5 py-1.5 text-[11px] font-extrabold text-white [clip-path:polygon(0_0,100%_0,82%_100%,0_100%)]">0{{ idx + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-bold text-[#1C1917]">#{{ order.orderNumber }} · {{ order.tableNumber ?? 'Mostrador' }}</p>
+                <p class="truncate text-[12px] font-normal text-stone-400">{{ itemsSummary(order) }}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-[12px] font-bold" [class]="order.status === 'PENDING' ? 'text-[#B85C32]' : order.status === 'READY' ? 'text-[#16A34A]' : 'text-[#D97745]'">{{ statusLabel(order.status) }}</p>
+                <p class="admin-data text-[11px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }} min</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-[#F8F3EB] p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Sala</p>
+        @if (activeTables().length > 0) {
+          <p class="flex items-center gap-3 text-[11px] font-medium text-stone-500">
+            <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>En curso</span>
+            <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-[#D97745]"></span>Requiere atención</span>
+          </p>
         }
       </div>
-      @if (menuSlug() && qrDataUrl()) {
-        <div class="lift-200 shrink-0 rounded-2xl bg-white p-3 shadow-2xl hover:scale-[1.03]">
-          <img [src]="qrDataUrl()" alt="Código QR del menú de {{ restaurantName() }}" class="h-36 w-36 sm:h-40 sm:w-40" />
-          <p class="mx-auto mt-2 max-w-[10rem] truncate text-center text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Escanea · {{ restaurantName() }}</p>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Mapa de mesas</h2>
+      @if (activeTables().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-300 bg-white/60 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-500">Sin mesas activas por ahora.</p>
+        </div>
+      } @else {
+        <div class="mt-5 grid grid-cols-3 gap-4">
+          @for (table of activeTables().slice(0, 6); track table.label) {
+            <div class="rounded-xl border-2 bg-white px-2 py-3 text-center" [class]="table.urgent ? 'border-[#D97745]' : 'border-[#16A34A]'">
+              <p class="landing-serif text-[19px] font-semibold leading-none" [class]="table.urgent ? 'text-[#B85C32]' : 'text-[#16A34A]'">{{ table.label }}</p>
+              <p class="mt-1 text-[10px] font-bold text-stone-400">{{ table.orders }} ped.</p>
+            </div>
+          }
         </div>
       }
     </div>
   </div>
+  <!-- Actividad + Nota -->
+  <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div class="rounded-2xl border border-stone-900/10 bg-white p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Movimiento de hoy</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32] transition-colors hover:text-[#D97745]">Ver pedidos <span aria-hidden="true">→</span></a>
+      </div>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Actividad reciente</h2>
+      @if (recentOrders().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-500">Aún no hay movimiento hoy.</p>
+        </div>
+      } @else {
+        <div class="mt-2 divide-y divide-stone-100">
+          @for (order of recentOrders(); track order.id) {
+            <div class="grid grid-cols-[52px_1fr_auto_auto] items-center gap-4 py-3.5">
+              <p class="admin-data text-[12px] font-bold text-[#B85C32]">{{ orderTime(order.createdAt) }}</p>
+              <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ order.customerName }}</p>
+              <p class="truncate text-[12px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ order.items.length }} ítems</p>
+              <p class="text-[12px] font-bold text-stone-500">{{ statusLabel(order.status) }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
 
-  <!-- Quick access -->
-  <div class="mt-12 anim-fade-in-up anim-delay-4">
-    <h2 class="admin-section">Accesos directos</h2>
-    <p class="admin-sub">Todo lo del día, a un toque.</p>
-  </div>
-  <div class="mt-4 rounded-3xl bg-[#1C1917] divide-y divide-white/10 anim-fade-in-up anim-delay-4" style="box-shadow: 0 1px 2px rgba(124,45,18,0.10), 0 20px 40px -16px rgba(26,19,16,0.5);">
-    <a routerLink="/admin/orders" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
-      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3h14v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L7.3 19.5 5 21V3zM9 8h6M9 12h6" /></svg>
-      </span>
-      <span class="min-w-0 flex-1">
-        <span class="block text-[15px] font-bold text-white">Comandas y pedidos</span>
-        <span class="block truncate text-xs font-normal text-white/50">Cocina y despacho en tiempo real</span>
-      </span>
-      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
-    </a>
-    <a routerLink="/admin/products" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
-      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4" /></svg>
-      </span>
-      <span class="min-w-0 flex-1">
-        <span class="block text-[15px] font-bold text-white">Productos del menú</span>
-        <span class="block truncate text-xs font-normal text-white/50">Precios, fotos y disponibilidad</span>
-      </span>
-      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
-    </a>
-    <a routerLink="/admin/qr" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
-      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z" /></svg>
-      </span>
-      <span class="min-w-0 flex-1">
-        <span class="block text-[15px] font-bold text-white">Código QR</span>
-        <span class="block truncate text-xs font-normal text-white/50">Stands listos para imprimir</span>
-      </span>
-      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
-    </a>
+    <div class="rounded-2xl bg-[#D97745] p-7 text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 text-white/80" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09zM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z" /></svg>
+      <p class="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80">Nota de cocina</p>
+      @if (latestProduct(); as dish) {
+        <p class="landing-serif mt-2 text-[28px] font-medium leading-[1.15]">Hoy tenemos <em>{{ dish.name }}</em></p>
+        <p class="mt-2 text-[12px] font-medium text-white/80">{{ formatPrice(dish.price) }} · {{ dish.available ? 'Disponible' : 'En pausa' }}</p>
+      } @else {
+        <p class="landing-serif mt-2 text-[28px] font-medium leading-[1.15]">Aún no hay platos en carta.</p>
+        <a routerLink="/admin/products" class="mt-2 inline-block text-[12px] font-bold text-white underline underline-offset-4">Agregar el primero →</a>
+      }
+    </div>
   </div>
 </div>
+
