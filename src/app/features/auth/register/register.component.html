@@ -66,7 +66,7 @@
           <!-- Restaurant Name -->
           <div>
             <label class="block text-[13px] font-bold text-[#1C1917]" for="restaurantName">Nombre del restaurante</label>
-            <input id="restaurantName" type="text" formControlName="restaurantName" (blur)="suggestSlug()" placeholder="Ej. Casa Tavita" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+            <input id="restaurantName" type="text" formControlName="restaurantName" (blur)="suggestSlug()" placeholder="Ej. Casa Tavita" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
             @if (form.get('restaurantName')?.touched && form.get('restaurantName')?.invalid) {
               <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">El nombre del restaurante es obligatorio</p>
             }
@@ -75,7 +75,7 @@
           <!-- Slug -->
           <div>
             <label class="block text-[13px] font-bold text-[#1C1917]" for="slug">Enlace del menú</label>
-            <div class="mt-2 flex items-center rounded border border-stone-200 focus-within:ring-2 focus-within:ring-primary-400/40 focus-within:border-primary-400 overflow-hidden transition-all duration-200">
+            <div class="mt-2 flex items-center rounded border border-stone-200 bg-white focus-within:ring-2 focus-within:ring-primary-400/40 focus-within:border-primary-400 overflow-hidden transition-all duration-200">
               <span class="bg-stone-100 text-stone-500 text-sm px-4 py-3 border-r border-stone-200 whitespace-nowrap font-medium">tavita.app/</span>
               <input id="slug" type="text" formControlName="slug" placeholder="casa-tavita" class="w-full px-4 py-3 text-sm focus:outline-none bg-transparent text-stone-900 placeholder-stone-400" />
             </div>
@@ -89,7 +89,7 @@
           <!-- Name -->
           <div>
             <label class="block text-[13px] font-bold text-[#1C1917]" for="name">Tu nombre</label>
-            <input id="name" type="text" formControlName="name" placeholder="Ej. Elena Ruiz" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+            <input id="name" type="text" formControlName="name" placeholder="Ej. Elena Ruiz" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
             @if (form.get('name')?.touched && form.get('name')?.invalid) {
               <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">El nombre es obligatorio</p>
             }
@@ -98,7 +98,7 @@
           <!-- Email -->
           <div>
             <label class="block text-[13px] font-bold text-[#1C1917]" for="email">Correo electrónico</label>
-            <input id="email" type="email" formControlName="email" placeholder="tu@restaurante.com" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+            <input id="email" type="email" formControlName="email" placeholder="tu@restaurante.com" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
             @if (form.get('email')?.hasError('conflict')) {
               <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">Este correo ya se encuentra registrado</p>
             } @else if (form.get('email')?.touched && form.get('email')?.invalid) {
@@ -110,14 +110,14 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-[13px] font-bold text-[#1C1917]" for="password">Contraseña</label>
-              <input id="password" type="password" formControlName="password" autocomplete="new-password" placeholder="••••••••" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+              <input id="password" type="password" formControlName="password" autocomplete="new-password" placeholder="••••••••" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
               @if (form.get('password')?.touched && form.get('password')?.invalid) {
                 <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">Mínimo 8 caracteres con mayúscula, minúscula, número y símbolo</p>
               }
             </div>
             <div>
               <label class="block text-[13px] font-bold text-[#1C1917]" for="confirmPassword">Confirmar</label>
-              <input id="confirmPassword" type="password" formControlName="confirmPassword" autocomplete="new-password" placeholder="••••••••" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+              <input id="confirmPassword" type="password" formControlName="confirmPassword" autocomplete="new-password" placeholder="••••••••" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
               @if (form.hasError('mismatch') && form.get('confirmPassword')?.touched) {
                 <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">Las contraseñas no coinciden</p>
               }
