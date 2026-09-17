@@ -1,4 +1,4 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { MobileMenuService } from '../../../core/services/mobile-menu.service';
@@ -12,7 +12,7 @@ import { PwaBannerComponent } from '../../../shared/pwa-banner/pwa-banner.compon
   imports: [RouterOutlet, RouterLink, RouterLinkActive, PwaBannerComponent],
   templateUrl: './admin-layout.component.html',
 })
-export class AdminLayoutComponent implements OnInit {
+export class AdminLayoutComponent implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly menu = inject(MobileMenuService);
   private readonly orders = inject(OrderService);
@@ -70,6 +70,15 @@ export class AdminLayoutComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    // Vigía de sesión: si las cookies mueren en reposo, a /login.
+    this.sessionWatch = window.setInterval(() => {
+      this.auth.validateSession().subscribe({
+        next: (ok) => {
+          if (!ok) this.auth.redirectToLogin();
+        },
+        error: () => undefined,
+      });
+    }, 60000);
     if (this.isSuperAdmin()) return;
     this.orders.listMine('PENDING').subscribe({
       next: (orders) => this.pendingOrders.set(orders.length),
@@ -83,6 +92,14 @@ export class AdminLayoutComponent implements OnInit {
       next: (s) => this.planName.set(s.plan.name),
       error: () => undefined,
     });
+  }
+
+  private sessionWatch: number | undefined;
+
+  ngOnDestroy(): void {
+    if (this.sessionWatch !== undefined) {
+      window.clearInterval(this.sessionWatch);
+    }
   }
 
   readonly navItems = computed(() => {

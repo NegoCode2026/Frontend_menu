@@ -1,5 +1,6 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
@@ -114,7 +115,10 @@ export class AuthService {
     this.logout().subscribe();
   }
 
-  /** Restaura la sesión llamando a /auth/me (cookies HttpOnly). */
+  /** Restaura la sesión llamando a /auth/me (cookies HttpOnly).
+   *  401/403 = sesión muerta (cookies borradas o expiradas): se limpia
+   *  SIN rescatar la caché. Solo un fallo de red (status 0) permite
+   *  seguir con la caché para tolerar caídas del backend. */
   restoreSession(): Observable<TokenUser | null> {
     return this.api.get<TokenUser>('/auth/me').pipe(
       tap((user) => {
@@ -123,7 +127,11 @@ export class AuthService {
         try { localStorage.setItem('tavita_user', JSON.stringify(normalized)); } catch {}
       }),
       map((user) => this.normalizeUser(user)),
-      catchError(() => {
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 401 || err.status === 403) {
+          this.clearSession();
+          return of(null);
+        }
         try {
           const cached = localStorage.getItem('tavita_user');
           if (cached) {
@@ -134,6 +142,35 @@ export class AuthService {
         } catch {}
         this.clearSession();
         return of(null);
+      }),
+    );
+  }
+
+  private lastValidation = 0;
+
+  /** Valida la sesión contra el backend (máximo 1 vez por minuto).
+   *  401/403 = fuera; error de red = se mantiene la sesión local. */
+  validateSession(): Observable<boolean> {
+    if (!this.isAuthenticated()) {
+      return this.restoreSession().pipe(map((user) => user != null));
+    }
+    if (Date.now() - this.lastValidation < 60000) {
+      return of(true);
+    }
+    return this.api.get<TokenUser>('/auth/me').pipe(
+      tap((user) => {
+        this.lastValidation = Date.now();
+        const normalized = this.normalizeUser(user);
+        this.userSignal.set(normalized);
+        try { localStorage.setItem('tavita_user', JSON.stringify(normalized)); } catch {}
+      }),
+      map(() => true),
+      catchError((err: HttpErrorResponse) => {
+        if (err.status === 401 || err.status === 403) {
+          this.clearSession();
+          return of(false);
+        }
+        return of(true);
       }),
     );
   }
