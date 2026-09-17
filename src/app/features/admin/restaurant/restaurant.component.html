@@ -1,7 +1,82 @@
-<div class="anim-fade-in-up max-w-3xl mx-auto space-y-6">
+<!-- MOBILE · clon visual estilo food-app (misma data y acciones) -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40">
+  <div class="px-5 pt-5 pb-4 bg-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-primary-500 to-amber-500 text-sm font-black text-white shadow">
+          @if (restaurant()?.logoUrl) {
+            <img [src]="restaurant()!.logoUrl" alt="" class="h-full w-full object-cover" />
+          } @else {
+            {{ user()?.name?.charAt(0) ?? 'T' }}
+          }
+        </div>
+        <div class="leading-tight">
+          <p class="text-[11px] font-medium text-stone-400">Panel to</p>
+          <p class="flex items-center gap-1 text-[13px] font-extrabold text-stone-900">{{ restaurant()?.name ?? 'Mi Negocio' }}</p>
+        </div>
+      </div>
+      <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+      </button>
+    </div>
+
+    <h1 class="mt-4 text-[30px] leading-[1.05] font-black tracking-tight text-stone-900">
+      Restaurante? <span class="text-stone-400 font-extrabold">Tu casa digital.</span>
+    </h1>
+
+    @if (message(); as mMsg) {
+      <p class="mt-3 rounded-2xl p-3 text-center text-[11px] font-bold ring-1"
+        [class]="mMsg.type === 'success' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-700 ring-red-200'">
+        {{ mMsg.type === 'success' ? '✅' : '⚠️' }} {{ mMsg.text }}
+      </p>
+    }
+  </div>
+
+  <div class="rounded-t-[2.2rem] bg-[#ededf0] px-4 pt-5 min-h-[60vh]">
+    @if (loading()) {
+      <div class="rounded-[1.6rem] bg-white p-6 shadow-sm">
+        <div class="mx-auto h-24 w-24 animate-pulse rounded-full bg-stone-100"></div>
+        <div class="mx-auto mt-3 h-5 w-32 animate-pulse rounded-full bg-stone-100"></div>
+      </div>
+    } @else if (restaurant(); as rest) {
+      <div class="rounded-[1.6rem] bg-white p-5 text-center shadow-[0_10px_30px_rgba(0,0,0,0.06)]"
+        [class]="rest.open ? 'ring-2 ring-emerald-200' : 'ring-2 ring-red-200'">
+        <div class="mx-auto flex h-[118px] w-[118px] -translate-y-3 items-center justify-center overflow-hidden rounded-full text-[52px] shadow-[0_10px_20px_rgba(0,0,0,0.10)] ring-4 ring-white"
+          [class]="rest.open ? 'bg-emerald-50' : 'bg-red-50'">
+          {{ rest.open ? '🟢' : '🔴' }}
+        </div>
+        <span class="mx-auto -mt-1 inline-block rounded-full px-3 py-1 text-[10px] font-extrabold tracking-wide text-white"
+          [class]="rest.open ? 'bg-emerald-600' : 'bg-stone-900'">ESTADO</span>
+        <h3 class="mt-1.5 text-[15px] font-extrabold leading-tight"
+          [class]="rest.open ? 'text-emerald-700' : 'text-red-700'">
+          {{ rest.open ? 'ABIERTO — recibiendo pedidos' : 'CERRADO — pedidos bloqueados' }}
+        </h3>
+        <p class="mt-1 text-[11px] font-medium text-stone-400">
+          {{ rest.open ? 'Los clientes pueden ver tu menú y enviar pedidos.' : 'Los clientes verán "Cerrado" y no podrán pedir.' }}
+        </p>
+        <button
+          type="button"
+          (click)="toggleOpen()"
+          [disabled]="togglingOpen()"
+          class="mt-4 w-full rounded-full py-3 text-sm font-extrabold text-white active:scale-[0.98] transition disabled:opacity-60"
+          [class]="rest.open ? 'bg-red-600' : 'bg-emerald-600'"
+        >
+          {{ togglingOpen() ? 'Cambiando…' : (rest.open ? 'Cerrar ahora' : 'Abrir ahora') }}
+        </button>
+      </div>
+      <p class="mt-4 mb-1 text-center text-[11px] font-bold text-stone-400">Desliza para editar la información 👇</p>
+    }
+  </div>
+
+  <app-business-mobile-nav active="none" />
+</div>
+
+<!-- DESKTOP · se mantiene intacto -->
+<div class="anim-fade-in-up max-w-3xl mx-auto">
+<div class="hidden lg:block space-y-6">
   <div>
-    <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Mi restaurante</h1>
-    <p class="text-stone-500 mt-1">Esta información aparece en tu menú público y en el QR.</p>
+    <h1 class="admin-title">Mi restaurante</h1>
+    <p class="admin-sub">Esta información aparece en tu menú público y en el QR.</p>
   </div>
 
   @if (message()) {
@@ -32,7 +107,7 @@
           {{ restaurant()?.open ? '🟢' : '🔴' }}
         </span>
         <div>
-          <p class="font-extrabold text-stone-900" [class.text-emerald-700]="restaurant()?.open" [class.text-red-700]="!restaurant()?.open">
+          <p class="text-[15px] font-black tracking-[-0.01em]" [class.text-emerald-700]="restaurant()?.open" [class.text-red-700]="!restaurant()?.open">
             {{ restaurant()?.open ? 'ABIERTO — recibiendo pedidos' : 'CERRADO — pedidos bloqueados' }}
           </p>
           <p class="text-xs text-stone-500 mt-0.5">
@@ -48,7 +123,7 @@
         type="button"
         (click)="toggleOpen()"
         [disabled]="togglingOpen()"
-        class="px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all shrink-0 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
+        class="px-5 py-2.5 rounded-full text-sm font-bold text-white transition-all shrink-0 disabled:opacity-60 disabled:cursor-not-allowed w-full sm:w-auto"
         [class.bg-red-600]="restaurant()?.open"
         [class.hover:bg-red-700]="restaurant()?.open"
         [class.bg-emerald-600]="!restaurant()?.open"
@@ -57,7 +132,11 @@
         {{ togglingOpen() ? 'Cambiando…' : (restaurant()?.open ? 'Cerrar ahora' : 'Abrir ahora') }}
       </button>
     </div>
+  }<!-- /@if estado desktop -->
+</div><!-- /DESKTOP -->
 
+  <!-- Formulario + spinner compartidos móvil + desktop -->
+  @if (!loading()) {
     <form [formGroup]="form" (ngSubmit)="save()" class="bg-white rounded-3xl border border-stone-100 shadow-lg shadow-stone-200/50 p-6 sm:p-8 space-y-6 anim-fade-in-up anim-delay-1">
       <!-- Logo Upload -->
       <div class="flex flex-col sm:flex-row items-center gap-6 p-4 rounded-2xl bg-stone-50/70 border border-stone-100">
@@ -70,7 +149,7 @@
         </div>
         <div class="text-center sm:text-left">
           <label class="block text-sm font-medium text-stone-700 cursor-pointer">
-            <span class="inline-flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold rounded-xl px-5 py-2.5 transition-all duration-200">
+            <span class="inline-flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold rounded-full px-5 py-2.5 transition-all duration-200">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
                 <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
                 <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
@@ -85,11 +164,11 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Nombre del restaurante</label>
+          <label class="field-label">Nombre del restaurante</label>
           <input type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" />
         </div>
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Enlace (slug)</label>
+          <label class="field-label">Enlace (slug)</label>
           <input type="text" formControlName="slug" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" />
           @if (form.get('slug')?.invalid && form.get('slug')?.touched) {
             <p class="text-xs text-red-600 pl-1">Solo minúsculas, números y guiones</p>
@@ -98,13 +177,13 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="block text-sm font-semibold text-stone-700">Descripción</label>
+        <label class="field-label">Descripción</label>
         <textarea formControlName="description" rows="3" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white resize-none"></textarea>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">⏱️ Tiempo estimado de preparación / entrega</label>
+          <label class="field-label">⏱️ Tiempo estimado de preparación / entrega</label>
           <input
             type="text"
             formControlName="estimatedPrepTime"
@@ -116,7 +195,7 @@
               <button
                 type="button"
                 (click)="form.patchValue({ estimatedPrepTime: preset })"
-                class="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-stone-200 bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
+                class="px-2.5 py-1 text-[11px] font-bold rounded-full border border-stone-200 bg-stone-100 hover:bg-stone-200 text-stone-700 transition-colors"
               >
                 {{ preset }}
               </button>
@@ -124,7 +203,7 @@
           </div>
         </div>
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">📄 NIT / Identificación Fiscal (para facturas)</label>
+          <label class="field-label">📄 NIT / Identificación Fiscal (para facturas)</label>
           <input
             type="text"
             formControlName="taxId"
@@ -137,23 +216,23 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Teléfono</label>
+          <label class="field-label">Teléfono</label>
           <input type="text" formControlName="phone" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" />
         </div>
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">WhatsApp (con código de país)</label>
+          <label class="field-label">WhatsApp (con código de país)</label>
           <input type="text" formControlName="whatsapp" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" placeholder="573001234567" />
         </div>
         <div class="sm:col-span-2 space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Dirección</label>
+          <label class="field-label">Dirección</label>
           <input type="text" formControlName="address" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" />
         </div>
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Instagram</label>
+          <label class="field-label">Instagram</label>
           <input type="text" formControlName="instagram" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" placeholder="mi_restaurante" />
         </div>
         <div class="space-y-1.5">
-          <label class="block text-sm font-semibold text-stone-700">Facebook</label>
+          <label class="field-label">Facebook</label>
           <input type="text" formControlName="facebook" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white" />
         </div>
       </div>
@@ -162,7 +241,7 @@
         <button
           type="submit"
           [disabled]="form.invalid || saving()"
-          class="w-full sm:w-auto rounded-xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-bold px-8 py-3 hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-md shadow-primary-500/20 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 btn-shine"
+          class="btn-brand btn-shine w-full sm:w-auto px-8"
         >
           {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
         </button>

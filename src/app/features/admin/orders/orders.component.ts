@@ -2,15 +2,19 @@ import { Component, inject, signal, OnInit, computed, OnDestroy } from '@angular
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Order, OrderStatus } from '../../../core/models/models';
+import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
   selector: 'app-orders',
-  imports: [RouterLink],
+  imports: [RouterLink, BusinessMobileNavComponent],
   templateUrl: './orders.component.html',
 })
 export class OrdersComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
+  private readonly auth = inject(AuthService);
+  readonly user = this.auth.user;
   private orderSub?: Subscription;
   private pollingTimer?: ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>;
   private pollCount = 0;
@@ -186,6 +190,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   dismissAlert(): void {
     this.showAlert.set(false);
+  }
+
+  logout(): void {
+    this.auth.forceLogout();
   }
 
   retryAfterReLogin(): void {

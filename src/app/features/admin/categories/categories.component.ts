@@ -1,16 +1,20 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryService } from '../../../core/services/category.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Category } from '../../../core/models/models';
+import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
   selector: 'app-categories',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, BusinessMobileNavComponent],
   templateUrl: './categories.component.html',
 })
 export class CategoriesComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly categoryService = inject(CategoryService);
+  private readonly auth = inject(AuthService);
+  readonly user = this.auth.user;
 
   readonly categories = signal<Category[]>([]);
   readonly loading = signal(true);
@@ -21,6 +25,22 @@ export class CategoriesComponent implements OnInit {
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
   readonly pageSize = 50;
+
+  // Filtro solo para el clon móvil (el desktop muestra la tabla completa)
+  readonly activeFilter = signal<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
+
+  readonly filteredCategories = computed(() => {
+    const f = this.activeFilter();
+    return this.categories().filter((c) => {
+      if (f === 'ACTIVE') return c.active;
+      if (f === 'INACTIVE') return !c.active;
+      return true;
+    });
+  });
+
+  logout(): void {
+    this.auth.forceLogout();
+  }
 
   readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],

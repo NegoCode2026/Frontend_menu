@@ -16,6 +16,10 @@ interface MetricCard {
   emoji: string;
   tint: string;
   link: string;
+  icon: string;
+  emptyMessage: string;
+  emptyAction: string;
+  tone: 'brand' | 'positive' | 'neutral';
 }
 
 @Component({
@@ -56,8 +60,12 @@ export class SuperAdminDashboardComponent implements OnInit {
         value: total,
         badge: 'TOTAL',
         emoji: '🏢',
-        tint: 'bg-amber-50',
+        tint: 'bg-primary-50',
         link: '/admin/super-admin/restaurants',
+        icon: 'M3 10l2-7h14l2 7M3 10a3 3 0 006 0 3 3 0 006 0 3 3 0 006 0M4 13v8h16v-8M9 21v-6h6v6M9 3v7M15 3v7',
+        emptyMessage: 'No hay restaurantes registrados',
+        emptyAction: 'Agregar restaurante',
+        tone: 'brand',
       },
       {
         id: 'active',
@@ -66,8 +74,12 @@ export class SuperAdminDashboardComponent implements OnInit {
         value: active,
         badge: `${pct}% ON`,
         emoji: '✅',
-        tint: 'bg-emerald-50',
+        tint: active > 0 ? 'bg-emerald-50' : 'bg-stone-100',
         link: '/admin/super-admin/restaurants',
+        icon: 'M21 12a9 9 0 11-18 0 9 9 0 0118 0M8 12l3 3 5-6',
+        emptyMessage: 'No hay restaurantes activos',
+        emptyAction: 'Revisar restaurantes',
+        tone: active > 0 ? 'positive' : 'neutral',
       },
       {
         id: 'users',
@@ -76,8 +88,12 @@ export class SuperAdminDashboardComponent implements OnInit {
         value: s?.totalUsers ?? 0,
         badge: 'GLOBAL',
         emoji: '👥',
-        tint: 'bg-blue-50',
+        tint: 'bg-stone-100',
         link: '/admin/super-admin/users',
+        icon: 'M9 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-4M9 2h6v4H9zM15 11a3 3 0 11-6 0 3 3 0 016 0M7 19a5 5 0 0110 0',
+        emptyMessage: 'No hay usuarios registrados',
+        emptyAction: 'Gestionar usuarios',
+        tone: 'neutral',
       },
       {
         id: 'plans',
@@ -86,8 +102,12 @@ export class SuperAdminDashboardComponent implements OnInit {
         value: s?.activeSubscriptions ?? 0,
         badge: 'PLAN',
         emoji: '💳',
-        tint: 'bg-violet-50',
+        tint: (s?.activeSubscriptions ?? 0) > 0 ? 'bg-emerald-50' : 'bg-stone-100',
         link: '/admin/super-admin/restaurants',
+        icon: 'M4 4h16a2 2 0 012 2v12a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zM2 9h20M6 15h3M12 15h2',
+        emptyMessage: 'No hay suscripciones activas',
+        emptyAction: 'Revisar planes',
+        tone: (s?.activeSubscriptions ?? 0) > 0 ? 'positive' : 'neutral',
       },
       {
         id: 'dishes',
@@ -96,8 +116,12 @@ export class SuperAdminDashboardComponent implements OnInit {
         value: s?.totalProducts ?? 0,
         badge: 'MENÚ',
         emoji: '🍔',
-        tint: 'bg-orange-50',
+        tint: 'bg-primary-50',
         link: '/admin/super-admin/restaurants',
+        icon: 'M3 17a9 9 0 0118 0H3zM2 21h20M12 8V5M10 5h4',
+        emptyMessage: 'No hay productos registrados',
+        emptyAction: 'Ver restaurantes',
+        tone: 'brand',
       },
     ];
   });

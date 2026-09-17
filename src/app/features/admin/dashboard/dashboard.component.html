@@ -1,87 +1,325 @@
-<div class="anim-fade-in-up">
-  <!-- Greeting -->
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Hola, {{ user()?.name }} 👋</h1>
-      <p class="text-stone-500 mt-1">Este es el estado de tu menú digital.</p>
+<!-- MOBILE · clon visual estilo food-app (misma data) -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40">
+  <div class="px-6 pt-6 pb-4 bg-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="relative">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-amber-500 text-sm font-black text-white shadow ring-2 ring-primary-100">
+            {{ user()?.name?.charAt(0) ?? 'T' }}
+          </div>
+          <span class="absolute -bottom-0 -right-0 h-3 w-3 rounded-full bg-[#16A34A] ring-2 ring-white" title="En línea"></span>
+        </div>
+        <div class="leading-tight">
+          <p class="text-[11px] font-medium text-stone-400">Panel to</p>
+          <p class="flex items-center gap-1 text-[13px] font-extrabold text-stone-900">{{ restaurantName() ?? 'Mi Negocio' }}</p>
+        </div>
+      </div>
+      <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+      </button>
     </div>
+
+    <h1 class="font-display mt-4 text-[32px] leading-[1.05] text-stone-900">
+      Hola, <span class="text-stone-400">Tu menú al día.</span>
+    </h1>
+  </div>
+
+  <div class="rounded-t-[2.2rem] bg-[#ededf0] px-4 pt-6 min-h-[60vh]">
+    <!-- Accesos directos -->
+    <div class="carousel-x hide-scrollbar -mx-1 flex items-start gap-1 overflow-x-auto px-1 pb-1">
+      <a routerLink="/admin/orders" class="flex w-[68px] shrink-0 flex-col items-center gap-2 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[26px] shadow-[0_8px_20px_rgba(0,0,0,0.08)]">🛒</span>
+        <span class="text-[11px] leading-none font-medium text-stone-400">Pedidos</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 opacity-0"></span>
+      </a>
+      <a routerLink="/admin/products" class="flex w-[68px] shrink-0 flex-col items-center gap-2 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[26px] shadow-[0_8px_20px_rgba(0,0,0,0.08)]">🍔</span>
+        <span class="text-[11px] leading-none font-medium text-stone-400">Productos</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 opacity-0"></span>
+      </a>
+      <a routerLink="/admin/categories" class="flex w-[68px] shrink-0 flex-col items-center gap-2 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[26px] shadow-[0_8px_20px_rgba(0,0,0,0.08)]">🗂️</span>
+        <span class="text-[11px] leading-none font-medium text-stone-400">Categorías</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 opacity-0"></span>
+      </a>
+      @if (isAdmin()) {
+        <a routerLink="/admin/qr" class="flex w-[68px] shrink-0 flex-col items-center gap-2 active:scale-95 transition">
+          <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[26px] shadow-[0_8px_20px_rgba(0,0,0,0.08)]">📱</span>
+          <span class="text-[11px] leading-none font-medium text-stone-400">QR</span>
+          <span class="h-[3px] w-5 rounded-full bg-stone-900 opacity-0"></span>
+        </a>
+      }
+    </div>
+
+    <!-- Métricas estilo food-app -->
+    <div class="mt-4 grid grid-cols-2 gap-x-4 gap-y-8">
+      <div class="anim-fade-in-up relative rounded-[1.6rem] bg-white px-3 pb-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+        <div class="mx-auto flex h-[118px] w-[118px] -translate-y-3 items-center justify-center overflow-hidden rounded-full bg-[#FED7AA] text-[52px] shadow-[0_10px_20px_rgba(0,0,0,0.10)] ring-4 ring-white">🏪</div>
+        <span class="mx-auto -mt-1 inline-block rounded-full bg-stone-900 px-3 py-1 text-[10px] font-extrabold tracking-wide text-white">LOCAL</span>
+        <h3 class="mt-2 truncate text-[14px] font-extrabold leading-tight text-stone-900">{{ restaurantName() ?? '—' }}</h3>
+        <p class="truncate text-[11px] font-medium text-stone-400">tu restaurante</p>
+      </div>
+      <div class="anim-fade-in-up relative rounded-[1.6rem] bg-white px-3 pb-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.06)]" style="animation-delay: 0.07s">
+        <div class="mx-auto flex h-[118px] w-[118px] -translate-y-3 items-center justify-center overflow-hidden rounded-full bg-[#FED7AA] text-[52px] shadow-[0_10px_20px_rgba(0,0,0,0.10)] ring-4 ring-white">🗂️</div>
+        <span class="mx-auto -mt-1 inline-block rounded-full bg-stone-900 px-3 py-1 text-[10px] font-extrabold tracking-wide text-white">GRUPOS</span>
+        <h3 class="mt-2 text-[14px] font-extrabold leading-tight text-stone-900">Categorías</h3>
+        @if (!loading() && categoryCount() === 0) {
+          <a routerLink="/admin/categories" class="mt-2 inline-block px-1 text-[12px] font-bold text-primary-600">Crea tu primera categoría →</a>
+        } @else {
+          <div class="mt-2 flex items-center justify-between px-1">
+            <p class="text-[19px] font-black tracking-tight text-stone-900">{{ categoryCount() }}</p>
+            <a routerLink="/admin/categories" class="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-lg font-bold text-stone-800">+</a>
+          </div>
+        }
+      </div>
+      <div class="anim-fade-in-up relative rounded-[1.6rem] bg-white px-3 pb-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.06)]" style="animation-delay: 0.14s">
+        <div class="mx-auto flex h-[118px] w-[118px] -translate-y-3 items-center justify-center overflow-hidden rounded-full bg-[#FED7AA] text-[52px] shadow-[0_10px_20px_rgba(0,0,0,0.10)] ring-4 ring-white">🍔</div>
+        <span class="mx-auto -mt-1 inline-block rounded-full bg-stone-900 px-3 py-1 text-[10px] font-extrabold tracking-wide text-white">CARTA</span>
+        <h3 class="mt-2 text-[14px] font-extrabold leading-tight text-stone-900">Productos</h3>
+        @if (!loading() && productCount() === 0) {
+          <a routerLink="/admin/products" class="mt-2 inline-block px-1 text-[12px] font-bold text-primary-600">Agrega tu primer plato →</a>
+        } @else {
+          <div class="mt-2 flex items-center justify-between px-1">
+            <p class="text-[19px] font-black tracking-tight text-stone-900">{{ productCount() }}<span class="ml-1 text-[11px] font-medium text-[#16A34A]">{{ availableCount() }} disp.</span></p>
+            <a routerLink="/admin/products" class="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-lg font-bold text-stone-800">+</a>
+          </div>
+        }
+      </div>
+      <div class="anim-fade-in-up relative rounded-[1.6rem] bg-white px-3 pb-4 text-center shadow-[0_10px_30px_rgba(0,0,0,0.06)]" style="animation-delay: 0.21s">
+        <div class="mx-auto flex h-[118px] w-[118px] -translate-y-3 items-center justify-center overflow-hidden rounded-full bg-violet-50 text-[52px] shadow-[0_10px_20px_rgba(0,0,0,0.10)] ring-4 ring-white">💳</div>
+        <span class="mx-auto -mt-1 inline-block rounded-full bg-stone-900 px-3 py-1 text-[10px] font-extrabold tracking-wide text-white">PLAN</span>
+        <h3 class="mt-2 truncate text-[14px] font-extrabold leading-tight text-stone-900">{{ planName() ?? '—' }}</h3>
+        @if (planRemaining(); as remaining) {
+          <p class="truncate text-[11px] font-bold" [class]="planStatus() === 'ACTIVE' ? 'text-[#16A34A]' : 'text-red-500'">⏳ {{ remaining }}</p>
+        } @else {
+          <p class="text-[11px] font-medium text-stone-400">sin plan</p>
+        }
+      </div>
+    </div>
+
+    <!-- Menú público CTA -->
+    <div class="relative mt-8 overflow-hidden rounded-[1.6rem] bg-gradient-to-br from-primary-500 to-amber-500 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.10)]">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+      <h2 class="relative font-editorial text-[22px] text-white">Tu menú público</h2>
+      <p class="relative text-primary-100 mt-1 text-[13px]">Compártelo o imprime el QR para tus clientes.</p>
+      @if (menuSlug()) {
+        <div class="relative mt-4 flex items-center gap-3 rounded-2xl bg-white/95 p-3 shadow-lg">
+          @if (qrDataUrl()) {
+            <img [src]="qrDataUrl()" alt="Código QR del menú" class="h-20 w-20 shrink-0 rounded-lg" />
+          }
+          <a [href]="'/menu/' + menuSlug()" target="_blank" class="min-w-0 flex-1 truncate text-sm font-bold text-primary-700 active:scale-95 transition">
+            Ver menú →<span class="block truncate font-semibold text-stone-500">/menu/{{ menuSlug() }}</span>
+          </a>
+        </div>
+      }
+    </div>
+  </div>
+
+  <app-business-mobile-nav active="home" />
+</div>
+
+<!-- DESKTOP · se mantiene intacto -->
+<div class="hidden lg:block anim-fade-in-up bg-[#FAFAFA] -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 py-8">
+  <!-- Greeting -->
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <h1 class="admin-title">Hola, {{ user()?.name }}</h1>
+      <p class="admin-sub">Así va tu casa hoy: carta, plan y menú listos para tus clientes.</p>
+    </div>
+    @if (planStatus() === 'ACTIVE') {
+      <span class="chip bg-emerald-50 text-[#16A34A] ring-1 ring-emerald-200/70">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+        Plan al día
+      </span>
+    } @else if (planStatus()) {
+      <span class="chip bg-amber-50 text-amber-800 ring-1 ring-amber-200/70">
+        <span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>
+        Revisar plan
+      </span>
+    }
   </div>
 
   <!-- Stats Grid -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-1 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🏪</span>
+    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-1 group">
+      <div class="flex items-center justify-between mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
         </div>
       </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Restaurante</p>
-      <p class="text-lg font-extrabold text-stone-900 mt-1 truncate">{{ restaurantName() ?? '—' }}</p>
+      <p class="admin-label">Restaurante</p>
+      <p class="admin-num mt-1 text-[19px] leading-snug truncate">{{ restaurantName() ?? '—' }}</p>
     </div>
 
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-2 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🗂️</span>
+    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-2 group">
+      <div class="flex items-center justify-between mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z" /></svg>
         </div>
       </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Categorías</p>
-      <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ categoryCount() }}</p>
+      <p class="admin-label">Categorías</p>
+      @if (!loading() && categoryCount() === 0) {
+        <div class="metric-empty flex flex-col gap-2">
+          <svg viewBox="0 0 32 32" class="h-8 w-8 text-[#78716C]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9a2 2 0 0 1 2-2h6l2 2h12a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z" />
+            <path d="M3 13h26" />
+          </svg>
+          <div>
+            <p class="text-xs font-semibold text-stone-600">Aún no tienes categorías</p>
+            <a routerLink="/admin/categories" class="mt-1 inline-block text-xs font-bold text-primary-600 hover:text-primary-700">Crea tu primera categoría →</a>
+          </div>
+        </div>
+      } @else {
+        <p class="admin-num mt-1 text-[28px]">{{ categoryCount() }}</p>
+      }
     </div>
 
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-3 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🍔</span>
+    <div class="card-warm card-interactive p-6 anim-fade-in-up anim-delay-3 group">
+      <div class="flex items-center justify-between mb-4">
+        <div class="w-10 h-10 rounded-2xl bg-[#FED7AA] flex items-center justify-center text-[#EA580C] ring-1 ring-[#FED7AA] group-hover:scale-110 transition-transform duration-300">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4" /></svg>
         </div>
+        @if (availableCount() > 0) {
+          <span class="text-[11px] font-bold text-[#16A34A] tabular-nums">{{ availableCount() }} al aire</span>
+        }
       </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Productos</p>
-      <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ productCount() }}</p>
-      <p class="text-xs text-emerald-600 font-semibold mt-1">{{ availableCount() }} disponibles</p>
+      <p class="admin-label">Productos</p>
+      @if (!loading() && productCount() === 0) {
+        <div class="metric-empty flex flex-col gap-2">
+          <svg viewBox="0 0 32 32" class="h-8 w-8 text-[#78716C]" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="16" cy="17" r="10" />
+            <circle cx="16" cy="17" r="4.5" />
+          </svg>
+          <div>
+            <p class="text-xs font-semibold text-stone-600">Tu carta está vacía</p>
+            <a routerLink="/admin/products" class="mt-1 inline-block text-xs font-bold text-primary-600 hover:text-primary-700">Agrega tu primer plato →</a>
+          </div>
+        </div>
+      } @else {
+        <p class="admin-num mt-1 text-[28px]">{{ productCount() }}</p>
+      }
     </div>
 
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-4 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">💳</span>
-        </div>
+    <!-- Plan: badge premium de cuenta, no métrica operativa -->
+    <div class="card-interactive plan-glow relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-amber-500 p-6 text-white anim-fade-in-up anim-delay-4">
+      <svg class="pointer-events-none absolute inset-0 h-full w-full text-white/[0.08]" aria-hidden="true">
+        <defs>
+          <pattern id="plan-lines" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="1" height="16" fill="currentColor" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#plan-lines)" />
+      </svg>
+      <div class="relative flex items-center justify-between mb-4">
+        <span class="chip bg-white/15 text-white ring-1 ring-white/25">Premium</span>
+        @if (planAttention()) {
+          <span class="chip bg-[#F59E0B] text-amber-950">Vence pronto</span>
+        }
       </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Plan</p>
-      <p class="text-lg font-extrabold text-stone-900 mt-1">{{ planName() ?? '—' }}</p>
-      @if (planRemaining(); as remaining) {
-        <p
-          [class]="planStatus() === 'ACTIVE' ? 'text-xs text-emerald-600 font-semibold mt-1' : 'text-xs text-red-600 font-semibold mt-1'"
-        >
-          ⏳ {{ remaining }}
-        </p>
+      <p class="relative text-[11px] font-semibold uppercase tracking-[0.08em] text-white/70">Plan</p>
+      <p class="relative mt-1 truncate text-[19px] font-extrabold leading-snug">{{ planName() ?? '—' }}</p>
+      @if (planProgress(); as progress) {
+        <div class="relative mt-3 h-2 overflow-hidden rounded-full bg-white/20">
+          <div class="h-full rounded-full bg-white transition-all" [style.width.%]="progress.pct"></div>
+        </div>
+        <p class="relative mt-2 text-[11px] font-bold tabular-nums text-white/90">Te quedan {{ progress.days }} días de plan</p>
+      } @else if (planRemaining(); as remaining) {
+        <p class="relative mt-2 text-[11px] font-bold tabular-nums text-white/90">⏳ {{ remaining }}</p>
+        <a routerLink="/admin/settings" class="relative mt-1 inline-block text-[11px] font-bold text-white underline underline-offset-2 hover:text-amber-100">Ver planes →</a>
+      } @else {
+        <a routerLink="/admin/settings" class="relative mt-1 inline-block text-[11px] font-bold text-white underline underline-offset-2 hover:text-amber-100">Ver planes →</a>
       }
     </div>
   </div>
 
-  <!-- Public Menu CTA -->
-  <div class="mt-8 bg-gradient-to-br from-primary-500 to-amber-500 rounded-3xl p-8 relative overflow-hidden anim-fade-in-up anim-delay-3">
-    <!-- Decorative elements -->
-    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-    <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-    <div class="absolute inset-0 opacity-[0.06]" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 20px 20px;"></div>
-
-    <div class="relative z-10">
-      <h2 class="font-extrabold text-white text-xl">Tu menú público 🔗</h2>
-      <p class="text-primary-100 mt-2 text-sm max-w-lg">
-        Comparte este enlace o imprime el código QR para que tus clientes lo escaneen.
-      </p>
-      @if (menuSlug()) {
-        <a
-          [href]="'/menu/' + menuSlug()"
-          target="_blank"
-          class="inline-flex items-center gap-2 mt-5 text-sm font-bold text-primary-700 bg-white hover:bg-primary-50 rounded-xl px-5 py-3 transition-all duration-200 shadow-lg shadow-primary-600/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.56-.187a.75.75 0 00-.078 1.06.75.75 0 001.06.078l2.21-1.97v3.769a.75.75 0 001.5 0V4.75a.75.75 0 00-.75-.75h-3.5a.75.75 0 000 1.5h1.767l-2.21 1.813z" clip-rule="evenodd" />
-          </svg>
-          Ver menú → /menu/{{ menuSlug() }}
-        </a>
+  <!-- Hero: menú público con QR real -->
+  <div class="mt-12 bg-[#1C1917] rounded-3xl p-6 sm:p-8 relative overflow-hidden anim-fade-in-up anim-delay-3">
+    <svg class="pointer-events-none absolute inset-0 h-full w-full text-amber-200/[0.07]" aria-hidden="true">
+      <defs>
+        <pattern id="menu-lines" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="1.2" height="18" fill="currentColor" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#menu-lines)" />
+    </svg>
+    <div class="absolute -right-16 -top-20 w-64 h-64 rounded-full bg-primary-500/25 blur-3xl"></div>
+    <div class="absolute -left-10 -bottom-24 w-56 h-56 rounded-full bg-amber-500/20 blur-3xl"></div>
+    <div class="relative z-10 flex flex-col gap-6 md:flex-row md:items-center">
+      <div class="min-w-0 flex-1">
+        <div class="flex items-center gap-3">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white p-1.5 shadow-md">
+            <img src="assets/tavita-icon.svg" alt="Tavita" class="h-full w-full object-contain" />
+          </span>
+          <h2 class="font-editorial text-[32px] leading-none text-white">Tu menú público</h2>
+        </div>
+        <p class="text-white/70 mt-3 text-sm font-normal max-w-md leading-relaxed">
+          Tu carta vive aquí: compártela o deja el QR sobre cada mesa.
+        </p>
+        @if (menuSlug()) {
+          <div class="mt-5 flex flex-wrap items-center gap-3">
+            <a
+              [href]="'/menu/' + menuSlug()"
+              target="_blank"
+              class="card-interactive inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-bold text-stone-900 hover:bg-primary-50 active:scale-[0.98]"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+                <path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.56-.187a.75.75 0 00-.078 1.06.75.75 0 001.06.078l2.21-1.97v3.769a.75.75 0 001.5 0V4.75a.75.75 0 00-.75-.75h-3.5a.75.75 0 000 1.5h1.767l-2.21 1.813z" clip-rule="evenodd" />
+              </svg>
+              /menu/{{ menuSlug() }}
+            </a>
+            <a
+              routerLink="/admin/qr"
+              class="card-interactive inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 px-6 py-3 text-sm font-semibold text-white/80 hover:border-white/40 hover:text-white active:scale-[0.98]"
+            >
+              Personalizar QR
+            </a>
+          </div>
+        }
+      </div>
+      @if (menuSlug() && qrDataUrl()) {
+        <div class="lift-200 shrink-0 rounded-2xl bg-white p-3 shadow-2xl hover:scale-[1.03]">
+          <img [src]="qrDataUrl()" alt="Código QR del menú de {{ restaurantName() }}" class="h-36 w-36 sm:h-40 sm:w-40" />
+          <p class="mx-auto mt-2 max-w-[10rem] truncate text-center text-[10px] font-bold uppercase tracking-wider text-[#F59E0B]">Escanea · {{ restaurantName() }}</p>
+        </div>
       }
     </div>
+  </div>
+
+  <!-- Quick access -->
+  <div class="mt-12 anim-fade-in-up anim-delay-4">
+    <h2 class="admin-section">Accesos directos</h2>
+    <p class="admin-sub">Todo lo del día, a un toque.</p>
+  </div>
+  <div class="mt-4 rounded-3xl bg-[#1C1917] divide-y divide-white/10 anim-fade-in-up anim-delay-4" style="box-shadow: 0 1px 2px rgba(124,45,18,0.10), 0 20px 40px -16px rgba(26,19,16,0.5);">
+    <a routerLink="/admin/orders" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
+      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3h14v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L7.3 19.5 5 21V3zM9 8h6M9 12h6" /></svg>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[15px] font-bold text-white">Comandas y pedidos</span>
+        <span class="block truncate text-xs font-normal text-white/50">Cocina y despacho en tiempo real</span>
+      </span>
+      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
+    </a>
+    <a routerLink="/admin/products" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
+      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4" /></svg>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[15px] font-bold text-white">Productos del menú</span>
+        <span class="block truncate text-xs font-normal text-white/50">Precios, fotos y disponibilidad</span>
+      </span>
+      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
+    </a>
+    <a routerLink="/admin/qr" class="card-interactive group relative flex items-center gap-4 px-6 py-4 hover:-translate-y-0.5 hover:bg-white/5 active:bg-white/10">
+      <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-[#F59E0B] ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-110">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z" /></svg>
+      </span>
+      <span class="min-w-0 flex-1">
+        <span class="block text-[15px] font-bold text-white">Código QR</span>
+        <span class="block truncate text-xs font-normal text-white/50">Stands listos para imprimir</span>
+      </span>
+      <span class="font-black text-white/30 transition-all duration-200 group-hover:translate-x-1 group-hover:text-[#F59E0B]">→</span>
+    </a>
   </div>
 </div>

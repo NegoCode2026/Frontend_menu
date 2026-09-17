@@ -3,10 +3,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { UserService } from '../../../core/services/user.service';
 import { User } from '../../../core/models/models';
 import { AuthService } from '../../../core/services/auth.service';
+import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
   selector: 'app-users',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, BusinessMobileNavComponent],
   templateUrl: './users.component.html',
 })
 export class UsersComponent implements OnInit {
@@ -20,6 +21,11 @@ export class UsersComponent implements OnInit {
   readonly errorMessage = signal<string | null>(null);
   readonly showCreate = signal(false);
   readonly currentUserId = this.auth.user()?.id;
+  readonly user = this.auth.user;
+
+  logout(): void {
+    this.auth.forceLogout();
+  }
 
   readonly form: FormGroup = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(120)]],
