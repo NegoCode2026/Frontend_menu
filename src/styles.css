@@ -9,6 +9,83 @@ body {
 }
 
 /* ============================================================
+   MOBILE-NATIVE BASELINE (el teléfono es la fuente de verdad)
+   ============================================================ */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+button,
+a,
+[role="button"],
+.tappable {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Sin zoom al enfocar inputs en iOS: mínimo 16px en táctil */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Todo :hover vive aquí: en táctil no existe hover */
+@media (hover: hover) and (pointer: fine) {
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-xl;
+  }
+  .btn-shine:hover::after {
+    left: 150%;
+  }
+}
+
+/* Safe areas (requiere viewport-fit=cover) */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-bottom-bar {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Scroll interno sin arrastrar la página detrás */
+.sheet-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Carrusel horizontal: el navegador conserva el pan vertical */
+.carousel-x {
+  touch-action: pan-y;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Respeta reduced-motion en todos los loops */
+@media (prefers-reduced-motion: reduce) {
+  .anim-float,
+  .anim-pulse-glow,
+  .anim-shimmer,
+  .anim-blob,
+  .text-gradient {
+    animation: none;
+  }
+}
+
+/* ============================================================
    SCROLLBAR UTILITIES
    ============================================================ */
 .hide-scrollbar::-webkit-scrollbar {

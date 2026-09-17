@@ -14,55 +14,60 @@
     </div>
   </div>
 } @else if (menu()) {
-  <div class="min-h-screen bg-stone-200/50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
+  <div class="min-h-[100dvh] bg-stone-50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
     <app-pwa-banner />
 
-    <!-- Slim app header: logo + name + status + cart -->
-    <header class="mx-auto flex max-w-3xl items-center gap-3 px-4 pt-4 sm:px-6">
+    <!-- Delivery header (referencia): avatar + destino + acciones -->
+    <header class="safe-top mx-auto flex max-w-3xl items-center gap-3 px-5 pt-3 sm:px-6">
       <div class="relative shrink-0">
         @if (menu()!.restaurant.logoUrl) {
           <img
             [src]="menu()!.restaurant.logoUrl"
             alt="Logo"
             (error)="onImageError($event)"
-            class="h-11 w-11 rounded-full border-2 border-white bg-white object-cover shadow-md"
+            class="h-11 w-11 rounded-full bg-white object-cover shadow-sm ring-1 ring-stone-200"
           />
         } @else {
-          <div class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-lg font-black text-white shadow-md ring-2 ring-white">
+          <div class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-900 text-lg font-black text-white shadow-sm">
             {{ menu()!.restaurant.name.charAt(0) }}
           </div>
         }
         <span
-          class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white"
+          class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-stone-50"
           [class]="isClosed() ? 'bg-red-500' : 'bg-emerald-500'"
           [title]="isClosed() ? 'Cerrado' : 'Abierto'"
         ></span>
       </div>
       <div class="min-w-0 flex-1">
-        <p class="truncate text-[15px] font-extrabold leading-tight text-stone-900">
-          {{ menu()!.restaurant.name }}
-          <span class="ml-0.5 text-xs font-bold text-primary-600">✓</span>
-        </p>
-        <p class="truncate text-xs font-medium text-stone-500">
-          {{ menu()!.restaurant.address || 'Menú digital · Tavita' }}
+        <p class="text-[11px] font-medium leading-tight text-stone-400">Delivery to</p>
+        <p class="truncate text-[14px] font-extrabold leading-tight text-stone-900">
+          @if (selectedTablePreset()) {
+            Mesa {{ selectedTablePreset() }} · {{ menu()!.restaurant.name }}
+          } @else {
+            {{ menu()!.restaurant.address || menu()!.restaurant.name }}
+          }
+          <span class="ml-0.5 inline-block align-middle text-[10px] text-stone-400">⌄</span>
         </p>
       </div>
-      @if (selectedTablePreset()) {
-        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-stone-900 px-3 py-1.5 text-[11px] font-extrabold text-white shadow-sm">
-          📍 Mesa {{ selectedTablePreset() }}
-        </span>
-      }
+      <button
+        aria-label="Notificaciones"
+        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-900 transition-transform active:scale-90"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-6 w-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        </svg>
+      </button>
       <button
         (click)="openCart()"
         [disabled]="cartTotalCount() === 0"
         aria-label="Ver mi pedido"
-        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-stone-700 shadow-md ring-1 ring-stone-200/70 transition-all hover:scale-105 active:scale-95 disabled:opacity-60"
+        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-900 transition-transform active:scale-90 disabled:opacity-40"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-6 w-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
         </svg>
         @if (cartTotalCount() > 0) {
-          <span class="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-600 px-1 text-[10px] font-black text-white ring-2 ring-white">
+          <span class="absolute right-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-950 px-1 text-[10px] font-black text-white">
             {{ cartTotalCount() }}
           </span>
         }
@@ -70,8 +75,8 @@
     </header>
 
     <!-- Headline -->
-    <div class="mx-auto max-w-3xl px-4 pt-5 sm:px-6">
-      <h1 class="text-[32px] font-black leading-[1.05] tracking-tight text-stone-950">
+    <div class="mx-auto max-w-3xl px-5 pt-4 sm:px-6">
+      <h1 class="text-[34px] font-black leading-[1.02] tracking-tight text-stone-950">
         ¿Antojo? <span class="text-stone-400">Pide &amp; disfruta.</span>
       </h1>
       @if (menu()!.restaurant.description) {
@@ -94,9 +99,8 @@
       </div>
     }
 
-    <!-- Search & Dietary Filters Section -->
-    <div class="mx-auto mt-5 max-w-3xl space-y-3 px-4 sm:px-6">
-      <!-- Search Bar -->
+    <!-- Search -->
+    <div class="mx-auto mt-4 max-w-3xl px-5 sm:px-6">
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-stone-400">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
@@ -105,80 +109,46 @@
         </div>
         <input
           id="menu-search"
-          type="text"
+          type="search"
+          enterkeyhint="search"
+          autocomplete="off"
+          autocapitalize="none"
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
-          placeholder="Buscar pizza, hamburguesa…"
-          class="w-full rounded-2xl border border-transparent bg-white py-3.5 pl-11 pr-10 text-sm font-medium text-stone-900 placeholder-stone-400 shadow-sm transition-all focus:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500/30"
+          placeholder="Buscar en la carta…"
+          class="w-full rounded-2xl border border-transparent bg-stone-200/60 py-3.5 pl-11 pr-10 text-[16px] font-medium text-stone-900 placeholder-stone-400 transition-all focus:border-stone-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/10 sm:text-sm"
         />
         @if (searchQuery()) {
           <button
             (click)="clearSearch()"
-            class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-sm font-bold text-stone-400 hover:text-stone-600"
+            aria-label="Limpiar búsqueda"
+            class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-sm font-bold text-stone-400"
           >
             ✕
           </button>
         }
       </div>
-
-      <!-- Quick Tag Filter Pills -->
-      <div class="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
-        <button
-          (click)="setFilterTag('ALL')"
-          [class]="activeFilterTag() === 'ALL' ? 'bg-stone-900 text-white font-black shadow-sm' : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-stone-100 font-semibold'"
-          class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all"
-        >
-          🍽️ Todos
-        </button>
-        <button
-          (click)="setFilterTag('POPULAR')"
-          [class]="activeFilterTag() === 'POPULAR' ? 'bg-amber-500 text-white font-black shadow-sm' : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-amber-50 font-semibold'"
-          class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all"
-        >
-          🔥 Populares
-        </button>
-        <button
-          (click)="setFilterTag('MEAT')"
-          [class]="activeFilterTag() === 'MEAT' ? 'bg-red-600 text-white font-black shadow-sm' : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-red-50 font-semibold'"
-          class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all"
-        >
-          🥩 Carnes & Parrilla
-        </button>
-        <button
-          (click)="setFilterTag('VEGAN')"
-          [class]="activeFilterTag() === 'VEGAN' ? 'bg-emerald-600 text-white font-black shadow-sm' : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-emerald-50 font-semibold'"
-          class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all"
-        >
-          🌱 Vegano / Fresco
-        </button>
-        <button
-          (click)="setFilterTag('DRINKS')"
-          [class]="activeFilterTag() === 'DRINKS' ? 'bg-violet-600 text-white font-black shadow-sm' : 'bg-white text-stone-600 border border-stone-200/80 hover:bg-violet-50 font-semibold'"
-          class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition-all"
-        >
-          🍹 Bebidas & Bar
-        </button>
-      </div>
     </div>
 
-    <!-- Sticky category carousel: circular covers like the reference -->
-    <div class="sticky top-0 z-30 mt-4 border-y border-stone-200/50 bg-stone-100/90 shadow-xs backdrop-blur-xl">
+    <!-- Arco gris (referencia): categorías + carta respiran dentro -->
+    <div class="mt-5 rounded-t-[2.5rem] bg-stone-200/60 pb-10">
+    <!-- Sticky category rail: círculos blancos como la referencia -->
+    <div class="sticky top-0 z-30 rounded-t-[2.5rem] bg-stone-200/80 pt-2 backdrop-blur-xl">
       <div class="mx-auto max-w-3xl">
-        <nav class="hide-scrollbar flex items-start gap-4 overflow-x-auto px-4 py-3 sm:px-6">
-          <button (click)="scrollToTop()" class="flex w-16 shrink-0 flex-col items-center gap-1.5">
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-white text-xl text-stone-700 shadow-sm ring-2 ring-stone-900 transition-transform active:scale-95">
+        <nav class="carousel-x hide-scrollbar flex items-start gap-3 overflow-x-auto px-5 py-4 sm:px-6">
+          <button (click)="scrollToTop(); setFilterTag('ALL')" class="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label="Ver todo">
+            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-white text-stone-800 shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-transform active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6">
                 <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 002 4.25v2.5A2.25 2.25 0 004.25 9h2.5A2.25 2.25 0 009 6.75v-2.5A2.25 2.25 0 006.75 2h-2.5zm7.5 0A2.25 2.25 0 009.5 4.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 0014.25 2h-2.5zM4.25 11A2.25 2.25 0 002 13.25v2.5A2.25 2.25 0 004.25 18h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 006.75 11h-2.5zm7.5 0a2.25 2.25 0 00-2.25 2.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5a2.25 2.25 0 00-2.25-2.25h-2.5z" clip-rule="evenodd" />
               </svg>
             </span>
             <span class="text-[11px] font-extrabold text-stone-900">Todo</span>
-            <span class="h-0.5 w-6 rounded-full bg-stone-900"></span>
+            <span class="h-0.5 w-6 rounded-full" [class]="activeFilterTag() === 'ALL' ? 'bg-stone-900' : 'bg-transparent'"></span>
           </button>
           @for (category of menu()!.categories; track category.id) {
             <button (click)="setCategory(category.id)" class="flex w-16 shrink-0 flex-col items-center gap-1.5">
               <span
-                class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-2 transition-all active:scale-95"
-                [class]="activeCategory() === category.id ? 'ring-stone-900' : 'ring-transparent'"
+                class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-transform active:scale-95"
               >
                 @if (category.products[0]?.imageUrl) {
                   <img
@@ -209,7 +179,7 @@
     </div>
 
     <!-- Main Dishes Content -->
-    <main class="max-w-3xl mx-auto px-4 sm:px-6 pt-6 space-y-10">
+    <main class="mx-auto max-w-3xl space-y-10 px-5 pt-6 sm:px-6">
       @if (filteredCategories().length === 0) {
         <div class="text-center py-16 bg-white rounded-3xl border border-stone-100 shadow-sm p-8">
           <div class="text-5xl mb-3 opacity-50">🔍</div>
@@ -224,36 +194,32 @@
         </div>
       } @else {
         @for (category of filteredCategories(); track category.id) {
-          <section [id]="'category-' + category.id" class="anim-fade-in-up scroll-mt-20">
-            <!-- Category Title & Description -->
-            <div class="mb-2 flex items-center gap-2.5">
-              <h2 class="text-lg font-black tracking-tight text-stone-900">{{ category.name }}</h2>
-              <span class="rounded-full bg-stone-900/[0.06] px-2 py-0.5 text-[11px] font-extrabold tabular-nums text-stone-500">
-                {{ category.products.length }}
-              </span>
-              <span class="h-px flex-1 bg-stone-900/10"></span>
+          <section [id]="'category-' + category.id" class="scroll-mt-32">
+            <div class="mb-1 flex items-baseline gap-2 px-1">
+              <h2 class="text-[17px] font-extrabold tracking-tight text-stone-900">{{ category.name }}</h2>
             </div>
             @if (category.description) {
-              <p class="mb-3 text-xs font-medium text-stone-400">{{ category.description }}</p>
+              <p class="mb-2 px-1 text-xs font-medium text-stone-400">{{ category.description }}</p>
             }
             
-            <!-- Products Grid: 2-col cards like the reference -->
-            <div class="grid grid-cols-2 gap-x-3 gap-y-12 pt-12 sm:gap-x-4 md:grid-cols-3">
+            <!-- Products Grid 2-col como la referencia -->
+            <div class="grid grid-cols-2 gap-x-3 gap-y-11 pt-14 sm:gap-x-4">
               @for (product of category.products; track product.id) {
                 <article
-                  class="group relative flex flex-col rounded-[1.75rem] bg-white px-3 pb-3 pt-0 shadow-sm transition-all duration-300 hover:shadow-lg active:scale-[0.98]"
+                  class="relative flex flex-col rounded-[1.6rem] bg-white px-3 pb-3.5 pt-0 shadow-[0_10px_30px_rgba(0,0,0,0.07)] active:scale-[0.98]"
                   [class.opacity-60]="!product.available"
                 >
-                  <!-- Circular photo overlapping the top edge -->
+                  <!-- Foto circular que sobresale arriba -->
                   <div (click)="openDishModal(product, category.name)" class="cursor-pointer">
-                    <div class="relative mx-auto -mt-12 h-28 w-28 sm:h-32 sm:w-32">
-                      <div class="h-full w-full overflow-hidden rounded-full bg-stone-100 shadow-md ring-4 ring-white">
+                    <div class="relative mx-auto -mt-14 h-32 w-32">
+                      <div class="h-full w-full overflow-hidden rounded-full bg-stone-100 shadow-[0_8px_20px_rgba(0,0,0,0.15)] ring-4 ring-white">
                         @if (product.imageUrl) {
                           <img
                             [src]="product.imageUrl"
                             [alt]="product.name"
+                            loading="lazy"
                             (error)="onImageError($event)"
-                            class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            class="h-full w-full object-cover"
                           />
                         } @else {
                           <div class="flex h-full w-full items-center justify-center text-4xl text-stone-300 select-none">🍽️</div>
@@ -261,29 +227,23 @@
                       </div>
                     </div>
 
-                    @if (product.price > 30000) {
-                      <span class="absolute left-1/2 top-[4.5rem] -translate-x-1/2 whitespace-nowrap rounded-full bg-stone-950 px-2.5 py-1 text-[10px] font-black text-white shadow-md sm:top-[5.5rem]">
-                        ⭐ Chef
-                      </span>
-                    }
-
-                    <!-- Details -->
-                    <div class="mt-2 px-1 text-center">
+                    <!-- Nombre + descripción -->
+                    <div class="mt-2.5 px-0.5 text-center">
                       <h3 class="truncate text-[15px] font-extrabold leading-snug text-stone-900" [title]="product.name">
                         {{ product.name }}
                       </h3>
                       @if (product.description) {
-                        <p class="mt-0.5 truncate text-xs font-medium text-stone-400">
+                        <p class="mt-0.5 truncate text-[11px] font-medium text-stone-400">
                           {{ product.description }}
                         </p>
                       }
                     </div>
                   </div>
 
-                  <!-- Price & Add -->
-                  <div class="mt-2 flex items-center justify-between px-1">
-                    <span class="text-[15px] font-black tracking-tight text-stone-900">
-                      {{ formatCurrency(product.price) }}
+                  <!-- Precio + agregar -->
+                  <div class="mt-2 flex items-center justify-between px-0.5">
+                    <span class="text-[17px] font-black tracking-tight text-stone-900">
+                      <span class="mr-0.5 text-[14px] font-black text-primary-500">$</span>{{ formatCurrency(product.price).replace('$', '').trim() }}
                     </span>
 
                     @if (!product.available) {
@@ -299,7 +259,7 @@
                         <button
                           (click)="addToCart(product, 1, '')"
                           aria-label="Agregar {{ product.name }}"
-                          class="flex h-8 w-8 items-center justify-center rounded-full bg-stone-100 text-stone-700 transition-all hover:bg-primary-600 hover:text-white active:scale-90"
+                          class="flex h-9 w-9 items-center justify-center rounded-full bg-stone-100 text-stone-800 transition-all active:scale-90"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -333,24 +293,12 @@
         }
       }
 
-      <!-- Footer Info & Branding -->
-      <footer class="mt-16 pt-8 pb-4 text-center">
-        <div class="bg-white rounded-3xl p-6 border border-stone-100 shadow-sm max-w-lg mx-auto text-center space-y-3">
-          <p class="text-xs font-bold uppercase tracking-wider text-stone-400">¿Tienes alergias o requerimientos especiales?</p>
-          <p class="text-xs text-stone-600 leading-relaxed">
-            Puedes agregar notas especiales a cada plato en tu carrito o avisar directamente a nuestro personal de servicio.
-          </p>
-        </div>
-        
-        <div class="flex flex-col items-center justify-center mt-8 pb-6 opacity-80">
-          <img src="assets/tavita-logo.svg" alt="Tavita" class="w-12 h-12 mb-1.5 drop-shadow-sm object-contain" />
-          <div class="flex items-center text-sm font-black tracking-tight">
-            <span class="text-stone-900">Tavita</span>
-          </div>
-          <p class="text-[10px] font-bold text-stone-400 uppercase tracking-widest mt-0.5">Menús Digitales &amp; Pedidos</p>
-        </div>
+      <!-- Footer mínimo -->
+      <footer class="mt-14 pb-6 text-center">
+        <p class="text-[11px] font-semibold text-stone-400">Hecho con Tavita · {{ menu()!.restaurant.name }}</p>
       </footer>
     </main>
+    </div><!-- /arco gris -->
 
     <!-- Dish Detail Modal -->
     @if (selectedDish()) {
@@ -380,7 +328,7 @@
           </div>
 
           <!-- Body -->
-          <div class="p-6 space-y-5 overflow-y-auto flex-1">
+          <div class="sheet-scroll p-6 space-y-5 flex-1">
             <div class="flex items-center justify-between">
               <span class="text-2xl font-black text-stone-900">{{ formatCurrency(selectedDish()!.price) }}</span>
               <span class="text-xs font-bold px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-100">
@@ -457,8 +405,8 @@
       </div>
     }
 
-    <!-- Floating bottom nav (reference style) with live order state -->
-    <div class="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+    <!-- Floating bottom nav (referencia) with live order state -->
+    <div class="safe-bottom-bar fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-2">
       <nav class="flex items-center gap-1 rounded-full border border-white/10 bg-stone-950/95 py-2 pl-2 pr-2 shadow-2xl shadow-stone-950/50 backdrop-blur">
         <button
           (click)="scrollToTop()"
@@ -518,7 +466,7 @@
     <!-- Shopping Cart & Order Bottom Sheet / Modal -->
     @if (showCartModal()) {
       <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
-        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-100 max-w-lg w-full p-6 space-y-5 max-h-[92vh] overflow-y-auto anim-fade-in-up">
+        <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-stone-100 max-w-lg w-full p-6 space-y-5 max-h-[92dvh] overflow-y-auto sheet-scroll anim-fade-in-up">
           
           <!-- Modal Header -->
           <div class="flex items-center justify-between border-b border-stone-100 pb-3">

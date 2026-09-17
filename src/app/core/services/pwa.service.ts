@@ -1,6 +1,7 @@
 import { Injectable, NgZone, signal } from '@angular/core';
 import { SwUpdate, VersionReadyEvent } from '@angular/service-worker';
-import { filter } from 'rxjs/operators';
+import { filter, first } from 'rxjs/operators';
+import { firstValueFrom, interval } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class PwaService {
@@ -54,6 +55,20 @@ export class PwaService {
         .subscribe(() =>
           this.zone.run(() => this.updateAvailable.set(true)),
         );
+
+      // Pregunta al servidor cada 60s si hay versión nueva. Sin esto el
+      // aviso de "hay cosas nuevas" tarda varios minutos en aparecer.
+      // El chequeo solo hace un GET a ngsw.json (barato) y no recarga nada.
+      interval(60_000).subscribe(() => {
+        this.sw.checkForUpdate().catch(() => undefined);
+      });
+
+      // Al volver a la pestaña, revalidar de inmediato.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          this.sw.checkForUpdate().catch(() => undefined);
+        }
+      });
     }
   }
 
@@ -67,7 +82,27 @@ export class PwaService {
     this.canInstall.set(false);
   }
 
-  reload(): void {
+  async reload(): Promise<void> {
+    // Activa la versión nueva ANTES de recargar. Sin esto, location.reload()
+    // puede volver a servir la versión vieja cacheada por el SW.
+    if (this.sw.isEnabled) {
+      try {
+        const updateFound = await this.sw.checkForUpdate();
+        if (updateFound) {
+          await firstValueFrom(
+            this.sw.versionUpdates.pipe(
+              filter(
+                (e): e is VersionReadyEvent => e.type === 'VERSION_READY',
+              ),
+              first(),
+            ),
+          );
+        }
+        await this.sw.activateUpdate();
+      } catch {
+        // Si algo falla, igual recargamos: el usuario pidió actualizar.
+      }
+    }
     window.location.reload();
   }
 }
