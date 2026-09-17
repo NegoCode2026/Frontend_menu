@@ -27,5 +27,8 @@ ENV BACKEND_ORIGIN=${BACKEND_ORIGIN} PORT=80
 COPY --from=build /app/dist/frontend-app/browser /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 EXPOSE 80
+# 127.0.0.1 a propósito: dentro del contenedor `localhost` puede resolver a ::1
+# (IPv6) y nginx solo escucha IPv4 -> el chequeo marcaba unhealthy eternamente
+# aunque el servicio respondía bien por la red Docker.
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-  CMD wget -q -O /dev/null "http://localhost:${PORT}/" || exit 1
+  CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/" || exit 1

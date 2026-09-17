@@ -4,20 +4,31 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
-    # SPA: servir index.html para rutas de la app
+    # SPA: servir index.html para rutas de la app.
+    # OJO: este location sirve index.html para "/" y rutas SPA, así que
+    # debe llevar no-cache aquí mismo (el bloque "location = /index.html"
+    # solo aplica a la URL literal /index.html, NO a "/" ni a "/menu/123").
     location / {
         try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
     }
 
-    # index.html: nunca cachear (el SW maneja la caché)
+    # index.html literal: nunca cachear (el SW maneja la caché)
     location = /index.html {
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
     }
 
-    # Service Worker: no-cache para siempre revalidar
-    location ~* /ngsw\.(json|js)$ {
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-        add_header Service-Worker-Allowed "/";
+    # ngsw.json: manifiesto de versiones del Service Worker. SIEMPRE
+    # revalidar o el navegador tarda minutos en enterarse de un deploy nuevo.
+    location = /ngsw.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+    }
+
+    # Service Worker (worker + manifiesto): no-cache para revalidar siempre.
+    # Sin esto el navegador tarda minutos en enterarse de un deploy nuevo.
+    location = /ngsw-worker.js {
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Service-Worker-Allowed "/" always;
     }
 
     # Web manifest: MIME type correcto y no cachear
@@ -26,8 +37,10 @@ server {
         add_header Content-Type "application/manifest+json";
     }
 
-    # Proxy a la API de Spring Boot (BACKEND_ORIGIN via env al arrancar)
-    location /api/ {
+    # Proxy a la API de Spring Boot (BACKEND_ORIGIN via env al arrancar).
+    # ^~ : este prefijo gana a las location regex (la de assets con hash),
+    # así /api/*.js o /uploads/*.png nunca se sirven desde el root de nginx.
+    location ^~ /api/ {
         proxy_pass ${BACKEND_ORIGIN};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
@@ -35,8 +48,8 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Imágenes subidas por el backend
-    location /uploads/ {
+    # Imágenes subidas por el backend (^~ por el mismo motivo que /api/)
+    location ^~ /uploads/ {
         proxy_pass ${BACKEND_ORIGIN};
         proxy_set_header Host $host;
     }
