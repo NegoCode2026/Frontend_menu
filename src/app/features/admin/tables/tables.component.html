@@ -1,0 +1,262 @@
+<!-- MESAS · móvil -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40 no-print">
+  <div class="border-b border-stone-900/10 bg-white px-5 py-4">
+    <div class="flex items-center justify-between gap-2">
+      <div class="min-w-0 leading-tight">
+        <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ restaurantName() ?? 'Mi Negocio' }}</p>
+        <p class="truncate text-[11px] font-normal text-stone-400">Mesas y QR</p>
+      </div>
+      <div class="flex shrink-0 items-center gap-1">
+        <a routerLink="/admin/orders" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-700 active:scale-90 transition" aria-label="Pedidos">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+          @if (activeOrders().length > 0) {
+            <span class="admin-data absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ activeOrders().length }}</span>
+          }
+        </a>
+        <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="px-5 pt-6">
+    <p class="landing-eyebrow">Sala y pedidos</p>
+    <h1 class="landing-serif mt-3 text-[38px] font-medium leading-[1.08] text-[#1C1917]">Mesas</h1>
+    @if (isAdmin()) {
+      <button (click)="openAdd()" class="landing-btn-dark mt-4 w-full justify-center !px-4 !py-3 text-[13px]">+ Añadir mesa</button>
+    }
+  </div>
+
+  <div class="px-5">
+    @if (tableViews().length === 0) {
+      <div class="mt-6 rounded-2xl border border-dashed border-stone-300 bg-white p-6 text-center">
+        <p class="landing-serif text-[20px] font-medium text-[#1C1917]">Aún no hay mesas.</p>
+        <p class="mt-1 text-[13px] text-stone-500">Registra las mesas de tu sala para generar sus QR.</p>
+        @if (isAdmin()) {
+          <button (click)="openAdd()" class="mt-3 inline-block text-[13px] font-bold text-[#B85C32]">Añadir la primera →</button>
+        }
+      </div>
+    } @else {
+      <div class="mt-6 space-y-4">
+        @for (table of tableViews(); track table.id) {
+          <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-4">
+            <div class="flex items-center gap-3">
+              <div class="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-2xl ring-1" [class]="table.orderCount > 0 ? 'bg-[#E7F6EC] text-[#16A34A] ring-[#BFE6CC]' : 'bg-[#F9DFC2] text-[#B85C32] ring-[#EAC9A8]'">
+                <span class="landing-serif text-[20px] font-semibold leading-none">{{ table.number }}</span>
+                <span class="mt-0.5 text-[10px] font-bold">{{ table.seats }}p</span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="truncate text-[14px] font-bold text-[#1C1917]">Mesa {{ table.number }}</p>
+                  @if (table.orderCount > 0) {
+                    <span class="flex shrink-0 items-center gap-1 text-[11px] font-bold text-[#B85C32]"><span class="h-1.5 w-1.5 rounded-full bg-[#D97745]"></span>Pedido activo</span>
+                  } @else {
+                    <span class="flex shrink-0 items-center gap-1 text-[11px] font-bold text-[#16A34A]"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>Disponible</span>
+                  }
+                </div>
+                <p class="mt-0.5 truncate text-[12px] text-stone-400">@if (table.orderCount > 0) {{{ table.orderCount }} pedidos · {{ table.itemCount }} productos} @else {Lista para recibir pedidos}</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <button (click)="openQr(table)" class="inline-flex items-center gap-1.5 rounded border border-stone-200 px-3 py-2 text-[12px] font-bold text-stone-700 active:scale-95 transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z" /></svg>
+                    Ver QR de mesa
+                  </button>
+                  @if (isAdmin()) {
+                    <button (click)="deleteTable(table.id)" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-300 transition-colors hover:bg-red-50 hover:text-red-500" aria-label="Eliminar mesa">✕</button>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <app-business-mobile-nav active="home" />
+</div>
+
+<!-- MESAS · desktop -->
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10 no-print">
+
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Mesas</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      <a routerLink="/admin/orders" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-600 transition-colors hover:bg-stone-100" aria-label="Pedidos">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        @if (activeOrders().length > 0) {
+          <span class="admin-data absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ activeOrders().length }}</span>
+        }
+      </a>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="landing-eyebrow">Sala y pedidos</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Mesas</h1>
+    </div>
+    @if (isAdmin()) {
+      <button (click)="openAdd()" class="landing-btn-dark">+ Añadir mesa</button>
+    }
+  </div>
+
+  <!-- Resumen -->
+  <div class="mt-8 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-900/10 bg-white px-6 py-5">
+    <div>
+      <p class="text-[15px] font-bold text-[#1C1917]">{{ tableViews().length }} mesas activas</p>
+      <p class="mt-0.5 text-[13px] font-normal text-stone-400">Cada mesa tiene un menú y QR propio</p>
+    </div>
+    @if (activeOrders().length > 0) {
+      <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+        Pedidos en vivo
+      </span>
+    } @else {
+      <span class="text-[12px] font-medium text-stone-400">Sin movimiento</span>
+    }
+  </div>
+
+  <!-- Grid -->
+  @if (tableViews().length === 0) {
+    <div class="mt-6 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
+      <p class="landing-serif text-[26px] font-medium text-[#1C1917]">Aún no hay mesas.</p>
+      <p class="mt-1 text-sm text-stone-500">Registra las mesas de tu sala para generar sus códigos QR.</p>
+      @if (isAdmin()) {
+        <button (click)="openAdd()" class="btn-brand mt-4">Añadir la primera mesa</button>
+      }
+    </div>
+  } @else {
+    <div class="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
+      @for (table of tableViews(); track table.id) {
+        <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-6 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-16px_rgba(217,119,69,0.35)]">
+          <div class="flex items-start gap-4">
+            <div class="flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-2xl ring-1" [class]="table.orderCount > 0 ? 'bg-[#E7F6EC] text-[#16A34A] ring-[#BFE6CC]' : 'bg-[#F9DFC2] text-[#B85C32] ring-[#EAC9A8]'">
+              <span class="landing-serif text-[26px] font-semibold leading-none">{{ table.number }}</span>
+              <span class="mt-1 text-[11px] font-bold">{{ table.seats }}p</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="truncate text-[15px] font-bold text-[#1C1917]">Mesa {{ table.number }}</p>
+                @if (table.orderCount > 0) {
+                  <span class="flex shrink-0 items-center gap-1.5 text-[12px] font-bold text-[#B85C32]"><span class="h-1.5 w-1.5 rounded-full bg-[#D97745]"></span>Pedido activo</span>
+                } @else {
+                  <span class="flex shrink-0 items-center gap-1.5 text-[12px] font-bold text-[#16A34A]"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>Disponible</span>
+                }
+              </div>
+              <p class="mt-1 truncate text-[13px] font-normal text-stone-400">@if (table.orderCount > 0) {{{ table.orderCount }} pedidos · {{ table.itemCount }} productos} @else {Lista para recibir pedidos}</p>
+              <div class="mt-3 flex items-center gap-2">
+                <button (click)="openQr(table)" class="inline-flex items-center gap-1.5 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-bold text-stone-700 transition-all hover:border-stone-300 hover:text-[#1C1917] active:scale-[0.98]">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z" /></svg>
+                  Ver QR de mesa
+                </button>
+                @if (isAdmin()) {
+                  <button (click)="deleteTable(table.id)" class="flex h-10 w-10 items-center justify-center rounded-full text-stone-300 transition-colors hover:bg-red-50 hover:text-red-500" aria-label="Eliminar mesa">✕</button>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- Modal QR -->
+@if (qrTable(); as qr) {
+  <div class="no-print fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm anim-fade-in" (click)="closeQr()">
+    <div class="w-full max-w-sm overflow-hidden rounded-3xl bg-white shadow-2xl anim-fade-in-up" (click)="$event.stopPropagation()">
+      <div class="bg-[#1C1917] px-6 py-5 text-center">
+        <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-[#D97745]">Tavita</p>
+        <p class="landing-serif mt-1 truncate text-[22px] font-medium text-white">{{ restaurantName() ?? 'Mi restaurante' }}</p>
+      </div>
+      <div class="px-6 py-6 text-center">
+        <p class="landing-serif text-[44px] font-medium leading-none text-[#1C1917]">Mesa {{ qr.number }}</p>
+        <p class="mt-1 text-[12px] font-medium text-stone-400">{{ qr.seats }} personas · Escanea para ver el menú</p>
+        <div class="mx-auto mt-4 w-fit rounded-2xl border border-stone-100 bg-white p-3 shadow-sm">
+          @if (qrDataUrl()) {
+            <img [src]="qrDataUrl()" alt="QR de la mesa {{ qr.number }}" class="h-56 w-56" />
+          } @else {
+            <div class="flex h-56 w-56 items-center justify-center">
+              <div class="h-8 w-8 animate-spin rounded-full border-2 border-stone-200 border-t-[#D97745]"></div>
+            </div>
+          }
+        </div>
+        <p class="mx-auto mt-3 max-w-[16rem] truncate text-[11px] font-medium text-stone-400">{{ menuUrlFor(qr) }}</p>
+        <button (click)="copyMenuLink()" class="mt-1 text-[12px] font-bold text-[#B85C32] transition-colors hover:text-[#D97745]">
+          {{ linkCopied() ? '¡Enlace copiado!' : 'Copiar enlace de la mesa' }}
+        </button>
+        <div class="mt-5 flex gap-2">
+          <button (click)="printStand()" [disabled]="!qrDataUrl()" class="btn-brand flex-1 disabled:opacity-50">Imprimir</button>
+          <button (click)="downloadQr()" [disabled]="!qrDataUrl()" class="btn-ghost flex-1 disabled:opacity-50">Descargar</button>
+        </div>
+        <button (click)="closeQr()" class="mt-2 w-full py-2 text-[12px] font-bold text-stone-400 transition-colors hover:text-stone-600">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stand imprimible -->
+  <div class="print-only">
+    <div class="print-card-break mx-auto max-w-sm border-2 border-black p-8 text-center text-black">
+      <p class="text-xs font-bold uppercase tracking-[0.25em]">Tavita · {{ restaurantName() ?? '' }}</p>
+      <p class="mt-3 text-5xl font-black">Mesa {{ qr.number }}</p>
+      <p class="mt-1 text-sm">{{ qr.seats }} personas</p>
+      @if (qrDataUrl()) {
+        <img [src]="qrDataUrl()" alt="QR mesa {{ qr.number }}" class="mx-auto mt-4 h-64 w-64" />
+      }
+      <p class="mt-4 text-xs font-bold">Escanea para ver el menú</p>
+      <p class="mt-1 text-[11px]">{{ menuUrlFor(qr) }}</p>
+    </div>
+  </div>
+}
+
+<!-- Modal añadir -->
+@if (showAdd()) {
+  <div class="no-print fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm anim-fade-in" (click)="showAdd.set(false)">
+    <div class="w-full max-w-xs rounded-3xl bg-white p-6 shadow-2xl anim-fade-in-up" (click)="$event.stopPropagation()">
+      <h3 class="landing-serif text-[22px] font-medium text-[#1C1917]">Añadir mesa</h3>
+      <label class="field-label mt-4" for="table-number">Número</label>
+      <input
+        id="table-number"
+        type="text"
+        inputmode="numeric"
+        [value]="newNumber()"
+        (input)="newNumber.set($any($event.target).value)"
+        class="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-center text-lg font-extrabold tracking-widest text-stone-900 placeholder-stone-300 focus:outline-none input-glow"
+        placeholder="07"
+      />
+      <label class="field-label mt-4" for="table-seats">Puestos</label>
+      <div class="mt-1.5 flex items-center gap-3">
+        <button (click)="newSeats.set(newSeats() > 1 ? newSeats() - 1 : 1)" class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-lg font-black text-stone-700 transition-colors hover:bg-stone-200" aria-label="Menos puestos">−</button>
+        <p class="admin-data flex-1 text-center text-2xl font-black text-stone-900">{{ newSeats() }}p</p>
+        <button (click)="newSeats.set(newSeats() < 20 ? newSeats() + 1 : 20)" class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-100 text-lg font-black text-stone-700 transition-colors hover:bg-stone-200" aria-label="Más puestos">+</button>
+      </div>
+      <div class="mt-6 flex gap-2">
+        <button (click)="saveTable()" [disabled]="!newNumber().trim()" class="btn-brand flex-1 disabled:opacity-50">Guardar mesa</button>
+        <button (click)="showAdd.set(false)" class="btn-ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}

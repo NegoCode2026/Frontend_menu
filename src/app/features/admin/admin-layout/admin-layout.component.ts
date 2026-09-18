@@ -62,6 +62,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
   readonly allNavItems = [
     { path: '/admin/dashboard', label: 'Resumen', icon: 'M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm11 0h7v7h-7v-7Z', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/orders', label: 'Pedidos', icon: 'M5 3h14v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L7.3 19.5 5 21V3zM9 8h6M9 12h6', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
+    { path: '/admin/tables', label: 'Mesas', icon: 'M3 6h18v13H3zM3 10h18M9 10v9M15 10v9', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/products', label: 'Menú', icon: 'M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/categories', label: 'Categorías', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/qr', label: 'Código QR', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z', roles: ['RESTAURANT_ADMIN'] },
