@@ -185,4 +185,39 @@ export class SettingsComponent implements OnInit {
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
   }
+
+  nextChargeLine(): string | null {
+    const sub = this.subscription();
+    if (!sub?.endsAt) return null;
+    try {
+      const date = new Date(sub.endsAt);
+      if (Number.isNaN(date.getTime())) return null;
+      const label = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+      return `Próximo cobro · ${label}`.toUpperCase();
+    } catch {
+      return null;
+    }
+  }
+
+  scrollToPlans(): void {
+    document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** Comprobante real de la suscripción vigente (plan, precio y periodo). */
+  downloadReceipt(): void {
+    const sub = this.subscription();
+    if (!sub) return;
+    const name = this.restaurant()?.name ?? 'Mi restaurante';
+    const period = `Desde ${sub.startsAt} · Hasta ${sub.endsAt ?? '—'}`;
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comprobante ${sub.plan.name}</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;color:#1c1917"><p style="font-size:11px;letter-spacing:2px;color:#78716c">TAVITA · ${name}</p><h1>Comprobante de suscripción</h1><p><strong>Plan:</strong> ${sub.plan.name}</p><p><strong>Valor:</strong> ${this.formatCurrency(sub.plan.priceMonthly)} / mes</p><p><strong>Periodo:</strong> ${period}</p><p><strong>Estado:</strong> ${sub.status}</p></body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `comprobante-${sub.plan.code ?? 'plan'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }
