@@ -2,6 +2,7 @@ import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
+import { RestaurantService } from '../../../core/services/restaurant.service';
 import { FileService } from '../../../core/services/file.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Category, Product } from '../../../core/models/models';
@@ -16,6 +17,7 @@ export class ProductsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly categoryService = inject(CategoryService);
   private readonly productService = inject(ProductService);
+  private readonly restaurantService = inject(RestaurantService);
   private readonly fileService = inject(FileService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
@@ -33,22 +35,60 @@ export class ProductsComponent implements OnInit {
   readonly totalElements = signal(0);
   readonly pageSize = 50;
 
-  // Filtros solo para el clon móvil (el desktop usa la tabla completa)
+  // Filtros (móvil y desktop comparten señales)
   readonly searchQuery = signal('');
   readonly categoryFilter = signal<number | 'ALL'>('ALL');
+  readonly onlyPaused = signal(false);
+  readonly openMenuId = signal<number | null>(null);
+  readonly menuSlug = signal<string | null>(null);
+  readonly isOpen = signal(true);
 
   readonly filteredProducts = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     const cat = this.categoryFilter();
     return this.products().filter((p) => {
+      if (!p) return false;
       const matchesCat = cat === 'ALL' || p.categoryId === cat;
       const matchesQ =
         !q ||
-        p.name.toLowerCase().includes(q) ||
+        (p.name ?? '').toLowerCase().includes(q) ||
         (p.description ?? '').toLowerCase().includes(q);
       return matchesCat && matchesQ;
     });
   });
+
+  /** Vista desktop: página cargada + filtros + solo agotados. */
+  readonly visibleProducts = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const cat = this.categoryFilter();
+    const pausedOnly = this.onlyPaused();
+    return this.products().filter((p) => {
+      if (!p) return false;
+      if (pausedOnly && p.available) return false;
+      if (cat !== 'ALL' && p.categoryId !== cat) return false;
+      if (!q) return true;
+      return (
+        (p.name ?? '').toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q)
+      );
+    });
+  });
+
+  readonly pausedCount = computed(() => this.products().filter((p) => p && !p.available).length);
+
+  readonly availableCount = computed(() => this.products().filter((p) => p && p.available).length);
+
+  /** Tono gastronómico apagado para portadas sin foto (estable por id). */
+  private readonly coverTones = ['#D9B36A', '#B85C32', '#8A9B7C', '#C08A76'];
+
+  coverTone(product: Product): string {
+    const id = product.id ?? 0;
+    return this.coverTones[Math.abs(id) % this.coverTones.length];
+  }
+
+  toggleMenu(id: number | null): void {
+    this.openMenuId.update((current) => (current === id ? null : id));
+  }
 
   logout(): void {
     this.auth.forceLogout();
@@ -70,6 +110,13 @@ export class ProductsComponent implements OnInit {
         this.reload();
       },
       error: () => this.loading.set(false),
+    });
+    this.restaurantService.getMine().subscribe({
+      next: (r) => {
+        this.menuSlug.set(r.slug);
+        this.isOpen.set(r.open);
+      },
+      error: () => undefined,
     });
   }
 

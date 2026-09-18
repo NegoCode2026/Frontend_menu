@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, inject, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -40,8 +40,18 @@ export class RegisterComponent {
   loading = false;
   errorMessage: string | null = null;
 
-  /** Slug autocompletado a partir del nombre del restaurante. */
+  /** Slug autocompletado a partir del nombre del restaurante.
+   *  Solo sugiere si el campo está vacío (respeta lo ya escrito) y recuerda
+   *  la sugerencia para seleccionarla al enfocar: así, escribir reemplaza
+   *  en vez de concatenar. */
+  readonly suggestedSlug = signal<string | null>(null);
+
   suggestSlug(): void {
+    const current = (this.form.get('slug')?.value ?? '').trim();
+    if (current) {
+      this.suggestedSlug.set(null);
+      return;
+    }
     const name = this.form.get('restaurantName')?.value ?? '';
     const slug = name
       .toLowerCase()
@@ -49,7 +59,18 @@ export class RegisterComponent {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
-    if (slug) this.form.get('slug')?.setValue(slug);
+    if (slug) {
+      this.form.get('slug')?.setValue(slug);
+      this.suggestedSlug.set(slug);
+    }
+  }
+
+  selectSuggestion(event: Event): void {
+    const input = event.target as HTMLInputElement | null;
+    const suggested = this.suggestedSlug();
+    if (input && suggested && input.value === suggested) {
+      input.select();
+    }
   }
 
   submit(): void {
