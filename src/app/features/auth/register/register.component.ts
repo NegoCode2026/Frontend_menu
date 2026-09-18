@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -12,6 +12,8 @@ export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
+  private readonly cdr = inject(ChangeDetectorRef);
 
   readonly form: FormGroup = this.fb.group(
     {
@@ -64,9 +66,15 @@ export class RegisterComponent {
         slug: this.form.value.slug,
       })
       .subscribe({
-        next: () => this.router.navigate(['/admin']),
+        next: () => {
+          this.ngZone.run(() => {
+            this.router.navigate(['/admin']);
+            this.cdr.detectChanges();
+          });
+        },
         error: (err) => {
-          this.loading = false;
+          this.ngZone.run(() => {
+            this.loading = false;
           const msg = err.error?.message ?? '';
           const fieldErrors = err.error?.fieldErrors;
 
@@ -84,6 +92,8 @@ export class RegisterComponent {
           } else {
             this.errorMessage = 'No se pudo completar el registro';
           }
+            this.cdr.detectChanges();
+          });
         },
       });
   }
