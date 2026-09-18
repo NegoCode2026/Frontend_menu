@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit, computed, OnDestroy } from '@angular
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
+import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Order, OrderStatus } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
@@ -13,6 +14,7 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 })
 export class OrdersComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
+  private readonly restaurantService = inject(RestaurantService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
   private orderSub?: Subscription;
@@ -30,10 +32,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal<string | null>(null);
 
   // View settings
-  readonly viewMode = signal<'KANBAN' | 'LIST'>('KANBAN');
+  readonly viewMode = signal<'KANBAN' | 'LIST'>('LIST');
   readonly searchQuery = signal('');
   readonly statusFilter = signal<OrderStatus | 'ALL'>('ALL');
   readonly soundEnabled = signal(true);
+  readonly openMenuId = signal<number | null>(null);
+  readonly menuSlug = signal<string | null>(null);
+  readonly isOpen = signal(true);
 
   // Selected order for Ticket / Detail Modal
   readonly selectedTicketOrder = signal<Order | null>(null);
@@ -51,19 +56,81 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const status = this.statusFilter();
 
     return this.orders().filter((order) => {
+      if (!order) return false;
       if (status !== 'ALL' && order.status !== status) {
         return false;
       }
       if (!query) return true;
 
-      const matchNum = order.orderNumber.toLowerCase().includes(query);
-      const matchName = order.customerName.toLowerCase().includes(query);
+      const matchNum = (order.orderNumber ?? '').toLowerCase().includes(query);
+      const matchName = (order.customerName ?? '').toLowerCase().includes(query);
       const matchTable = (order.tableNumber || '').toLowerCase().includes(query);
       const matchPhone = (order.customerPhone || '').toLowerCase().includes(query);
 
       return matchNum || matchName || matchTable || matchPhone;
     });
   });
+
+  /** Conteo para la pestaña "En preparación" (pedidos aceptados en cocina). */
+  readonly confirmedCount = computed(() => this.orders().filter((o) => o && o.status === 'CONFIRMED').length);
+
+  /** Conteo para la pestaña "Listos" (pedidos servidos). */
+  readonly readyCount = computed(() => this.orders().filter((o) => o && o.status === 'DELIVERED').length);
+
+  /** Etiqueta y píldora de estado para lectura rápida en cocina. */
+  statusMeta(status: OrderStatus): { label: string; pill: string; dot: string } {
+    switch (status) {
+      case 'PENDING':
+        return { label: 'Pendiente', pill: 'bg-amber-50 text-amber-800 ring-amber-200', dot: 'bg-amber-500' };
+      case 'CONFIRMED':
+      case 'IN_PREPARATION':
+        return { label: 'En preparación', pill: 'bg-[#F9DFC2] text-[#B85C32] ring-[#EAC9A8]', dot: 'bg-[#D97745]' };
+      case 'READY':
+      case 'DELIVERED':
+        return { label: 'Listo', pill: 'bg-[#E7F6EC] text-[#16A34A] ring-[#BFE6CC]', dot: 'bg-[#16A34A]' };
+      default:
+        return { label: 'Cancelado', pill: 'bg-stone-100 text-stone-500 ring-stone-200', dot: 'bg-stone-400' };
+    }
+  }
+
+  /** Minutos desde la creación (null si fecha inválida). */
+  minutesSince(isoString: string | null | undefined): number | null {
+    try {
+      if (!isoString) return null;
+      const mins = Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
+      return Number.isNaN(mins) ? null : Math.max(0, mins);
+    } catch {
+      return null;
+    }
+  }
+
+  toggleMenu(id: number | null): void {
+    this.openMenuId.update((current) => (current === id ? null : id));
+  }
+
+  /** Detalle compacto "2x Nombre · 1x Otro" para la tabla. */
+  orderItemsSummary(order: Order): string {
+    const items = order.items ?? [];
+    if (items.length === 0) return 'Sin detalle';
+    return items.map((i) => `${i.quantity}x ${i.productName}`).join(' · ');
+  }
+
+  /** Minutos desde la creación (null si fecha inválida). */
+  orderMinutes(order: Order): number | null {
+    try {
+      if (!order.createdAt) return null;
+      const mins = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
+      return Number.isNaN(mins) ? null : Math.max(0, mins);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Pedido no finalizado con 30+ minutos: requiere atención. */
+  isLate(order: Order): boolean {
+    const mins = this.orderMinutes(order);
+    return mins !== null && mins >= 30 && order.status !== 'DELIVERED' && order.status !== 'CANCELLED';
+  }
 
   // Kanban Columns
   readonly pendingOrders = computed(() =>
@@ -95,6 +162,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.fetchOrders();
+    this.restaurantService.getMine().subscribe({
+      next: (r) => {
+        this.menuSlug.set(r.slug);
+        this.isOpen.set(r.open);
+      },
+      error: () => undefined,
+    });
 
     // Listen to real-time incoming orders
     this.orderSub = this.orderService.onNewOrder$.subscribe((newOrder) => {
@@ -129,7 +203,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.errorMessage.set(null);
     this.orderService.listMine().subscribe({
       next: (data) => {
-        this.orders.set(data);
+        this.orders.set(Array.isArray(data) ? data : []);
         this.loading.set(false);
       },
       error: () => {
@@ -233,9 +307,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   updateStatus(order: Order, newStatus: OrderStatus): void {
+    if (order.id == null) return;
     // Optimistic update
     this.orders.update((list) =>
-      list.map((o) => (o.id === order.id ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o))
+      list.map((o) => (o && o.id === order.id ? { ...o, status: newStatus, updatedAt: new Date().toISOString() } : o))
     );
 
     if (this.selectedTicketOrder()?.id === order.id) {
