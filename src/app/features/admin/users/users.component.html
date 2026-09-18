@@ -53,7 +53,7 @@
     } @else {
       <p class="mt-4 mb-3 text-center text-[11px] font-bold text-stone-400 tabular-nums">{{ users().length }} miembros</p>
       <div class="space-y-4">
-        @for (member of users(); track member.id) {
+        @for (member of users(); track $index) {
           <article class="rounded-[1.6rem] bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
             <div class="flex items-center gap-3">
               <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary-400 to-amber-400 text-sm font-black text-white shadow ring-4 ring-primary-50">
@@ -62,7 +62,7 @@
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[15px] font-extrabold text-stone-900">
                   {{ member.name }}
-                  @if (member.id === currentUserId) {
+                  @if (member.id === currentUserId()) {
                     <span class="text-[11px] font-medium text-stone-400">(tú)</span>
                   }
                 </p>
@@ -79,7 +79,7 @@
                 [class]="member.role === 'RESTAURANT_ADMIN' ? 'bg-primary-50 text-primary-600 ring-1 ring-primary-100' : 'bg-stone-100 text-stone-500'">
                 {{ member.role === 'RESTAURANT_ADMIN' ? '⭐ Admin' : '👤 Operativo' }}
               </span>
-              @if (member.id !== currentUserId) {
+              @if (member.id !== currentUserId()) {
                 <div class="flex items-center gap-1.5">
                   <button (click)="toggleActive(member)" class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold text-primary-600 active:scale-95 transition">{{ member.active ? 'Desactivar' : 'Activar' }}</button>
                   <button (click)="remove(member)" class="rounded-full bg-stone-100 px-4 py-2 text-xs font-extrabold text-red-500 active:scale-95 transition">Eliminar</button>
@@ -99,19 +99,69 @@
 
 <!-- DESKTOP · se mantiene intacto -->
 <div class="anim-fade-in-up">
-<div class="hidden lg:block">
-  <div class="flex items-center justify-between">
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10">
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Equipo</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="admin-title">Usuarios</h1>
-      <p class="admin-sub">Invita a tu equipo a administrar el menú.</p>
+      <p class="landing-eyebrow">Personas y permisos</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Equipo</h1>
     </div>
     @if (!showCreate()) {
-      <button (click)="openCreate()" class="btn-brand btn-shine">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-        </svg>
-        Nuevo usuario
-      </button>
+      <button (click)="openCreate()" class="landing-btn-dark">+ Invitar persona</button>
+    }
+  </div>
+
+  <!-- Banda resumen -->
+  <div class="mt-8 flex flex-wrap items-center gap-4 rounded-xl bg-[#F8F3EB] px-6 py-5">
+    <div class="flex items-center">
+      @for (member of users().slice(0, 3); track $index) {
+        <span class="admin-data -ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#D97745] text-[11px] font-extrabold text-white ring-2 ring-[#F8F3EB] first:ml-0">{{ initials(member.name) }}</span>
+      }
+      @if (users().length > 3) {
+        <span class="admin-data -ml-2 flex h-9 w-9 items-center justify-center rounded-full bg-[#1C1917] text-[11px] font-extrabold text-white ring-2 ring-[#F8F3EB]">+{{ users().length - 3 }}</span>
+      }
+    </div>
+    <div class="min-w-0 flex-1">
+      <p class="text-[15px] font-bold text-[#1C1917]">{{ users().length }} {{ users().length === 1 ? 'persona en el equipo' : 'personas en el equipo' }}</p>
+      <p class="mt-0.5 text-[13px] font-normal text-stone-500">{{ activeCount() }} activas</p>
+    </div>
+    @if (isOpen()) {
+      <span class="flex shrink-0 items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+        Servicio activo
+      </span>
+    } @else {
+      <span class="flex shrink-0 items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+        Servicio pausado
+      </span>
     }
   </div>
 
@@ -128,85 +178,115 @@
 
   <!-- Formulario compartido móvil + desktop -->
   @if (showCreate()) {
-    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 bg-white rounded-3xl border border-stone-100 shadow-lg shadow-stone-200/50 p-8 space-y-5 max-w-xl anim-fade-in-scale">
-      <h2 class="admin-section">👤 Nuevo usuario</h2>
-      <div class="space-y-1.5">
-        <label class="field-label">Nombre</label>
-        <input type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400" />
+    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-6 sm:p-8 space-y-5 max-w-xl anim-fade-in-scale">
+      <div>
+        <p class="landing-eyebrow">Personas y permisos</p>
+        <h2 class="landing-serif mt-2 text-[28px] font-medium text-[#1C1917]">Invitar persona</h2>
       </div>
       <div class="space-y-1.5">
-        <label class="field-label">Correo</label>
-        <input type="email" formControlName="email" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400" />
+        <label class="field-label" for="user-name">Nombre</label>
+        <input id="user-name" type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="Ana López" />
       </div>
       <div class="space-y-1.5">
-        <label class="field-label">Contraseña</label>
-        <input type="password" formControlName="password" autocomplete="new-password" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400" />
+        <label class="field-label" for="user-email">Correo</label>
+        <input id="user-email" type="email" formControlName="email" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="ana@restaurante.com" />
+      </div>
+      <div class="space-y-1.5">
+        <label class="field-label" for="user-pass">Contraseña temporal</label>
+        <input id="user-pass" type="password" formControlName="password" autocomplete="new-password" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="••••••••" />
         @if (form.get('password')?.touched && form.get('password')?.invalid) {
           <p class="text-xs text-red-600 pl-1 anim-fade-in-scale">Mínimo 8 caracteres con mayúscula, minúscula y número</p>
         }
       </div>
       <div class="space-y-1.5">
-        <label class="field-label">Rol</label>
-        <select formControlName="role" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white">
-          <option value="RESTAURANT_USER">Operativo (edita menú)</option>
-          <option value="RESTAURANT_ADMIN">Administrador (gestiona usuarios y restaurante)</option>
+        <label class="field-label" for="user-role">Rol</label>
+        <select id="user-role" formControlName="role" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200">
+          <option value="RESTAURANT_USER">Equipo (opera el día a día)</option>
+          <option value="RESTAURANT_ADMIN">Administrador (gestiona todo)</option>
         </select>
       </div>
       <div class="flex gap-3 pt-2">
-        <button type="submit" [disabled]="form.invalid || saving()" class="btn-brand btn-shine">
-          {{ saving() ? 'Creando…' : 'Crear usuario' }}
+        <button type="submit" [disabled]="form.invalid || saving()" class="landing-btn-dark disabled:opacity-50 disabled:pointer-events-none">
+          {{ saving() ? 'Invitando…' : 'Enviar invitación' }}
         </button>
-        <button type="button" (click)="closeCreate()" class="btn-ghost">
+        <button type="button" (click)="closeCreate()" class="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition-all duration-200 hover:bg-stone-50 active:scale-[0.98]">
           Cancelar
         </button>
       </div>
     </form>
   }
 
-<div class="hidden lg:block">
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-10">
   @if (loading()) {
-    <div class="flex items-center justify-center py-16">
-      <div class="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
-    </div>
-  } @else if (users().length === 0) {
-    <div class="mt-8 bg-white border-2 border-dashed border-stone-200 rounded-3xl p-14 text-center anim-fade-in-up">
-      <div class="text-5xl mb-4 anim-float">👥</div>
-      <p class="admin-section">Aún no tienes usuarios</p>
-      <p class="text-sm text-stone-400 mt-2">Invita a tu equipo para que te ayuden a administrar.</p>
-    </div>
-  } @else {
-    <div class="mt-8 bg-white rounded-3xl border border-stone-100 shadow-sm divide-y divide-stone-50">
-      @for (user of users(); track user.id) {
-        <div class="p-5 flex items-center gap-4 hover:bg-stone-50/70 transition-colors group">
-          <div class="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-amber-400 text-white flex items-center justify-center font-bold shrink-0 shadow-sm group-hover:scale-105 transition-transform duration-200">
-            {{ user.name.charAt(0).toUpperCase() }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="font-bold text-stone-900">
-              {{ user.name }}
-              @if (user.id === currentUserId) {
-                <span class="text-xs text-stone-400 font-medium">(tú)</span>
-              }
-            </p>
-            <p class="text-sm text-stone-400 truncate">{{ user.email }}</p>
-          </div>
-          <span class="text-xs px-3 py-1.5 rounded-full font-bold"
-            [class]="user.role === 'RESTAURANT_ADMIN' ? 'bg-primary-50 text-primary-600' : 'bg-stone-100 text-stone-500'">
-            {{ user.role === 'RESTAURANT_ADMIN' ? 'Administrador' : 'Operativo' }}
-          </span>
-          <span class="text-xs px-3 py-1.5 rounded-full font-bold" [class]="user.active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'">
-            {{ user.active ? 'Activo' : 'Inactivo' }}
-          </span>
-          @if (user.id !== currentUserId) {
-            <div class="flex gap-1">
-              <button (click)="toggleActive(user)" class="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1.5 rounded-full transition-all">
-                {{ user.active ? 'Desactivar' : 'Activar' }}
-              </button>
-              <button (click)="remove(user)" class="text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all">Eliminar</button>
-            </div>
-          }
+    <div class="mt-8 space-y-0 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
+      @for (i of [1,2,3,4]; track $index) {
+        <div class="flex animate-pulse items-center gap-4 border-b border-stone-100 px-6 py-4 last:border-0">
+          <div class="h-10 w-10 rounded-full bg-stone-100"></div>
+          <div class="h-4 w-40 rounded bg-stone-100"></div>
         </div>
       }
+    </div>
+  } @else if (users().length === 0) {
+    <div class="mt-8 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
+      <p class="landing-serif text-[26px] font-medium text-[#1C1917]">Aún no hay equipo.</p>
+      <p class="mt-1 text-sm text-stone-500">Invita a tu primera persona para trabajar la sala y la cocina.</p>
+      <button (click)="openCreate()" class="btn-brand mt-4">Invitar persona</button>
+    </div>
+  } @else {
+    <div class="mt-8 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
+      <div class="overflow-x-auto">
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-[#F8F3EB] text-[11px] font-medium uppercase tracking-[0.1em] text-stone-500">
+              <th class="px-6 py-4 font-medium">Persona</th>
+              <th class="px-6 py-4 font-medium">Rol</th>
+              <th class="px-6 py-4 font-medium">Estado</th>
+              <th class="px-6 py-4 font-medium">Miembro desde</th>
+              <th class="px-6 py-4"><span class="sr-only">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-stone-100">
+            @for (member of users(); track $index) {
+              <tr class="transition-colors hover:bg-stone-50/70">
+                <td class="px-6 py-4">
+                  <div class="flex items-center gap-3">
+                    <span class="admin-data flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#D97745] text-[12px] font-extrabold text-white">{{ initials(member.name) }}</span>
+                    <span class="min-w-0">
+                      <span class="block truncate text-[14px] font-bold text-[#1C1917]">
+                        {{ member.name }}
+                        @if (member.id === currentUserId()) {
+                          <span class="ml-1 text-[11px] font-medium text-stone-400">(tú)</span>
+                        }
+                      </span>
+                      <span class="block truncate text-[12px] font-normal text-stone-400">{{ member.email }}</span>
+                    </span>
+                  </div>
+                </td>
+                <td class="px-6 py-4 text-[13px] font-medium text-stone-500">{{ roleLabel(member.role) }}</td>
+                <td class="px-6 py-4">
+                  @if (member.active) {
+                    <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>Activo</span>
+                  } @else {
+                    <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-stone-400"><span class="h-1.5 w-1.5 rounded-full bg-stone-300"></span>Inactivo</span>
+                  }
+                </td>
+                <td class="admin-data px-6 py-4 text-[13px] font-medium text-stone-500">{{ memberSince(member.createdAt) }}</td>
+                <td class="relative px-6 py-4 text-right">
+                  @if (member.id !== currentUserId()) {
+                    <button (click)="toggleMenu(member.id)" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-black tracking-widest text-stone-300 transition-colors hover:bg-stone-100 hover:text-stone-600" aria-label="Acciones">···</button>
+                    @if (openMenuId() !== null && openMenuId() === member.id) {
+                      <div class="absolute right-4 top-12 z-20 w-44 rounded-xl border border-stone-200 bg-white py-1.5 text-left shadow-xl anim-fade-in-scale">
+                        <button (click)="toggleActive(member); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">{{ member.active ? 'Desactivar' : 'Activar' }}</button>
+                        <button (click)="remove(member); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-red-600 transition-colors hover:bg-red-50">Eliminar</button>
+                      </div>
+                    }
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
   }
 </div><!-- /DESKTOP list -->

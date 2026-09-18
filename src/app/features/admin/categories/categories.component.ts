@@ -1,6 +1,8 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryService } from '../../../core/services/category.service';
+import { ProductService } from '../../../core/services/product.service';
+import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Category } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
@@ -13,6 +15,8 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 export class CategoriesComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly categoryService = inject(CategoryService);
+  private readonly productService = inject(ProductService);
+  private readonly restaurantService = inject(RestaurantService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 
@@ -26,17 +30,39 @@ export class CategoriesComponent implements OnInit {
   readonly totalElements = signal(0);
   readonly pageSize = 50;
 
+  readonly openMenuId = signal<number | null>(null);
+  readonly menuSlug = signal<string | null>(null);
+  readonly isOpen = signal(true);
+  readonly productCounts = signal<Record<number, number>>({});
+
+  private readonly tileTones = ['#F9DFC2', '#D9E8D4', '#F3E6C8'];
+
+  tileTone(index: number): string {
+    return this.tileTones[index % this.tileTones.length];
+  }
+
+  toggleMenu(id: number | null): void {
+    this.openMenuId.update((current) => (current === id ? null : id));
+  }
+
+  countFor(categoryId: number): number | null {
+    return this.productCounts()[categoryId] ?? null;
+  }
+
   // Filtro solo para el clon móvil (el desktop muestra la tabla completa)
   readonly activeFilter = signal<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
 
   readonly filteredCategories = computed(() => {
     const f = this.activeFilter();
     return this.categories().filter((c) => {
+      if (!c) return false;
       if (f === 'ACTIVE') return c.active;
       if (f === 'INACTIVE') return !c.active;
       return true;
     });
   });
+
+  readonly activeCount = computed(() => this.categories().filter((c) => c && c.active).length);
 
   logout(): void {
     this.auth.forceLogout();
@@ -50,6 +76,13 @@ export class CategoriesComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.restaurantService.getMine().subscribe({
+      next: (r) => {
+        this.menuSlug.set(r.slug);
+        this.isOpen.set(r.open);
+      },
+      error: () => undefined,
+    });
   }
 
   startCreate(): void {
@@ -61,14 +94,50 @@ export class CategoriesComponent implements OnInit {
     this.loading.set(true);
     this.categoryService.list(page, this.pageSize).subscribe({
       next: (result) => {
-        this.categories.set(result.content);
-        this.page.set(result.number);
-        this.totalPages.set(result.totalPages);
-        this.totalElements.set(result.totalElements);
+        const content = result?.content ?? [];
+        this.categories.set(content);
+        this.page.set(result?.number ?? 0);
+        this.totalPages.set(result?.totalPages ?? 0);
+        this.totalElements.set(result?.totalElements ?? 0);
         this.loading.set(false);
+        this.loadCounts(content.map((c) => c.id));
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  private loadCounts(ids: number[]): void {
+    if (ids.length === 0) {
+      this.productCounts.set({});
+      return;
+    }
+    const counts: Record<number, number> = {};
+    let done = 0;
+    for (const id of ids) {
+      this.productService.list(id, 0, 1).subscribe({
+        next: (result) => {
+          counts[id] = result?.totalElements ?? 0;
+          if (++done === ids.length) this.productCounts.set(counts);
+        },
+        error: () => {
+          if (++done === ids.length) this.productCounts.set(counts);
+        },
+      });
+    }
+  }
+
+  toggleActive(category: Category): void {
+    this.categoryService
+      .update(category.id, {
+        name: category.name,
+        description: category.description,
+        position: category.position,
+        active: !category.active,
+      })
+      .subscribe({
+        next: () => this.reload(),
+        error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo actualizar'),
+      });
   }
 
   previousPage(): void {

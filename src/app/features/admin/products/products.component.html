@@ -47,7 +47,7 @@
         <span class="text-[11px] leading-none" [class.font-extrabold]="categoryFilter() === 'ALL'" [class.text-stone-900]="categoryFilter() === 'ALL'" [class.text-stone-400]="categoryFilter() !== 'ALL'">Todos</span>
         <span class="h-[3px] w-5 rounded-full bg-stone-900 transition-opacity" [class.opacity-100]="categoryFilter() === 'ALL'" [class.opacity-0]="categoryFilter() !== 'ALL'"></span>
       </button>
-      @for (cat of categories(); track cat.id) {
+      @for (cat of categories(); track $index) {
         <button (click)="categoryFilter.set(cat.id)" class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 active:scale-95 transition">
           <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[26px] shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition" [class.!bg-stone-900]="categoryFilter() === cat.id">🗂️</span>
           <span class="max-w-[68px] truncate text-[11px] leading-none" [class.font-extrabold]="categoryFilter() === cat.id" [class.text-stone-900]="categoryFilter() === cat.id" [class.text-stone-400]="categoryFilter() !== cat.id">{{ cat.name }}</span>
@@ -82,7 +82,7 @@
     } @else {
       <p class="mt-4 mb-3 text-center text-[11px] font-bold text-stone-400 tabular-nums">{{ filteredProducts().length }} productos</p>
       <div class="space-y-4">
-        @for (p of filteredProducts(); track p.id) {
+        @for (p of filteredProducts(); track $index) {
           <article class="rounded-[1.6rem] bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
             <div class="flex items-center gap-3">
               <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-100 text-xl shadow ring-4 ring-stone-50">
@@ -126,20 +126,99 @@
 
 <!-- DESKTOP · se mantiene intacto -->
 <div class="anim-fade-in-up">
-<div class="hidden lg:block">
-  <div class="flex items-center justify-between">
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10">
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Menú</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      <button (click)="onlyPaused.set(!onlyPaused())" [class]="onlyPaused() ? 'bg-[#F9DFC2] text-[#B85C32]' : 'text-stone-600 hover:bg-stone-100'" class="relative flex h-9 w-9 items-center justify-center rounded-full transition-colors" aria-label="Ver agotados" title="Ver solo agotados">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        @if (pausedCount() > 0) {
+          <span class="admin-data absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ pausedCount() }}</span>
+        }
+      </button>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
     <div>
-      <h1 class="admin-title">Productos</h1>
-      <p class="admin-sub">Agrega y actualiza los productos de tu menú.</p>
+      <p class="landing-eyebrow">Carta del restaurante</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Menú</h1>
     </div>
     @if (editingId() === null) {
-      <button (click)="startCreate()" class="btn-brand btn-shine">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
-          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
-        </svg>
-        Nuevo producto
-      </button>
+      <button (click)="startCreate()" class="landing-btn-dark">+ Añadir producto</button>
     }
+  </div>
+
+  <!-- Sub row -->
+  <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+    <p class="flex items-center gap-2 text-[13px]">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4 text-[#D97745]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" /></svg>
+      <span class="font-bold text-[#1C1917]">{{ availableCount() }} productos activos</span>
+      <span class="font-normal text-stone-400">en {{ categories().length }} categorías</span>
+    </p>
+    @if (menuSlug()) {
+      <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 bg-white px-4 py-2.5 text-[13px] transition-colors hover:border-stone-300">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4 text-[#D97745]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+        <span class="font-medium text-stone-500">Tu menú público</span>
+        <span class="font-bold text-[#B85C32]">tavita.app/{{ menuSlug() }}</span>
+      </a>
+    }
+  </div>
+
+  <!-- Tabs + búsqueda -->
+  <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div class="w-full lg:w-80">
+      <div class="relative">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="absolute left-3.5 top-3 h-4 w-4 text-stone-400"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+        <input
+          type="search"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Buscar en tu menú"
+          class="w-full rounded border border-stone-200 bg-white py-2.5 pl-10 pr-4 text-[13px] text-stone-900 placeholder-stone-400 focus:outline-none input-glow"
+        />
+      </div>
+    </div>
+    <div class="flex items-center gap-2 overflow-x-auto pb-1">
+      <button
+        (click)="categoryFilter.set('ALL')"
+        [class]="categoryFilter() === 'ALL' ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+        class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
+      >
+        Todos
+      </button>
+      @for (cat of categories(); track $index) {
+        <button
+          (click)="categoryFilter.set(cat.id)"
+          [class]="categoryFilter() === cat.id ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+          class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
+        >
+          {{ cat.name }}
+        </button>
+      }
+    </div>
   </div>
 
   @if (errorMessage()) {
@@ -155,14 +234,17 @@
 
   <!-- Formulario compartido móvil + desktop -->
   @if (editingId() !== null) {
-    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 bg-white rounded-3xl border border-stone-100 shadow-lg shadow-stone-200/50 p-8 space-y-5 max-w-2xl anim-fade-in-scale">
-      <h2 class="admin-section">{{ editingId() === -1 ? '✨ Nuevo producto' : '✏️ Editar producto' }}</h2>
+    <form [formGroup]="form" (ngSubmit)="submit()" class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-6 sm:p-8 space-y-5 max-w-2xl anim-fade-in-scale">
+      <div>
+        <p class="landing-eyebrow">Carta del restaurante</p>
+        <h2 class="landing-serif mt-2 text-[28px] font-medium text-[#1C1917]">{{ editingId() === -1 ? 'Nuevo plato' : 'Editar plato' }}</h2>
+      </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div class="space-y-1.5">
-          <label class="field-label">Categoría</label>
-          <select formControlName="categoryId" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white">
-            @for (category of categories(); track category.id) {
+          <label class="field-label" for="prod-cat">Categoría</label>
+          <select id="prod-cat" formControlName="categoryId" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200">
+            @for (category of categories(); track $index) {
               <option [value]="category.id">{{ category.name }}</option>
             }
           </select>
@@ -171,8 +253,8 @@
           }
         </div>
         <div class="space-y-1.5">
-          <label class="field-label">Precio</label>
-          <input type="number" step="0.01" min="0" formControlName="price" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400" placeholder="18000" />
+          <label class="field-label" for="prod-price">Precio</label>
+          <input id="prod-price" type="number" step="0.01" min="0" formControlName="price" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="18000" />
           @if (form.get('price')?.invalid && form.get('price')?.touched) {
             <p class="text-xs text-red-600 pl-1">Ingresa un precio válido</p>
           }
@@ -180,111 +262,106 @@
       </div>
 
       <div class="space-y-1.5">
-        <label class="field-label">Nombre</label>
-        <input type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400" placeholder="Hamburguesa Especial" />
+        <label class="field-label" for="prod-name">Nombre</label>
+        <input id="prod-name" type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="Hamburguesa Especial" />
         @if (form.get('name')?.invalid && form.get('name')?.touched) {
           <p class="text-xs text-red-600 pl-1">El nombre es obligatorio</p>
         }
       </div>
 
       <div class="space-y-1.5">
-        <label class="field-label">Descripción</label>
-        <textarea formControlName="description" rows="3" class="w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 bg-stone-50/50 hover:bg-white placeholder-stone-400 resize-none" placeholder="Describe tu producto..."></textarea>
+        <label class="field-label" for="prod-desc">Descripción</label>
+        <textarea id="prod-desc" formControlName="description" rows="3" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400 resize-none" placeholder="Describe tu producto..."></textarea>
       </div>
 
-      <div class="flex items-center gap-5">
-        <div class="w-20 h-20 rounded-2xl bg-stone-100 overflow-hidden flex items-center justify-center text-2xl shrink-0 border-2 border-dashed border-stone-200">
-          @if (previewUrl()) {
-            <img [src]="previewUrl()" alt="Imagen" class="w-full h-full object-cover" />
-          } @else {
-            🖼️
-          }
-        </div>
-        <label class="block text-sm font-medium text-stone-700 cursor-pointer">
-          <span class="inline-flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-semibold rounded-full px-5 py-2.5 transition-all duration-200">
+      <div class="flex flex-wrap items-center gap-4">
+        @if (previewUrl()) {
+          <img [src]="previewUrl()" alt="Foto del plato" class="w-20 h-20 rounded-2xl object-cover ring-1 ring-stone-200" />
+        } @else {
+          <div class="w-20 h-20 rounded-2xl bg-stone-100 flex items-center justify-center ring-1 ring-stone-200">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-7 w-7 text-stone-300"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" /></svg>
+          </div>
+        }
+        <label class="block cursor-pointer">
+          <span class="inline-flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-sm font-bold rounded-full px-5 py-2.5 transition-all duration-200">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
               <path d="M9.25 13.25a.75.75 0 001.5 0V4.636l2.955 3.129a.75.75 0 001.09-1.03l-4.25-4.5a.75.75 0 00-1.09 0l-4.25 4.5a.75.75 0 101.09 1.03L9.25 4.636v8.614z" />
               <path d="M3.5 12.75a.75.75 0 00-1.5 0v2.5A2.75 2.75 0 004.75 18h10.5A2.75 2.75 0 0018 15.25v-2.5a.75.75 0 00-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5z" />
             </svg>
-            {{ uploading() ? 'Subiendo…' : 'Subir imagen' }}
+            {{ uploading() ? 'Subiendo…' : 'Subir foto' }}
           </span>
           <input type="file" accept="image/*" class="hidden" (change)="onImageSelected($event)" [disabled]="uploading()" />
         </label>
-        <label class="flex items-center gap-2 text-sm font-semibold text-stone-700 cursor-pointer hover:text-primary-600 transition-colors">
-          <input type="checkbox" formControlName="available" class="w-5 h-5 rounded accent-primary-600" />
-          Disponible
-        </label>
+        <div class="flex items-center rounded-full border border-stone-200 p-1" role="group" aria-label="Disponibilidad">
+          <button type="button" (click)="form.get('available')?.setValue(true)" [class]="form.get('available')?.value ? 'bg-[#16A34A] text-white shadow-xs' : 'text-stone-400 hover:text-stone-600'" class="rounded-full px-4 py-1.5 text-xs font-bold transition-all">Disponible</button>
+          <button type="button" (click)="form.get('available')?.setValue(false)" [class]="!form.get('available')?.value ? 'bg-stone-900 text-white shadow-xs' : 'text-stone-400 hover:text-stone-600'" class="rounded-full px-4 py-1.5 text-xs font-bold transition-all">Agotado</button>
+        </div>
       </div>
 
       <div class="flex gap-3 pt-2">
-        <button type="submit" [disabled]="form.invalid || saving() || categories().length === 0" class="btn-brand btn-shine">
-          {{ saving() ? 'Guardando…' : 'Guardar' }}
+        <button type="submit" [disabled]="form.invalid || saving() || categories().length === 0" class="landing-btn-dark disabled:opacity-50 disabled:pointer-events-none">
+          {{ saving() ? 'Guardando…' : 'Guardar plato' }}
         </button>
-        <button type="button" (click)="cancelEdit()" class="btn-ghost">
+        <button type="button" (click)="cancelEdit()" class="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition-all duration-200 hover:bg-stone-50 active:scale-[0.98]">
           Cancelar
         </button>
       </div>
     </form>
   }
 
-<div class="hidden lg:block">
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pb-10">
   @if (loading()) {
-    <div class="flex items-center justify-center py-16">
-      <div class="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+    <div class="mt-8 grid grid-cols-2 gap-6 xl:grid-cols-4">
+      @for (i of [1,2,3,4]; track $index) {
+        <div class="animate-pulse overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
+          <div class="h-44 bg-stone-100"></div>
+          <div class="space-y-2 p-5"><div class="h-4 w-2/3 rounded bg-stone-100"></div><div class="h-3 w-1/2 rounded bg-stone-100"></div></div>
+        </div>
+      }
     </div>
-  } @else if (products().length === 0) {
-    <div class="mt-8 bg-white border-2 border-dashed border-stone-200 rounded-3xl p-14 text-center anim-fade-in-up">
-      <div class="text-5xl mb-4 anim-float">🍔</div>
-      <p class="admin-section">Aún no tienes productos</p>
-      <p class="text-sm text-stone-400 mt-2">Agrega tu primer producto para que aparezca en el menú público.</p>
+  } @else if (visibleProducts().length === 0) {
+    <div class="mt-8 rounded-2xl border border-dashed border-stone-300 bg-white px-6 py-12 text-center">
+      <p class="landing-serif text-[26px] font-medium text-[#1C1917]">Sin platos con este filtro.</p>
+      <p class="mt-1 text-sm text-stone-500">Ajusta la búsqueda o la categoría.</p>
+      <button (click)="searchQuery.set(''); categoryFilter.set('ALL'); onlyPaused.set(false)" class="mt-2 text-[13px] font-bold text-[#B85C32] hover:text-[#D97745]">Ver todo →</button>
     </div>
   } @else {
-    <div class="mt-8 overflow-x-auto bg-white rounded-3xl border border-stone-100 shadow-sm">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="text-left border-b border-stone-100">
-            <th class="px-6 py-4 tbl-head">Producto</th>
-            <th class="px-6 py-4 tbl-head">Categoría</th>
-            <th class="px-6 py-4 tbl-head text-right">Precio</th>
-            <th class="px-6 py-4 tbl-head">Estado</th>
-            <th class="px-6 py-4 tbl-head text-right">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (product of products(); track product.id) {
-            <tr class="border-b border-stone-50 last:border-0 hover:bg-stone-50/70 transition-colors group">
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-4">
-                  <div class="w-12 h-12 rounded-xl bg-stone-100 overflow-hidden flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform duration-200">
-                    @if (product.imageUrl) {
-                      <img [src]="product.imageUrl" alt="" class="w-full h-full object-cover" />
-                    } @else {
-                      <span class="text-stone-300">🍽️</span>
-                    }
-                  </div>
-                  <div>
-                    <p class="font-bold text-stone-900">{{ product.name }}</p>
-                    @if (product.description) {
-                      <p class="text-xs text-stone-400 truncate max-w-[200px]">{{ product.description }}</p>
-                    }
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 text-stone-600 font-medium">{{ categoryName(product.categoryId) }}</td>
-              <td class="px-6 py-4 text-right font-extrabold text-stone-900">{{ formatCurrency(product.price) }}</td>
-              <td class="px-6 py-4">
-                <button (click)="toggleAvailable(product)" class="text-xs px-3 py-1.5 rounded-full font-bold transition-all duration-200" [class]="product.available ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-stone-100 text-stone-400 hover:bg-stone-200'">
-                  {{ product.available ? 'Disponible' : 'Agotado' }}
-                </button>
-              </td>
-              <td class="px-6 py-4 text-right whitespace-nowrap">
-                <button (click)="startEdit(product)" class="text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 px-3 py-1.5 rounded-full transition-all mr-1">Editar</button>
-                <button (click)="remove(product)" class="text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-full transition-all">Eliminar</button>
-              </td>
-            </tr>
+    <div class="mt-8 grid grid-cols-2 gap-6 xl:grid-cols-4">
+      @for (product of visibleProducts(); track $index) {
+        <article class="group overflow-hidden rounded-2xl border border-stone-900/10 bg-white transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_40px_-20px_rgba(28,25,23,0.25)]">
+          @if (product.imageUrl) {
+            <div class="h-44 overflow-hidden bg-stone-100">
+              <img [src]="product.imageUrl" [alt]="product.name" class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" />
+            </div>
+          } @else {
+            <div class="flex h-44 items-center justify-center" [style.background-color]="coverTone(product)">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-9 w-9 text-white/90"><path stroke-linecap="round" stroke-linejoin="round" d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7" /></svg>
+            </div>
           }
-        </tbody>
-      </table>
+          <div class="p-5">
+            <div class="flex items-center justify-between gap-2">
+              @if (product.available) {
+                <span class="flex items-center gap-1.5 text-[11px] font-bold text-[#16A34A]"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>Disponible</span>
+              } @else {
+                <span class="flex items-center gap-1.5 text-[11px] font-bold text-[#B85C32]"><span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>Agotado</span>
+              }
+              <div class="relative">
+                <button (click)="toggleMenu(product.id)" class="flex h-8 w-8 items-center justify-center rounded-full text-lg font-black tracking-widest text-stone-300 transition-colors hover:bg-stone-100 hover:text-stone-600" aria-label="Acciones">···</button>
+                @if (openMenuId() !== null && openMenuId() === product.id) {
+                  <div class="absolute right-0 top-9 z-20 w-44 rounded-xl border border-stone-200 bg-white py-1.5 text-left shadow-xl anim-fade-in-scale">
+                    <button (click)="startEdit(product); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">Editar</button>
+                    <button (click)="toggleAvailable(product); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">{{ product.available ? 'Marcar agotado' : 'Marcar disponible' }}</button>
+                    <button (click)="remove(product); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-red-600 transition-colors hover:bg-red-50">Eliminar</button>
+                  </div>
+                }
+              </div>
+            </div>
+            <h3 class="landing-serif mt-2 truncate text-[19px] font-medium text-[#1C1917]">{{ product.name }}</h3>
+            <p class="mt-1 line-clamp-2 min-h-[2.2em] text-[12px] font-normal leading-snug text-stone-400">{{ product.description || categoryName(product.categoryId) }}</p>
+            <p class="admin-data mt-2 text-[15px] font-extrabold text-[#1C1917]">{{ formatCurrency(product.price) }}</p>
+          </div>
+        </article>
+      }
     </div>
 
     @if (totalPages() > 1) {
