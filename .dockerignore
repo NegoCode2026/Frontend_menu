@@ -1,0 +1,17 @@
+# Evita que el contexto de build arrastre dependencias del host (en Windows los
+# binarios de node_modules NO sirven dentro del contenedor Linux y rompían la
+# imagen), salidas de build, git y secretos. Sin esto, `COPY . .` pisa los
+# node_modules instalados con `npm ci` dentro de la imagen.
+node_modules
+dist
+out-tsc
+.git
+.angular
+.vscode
+.idea
+coverage
+*.log
+.env
+.env.*
+Dockerfile
+docker-compose*.yml

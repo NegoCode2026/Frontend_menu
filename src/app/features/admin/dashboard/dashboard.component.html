@@ -1,87 +1,346 @@
-<div class="anim-fade-in-up">
-  <!-- Greeting -->
-  <div class="flex items-center justify-between">
-    <div>
-      <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Hola, {{ user()?.name }} 👋</h1>
-      <p class="text-stone-500 mt-1">Este es el estado de tu menú digital.</p>
+<!-- MOBILE · clon visual estilo food-app (misma data) -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40">
+  <div class="border-b border-stone-900/10 bg-white px-5 py-4">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex min-w-0 items-center gap-2.5">
+        <div class="relative shrink-0">
+          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-[#D97745] text-sm font-extrabold text-white ring-2 ring-[#F9DFC2]">
+            {{ user()?.name?.charAt(0) ?? 'T' }}
+          </div>
+          @if (isOpen()) {
+            <span class="absolute -bottom-0 -right-0 h-3 w-3 rounded-full bg-[#16A34A] ring-2 ring-white" title="Servicio activo"></span>
+          } @else {
+            <span class="absolute -bottom-0 -right-0 h-3 w-3 rounded-full bg-[#B85C32] ring-2 ring-white" title="Servicio pausado"></span>
+          }
+        </div>
+        <div class="min-w-0 leading-tight">
+          <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ restaurantName() ?? 'Mi Negocio' }}</p>
+          <p class="truncate text-[11px] font-normal text-stone-400">{{ planName() ?? 'Tavita' }}</p>
+        </div>
+      </div>
+      <div class="flex shrink-0 items-center gap-1">
+        <a routerLink="/admin/orders" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-700 active:scale-90 transition" aria-label="Pedidos">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+          @if (pendingCount() > 0) {
+            <span class="admin-data absolute right-1 top-1 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ pendingCount() }}</span>
+          }
+        </a>
+        <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+        </button>
+      </div>
     </div>
   </div>
 
-  <!-- Stats Grid -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-1 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🏪</span>
-        </div>
-      </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Restaurante</p>
-      <p class="text-lg font-extrabold text-stone-900 mt-1 truncate">{{ restaurantName() ?? '—' }}</p>
-    </div>
-
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-2 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🗂️</span>
-        </div>
-      </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Categorías</p>
-      <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ categoryCount() }}</p>
-    </div>
-
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-3 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">🍔</span>
-        </div>
-      </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Productos</p>
-      <p class="text-3xl font-extrabold text-stone-900 mt-1">{{ productCount() }}</p>
-      <p class="text-xs text-emerald-600 font-semibold mt-1">{{ availableCount() }} disponibles</p>
-    </div>
-
-    <div class="bg-white rounded-2xl border border-stone-100 p-5 card-hover anim-fade-in-up anim-delay-4 group">
-      <div class="flex items-center justify-between mb-3">
-        <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-          <span class="text-lg">💳</span>
-        </div>
-      </div>
-      <p class="text-xs font-semibold text-stone-400 uppercase tracking-wider">Plan</p>
-      <p class="text-lg font-extrabold text-stone-900 mt-1">{{ planName() ?? '—' }}</p>
-      @if (planRemaining(); as remaining) {
-        <p
-          [class]="planStatus() === 'ACTIVE' ? 'text-xs text-emerald-600 font-semibold mt-1' : 'text-xs text-red-600 font-semibold mt-1'"
-        >
-          ⏳ {{ remaining }}
-        </p>
+  <div class="px-5 pt-6">
+    <p class="landing-eyebrow">{{ todayLine() }}</p>
+    <h1 class="landing-serif mt-3 text-[38px] font-medium leading-[1.08] text-[#1C1917]">
+      {{ greetingPrefix() }}, @if (firstName()) {<em class="text-[#D97745]">{{ firstName() }}.</em>} @else {<em class="text-[#D97745]">tu casa.</em>}
+    </h1>
+    <div class="mt-4 flex gap-3">
+      <a routerLink="/admin/products" class="landing-btn-dark flex-1 justify-center !px-4 !py-3 text-[13px]">+ Nuevo plato</a>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex flex-1 items-center justify-center gap-1.5 rounded border border-stone-200 px-4 py-3 text-[13px] font-medium text-stone-700 active:scale-95 transition">Ver página</a>
       }
     </div>
   </div>
 
-  <!-- Public Menu CTA -->
-  <div class="mt-8 bg-gradient-to-br from-primary-500 to-amber-500 rounded-3xl p-8 relative overflow-hidden anim-fade-in-up anim-delay-3">
-    <!-- Decorative elements -->
-    <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-    <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full blur-xl"></div>
-    <div class="absolute inset-0 opacity-[0.06]" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 20px 20px;"></div>
+  <div class="px-5">
 
-    <div class="relative z-10">
-      <h2 class="font-extrabold text-white text-xl">Tu menú público 🔗</h2>
-      <p class="text-primary-100 mt-2 text-sm max-w-lg">
-        Comparte este enlace o imprime el código QR para que tus clientes lo escaneen.
-      </p>
+    <!-- KPI strip -->
+    <div class="mt-6 grid grid-cols-2 border-y border-stone-900/15">
+      <div class="border-b border-dotted border-[#D97745] bg-[#F9DFC2] p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Pedidos activos</p>
+        <p class="landing-serif mt-1.5 text-[32px] font-medium leading-none text-[#1C1917]">{{ (activeOrders().length < 10 ? '0' : '') + activeOrders().length }}</p>
+        <p class="mt-1.5 text-[10px] font-bold text-[#16A34A]">+{{ weekOrders() }} esta semana</p>
+      </div>
+      <div class="border-b border-stone-900/15 p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Al aire</p>
+        <p class="landing-serif mt-1.5 text-[32px] font-medium leading-none text-[#1C1917]">{{ availableCount() }}<span class="ml-1 align-middle text-[12px] font-normal text-stone-400">/ {{ productCount() }}</span></p>
+        <p class="mt-1.5 text-[10px] font-bold text-[#16A34A]">{{ cartaPct() }}% carta lista</p>
+      </div>
+      <div class="p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Categorías</p>
+        @if (!loading() && categoryCount() === 0) {
+          <a routerLink="/admin/categories" class="mt-1.5 inline-block text-[12px] font-bold text-[#B85C32]">Crea tu primera →</a>
+        } @else {
+          <p class="landing-serif mt-1.5 text-[32px] font-medium leading-none text-[#1C1917]">{{ categoryCount() }}</p>
+        }
+      </div>
+      <div class="border-l border-stone-900/15 p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Plan</p>
+        @if (planProgress(); as progress) {
+          <p class="landing-serif mt-1.5 text-[32px] font-medium leading-none text-[#1C1917]">{{ progress.days }}<span class="ml-1 align-middle text-[12px] font-normal text-stone-400">días</span></p>
+        } @else {
+          <p class="landing-serif mt-1.5 text-[20px] font-medium leading-tight text-[#1C1917]">{{ planRemaining() ?? 'Sin plan' }}</p>
+          <a routerLink="/admin/settings" class="mt-1 inline-block text-[11px] font-bold text-[#B85C32]">Ver planes →</a>
+        }
+      </div>
+    </div>
+
+    <!-- Cocina -->
+    <div class="mt-6 rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-5">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Cocina en marcha</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32]">Ver todos →</a>
+      </div>
+      <h2 class="landing-serif mt-2 text-[24px] font-medium text-[#1C1917]">Pedidos activos</h2>
+      @if (activeOrders().length === 0) {
+        <p class="mt-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-3 py-4 text-center text-[13px] font-semibold text-stone-500">Sin pedidos activos — la cocina está al día.</p>
+      } @else {
+        <div class="mt-1 divide-y divide-stone-100">
+          @for (order of activeOrders().slice(0, 3); track $index; let idx = $index) {
+            <div class="flex items-center gap-3 py-3">
+              <span class="admin-data shrink-0 bg-[#1C1917] px-2 py-1 text-[10px] font-extrabold text-white [clip-path:polygon(0_0,100%_0,82%_100%,0_100%)]">0{{ idx + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[12px] font-bold text-[#1C1917]">#{{ order.orderNumber }} · {{ order.tableNumber ?? 'Mostrador' }}</p>
+                <p class="truncate text-[11px] font-normal text-stone-400">{{ itemsSummary(order) }}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-[11px] font-bold" [class]="order.status === 'PENDING' ? 'text-[#B85C32]' : order.status === 'READY' ? 'text-[#16A34A]' : 'text-[#D97745]'">{{ statusLabel(order.status) }}</p>
+                <p class="admin-data text-[10px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Mesas -->
+    <div class="mt-6 rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-[#F8F3EB] p-5">
+      <p class="landing-eyebrow">Sala</p>
+      <h2 class="landing-serif mt-2 text-[24px] font-medium text-[#1C1917]">Mapa de mesas</h2>
+      @if (activeTables().length === 0) {
+        <p class="mt-3 rounded-xl border border-dashed border-stone-300 bg-white/60 px-3 py-4 text-center text-[13px] font-semibold text-stone-500">Sin mesas activas por ahora.</p>
+      } @else {
+        <div class="mt-4 grid grid-cols-3 gap-3">
+          @for (table of activeTables().slice(0, 6); track $index) {
+            <div class="rounded-xl border-2 bg-white px-1 py-2.5 text-center" [class]="table.urgent ? 'border-[#D97745]' : 'border-[#16A34A]'">
+              <p class="landing-serif text-[16px] font-semibold leading-none" [class]="table.urgent ? 'text-[#B85C32]' : 'text-[#16A34A]'">{{ table.label }}</p>
+              <p class="mt-1 text-[9px] font-bold text-stone-400">{{ table.orders }} ped.</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Actividad -->
+    <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-5">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Movimiento de hoy</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32]">Ver pedidos →</a>
+      </div>
+      <h2 class="landing-serif mt-2 text-[24px] font-medium text-[#1C1917]">Actividad reciente</h2>
+      @if (recentOrders().length === 0) {
+        <p class="mt-3 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-3 py-4 text-center text-[13px] font-semibold text-stone-500">Aún no hay movimiento hoy.</p>
+      } @else {
+        <div class="mt-1 divide-y divide-stone-100">
+          @for (order of recentOrders(); track $index) {
+            <div class="flex items-center gap-3 py-3">
+              <p class="admin-data shrink-0 text-[11px] font-bold text-[#B85C32]">{{ orderTime(order.createdAt) }}</p>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[12px] font-bold text-[#1C1917]">{{ order.customerName }}</p>
+                <p class="truncate text-[11px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ (order.items ?? []).length }} ítems</p>
+              </div>
+              <p class="shrink-0 text-[11px] font-bold text-stone-500">{{ statusLabel(order.status) }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Nota -->
+    <div class="mt-6 rounded-2xl bg-[#D97745] p-5 text-white">
+      <p class="text-[10px] font-medium uppercase tracking-[0.14em] text-white/80">Nota de cocina</p>
+      @if (latestProduct(); as dish) {
+        <p class="landing-serif mt-2 text-[24px] font-medium leading-[1.15]">Hoy tenemos <em>{{ dish.name }}</em></p>
+        <p class="mt-1.5 text-[12px] font-medium text-white/80">{{ formatPrice(dish.price) }} · {{ dish.available ? 'Disponible' : 'En pausa' }}</p>
+      } @else {
+        <p class="landing-serif mt-2 text-[24px] font-medium leading-[1.15]">Aún no hay platos en carta.</p>
+        <a routerLink="/admin/products" class="mt-1.5 inline-block text-[12px] font-bold text-white underline underline-offset-4">Agregar el primero →</a>
+      }
+    </div>
+
+  </div>
+
+  <app-business-mobile-nav active="home" />
+</div>
+
+<!-- DESKTOP · diseño Resumen de referencia con datos reales -->
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10">
+
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Resumen</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      <a routerLink="/admin/orders" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-600 transition-colors hover:bg-stone-100" aria-label="Pedidos">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        @if (pendingCount() > 0) {
+          <span class="admin-data absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ pendingCount() }}</span>
+        }
+      </a>
       @if (menuSlug()) {
-        <a
-          [href]="'/menu/' + menuSlug()"
-          target="_blank"
-          class="inline-flex items-center gap-2 mt-5 text-sm font-bold text-primary-700 bg-white hover:bg-primary-50 rounded-xl px-5 py-3 transition-all duration-200 shadow-lg shadow-primary-600/20 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
-            <path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 00-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 00.75-.75v-4a.75.75 0 011.5 0v4A2.25 2.25 0 0112.75 17h-8.5A2.25 2.25 0 012 14.75v-8.5A2.25 2.25 0 014.25 4h5a.75.75 0 010 1.5h-5zm7.56-.187a.75.75 0 00-.078 1.06.75.75 0 001.06.078l2.21-1.97v3.769a.75.75 0 001.5 0V4.75a.75.75 0 00-.75-.75h-3.5a.75.75 0 000 1.5h1.767l-2.21 1.813z" clip-rule="evenodd" />
-          </svg>
-          Ver menú → /menu/{{ menuSlug() }}
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
         </a>
       }
     </div>
   </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="landing-eyebrow">{{ todayLine() }}</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05]">
+        {{ greetingPrefix() }}, @if (firstName()) {<em class="text-[#D97745]">{{ firstName() }}.</em>} @else {<em class="text-[#D97745]">tu casa.</em>}
+      </h1>
+    </div>
+    <a routerLink="/admin/products" class="landing-btn-dark">+ Nuevo plato</a>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="mt-8 grid grid-cols-2 border-y border-stone-900/15 xl:grid-cols-4">
+    <div class="border-b border-dotted border-[#D97745] bg-[#F9DFC2] p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Pedidos activos</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ (activeOrders().length < 10 ? '0' : '') + activeOrders().length }}</p>
+      <p class="mt-2 text-[11px] font-bold text-[#16A34A]">+{{ weekOrders() }} esta semana</p>
+    </div>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Productos al aire</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ availableCount() }}<span class="ml-1 align-middle text-[15px] font-normal text-stone-400">/ {{ productCount() }}</span></p>
+      <p class="mt-2 text-[11px] font-bold text-[#16A34A]">{{ cartaPct() }}% de carta lista</p>
+    </div>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Categorías</p>
+      <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ categoryCount() }}</p>
+      @if (productCount() - availableCount() > 0) {
+        <p class="mt-2 text-[11px] font-bold text-[#B85C32]">● {{ productCount() - availableCount() }} en pausa</p>
+      } @else {
+        <p class="mt-2 text-[11px] font-bold text-[#16A34A]">Todo al aire</p>
+      }
+    </div>
+    <div class="border-b border-stone-900/15 p-6 xl:border-l xl:border-stone-900/15">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Plan · {{ planName() ?? 'sin plan' }}</p>
+      @if (planProgress(); as progress) {
+        <p class="landing-serif mt-2 text-[44px] font-medium leading-none text-[#1C1917]">{{ progress.days }}<span class="ml-1 align-middle text-[15px] font-normal text-stone-400">días</span></p>
+        <p class="mt-2 text-[11px] font-bold" [class]="planAttention() ? 'text-[#B85C32]' : 'text-[#16A34A]'">Te quedan {{ progress.days }} días de plan</p>
+      } @else {
+        <p class="landing-serif mt-2 text-[30px] font-medium leading-tight text-[#1C1917]">{{ planRemaining() ?? 'Sin plan' }}</p>
+        <a routerLink="/admin/settings" class="mt-2 inline-block text-[11px] font-bold text-[#B85C32] hover:text-[#D97745]">Ver planes →</a>
+      }
+    </div>
+  </div>
+  <!-- Cocina + Mesas -->
+  <div class="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Cocina en marcha</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32] transition-colors hover:text-[#D97745]">Ver todos <span aria-hidden="true">→</span></a>
+      </div>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Pedidos activos</h2>
+      @if (activeOrders().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-600">Sin pedidos activos — la cocina está al día.</p>
+          <a routerLink="/admin/orders" class="mt-1 inline-block text-xs font-bold text-[#B85C32] hover:text-[#D97745]">Ver pedidos →</a>
+        </div>
+      } @else {
+        <div class="mt-2 divide-y divide-stone-100">
+          @for (order of activeOrders().slice(0, 3); track $index; let idx = $index) {
+            <div class="flex items-center gap-4 py-4">
+              <span class="admin-data shrink-0 bg-[#1C1917] px-2.5 py-1.5 text-[11px] font-extrabold text-white [clip-path:polygon(0_0,100%_0,82%_100%,0_100%)]">0{{ idx + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-bold text-[#1C1917]">#{{ order.orderNumber }} · {{ order.tableNumber ?? 'Mostrador' }}</p>
+                <p class="truncate text-[12px] font-normal text-stone-400">{{ itemsSummary(order) }}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-[12px] font-bold" [class]="order.status === 'PENDING' ? 'text-[#B85C32]' : order.status === 'READY' ? 'text-[#16A34A]' : 'text-[#D97745]'">{{ statusLabel(order.status) }}</p>
+                <p class="admin-data text-[11px] font-normal text-stone-400">{{ elapsedMin(order.createdAt) }}</p>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-[#F8F3EB] p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Sala</p>
+        @if (activeTables().length > 0) {
+          <p class="flex items-center gap-3 text-[11px] font-medium text-stone-500">
+            <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>En curso</span>
+            <span class="flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-[#D97745]"></span>Requiere atención</span>
+          </p>
+        }
+      </div>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Mapa de mesas</h2>
+      @if (activeTables().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-300 bg-white/60 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-500">Sin mesas activas por ahora.</p>
+        </div>
+      } @else {
+        <div class="mt-5 grid grid-cols-3 gap-4">
+          @for (table of activeTables().slice(0, 6); track $index) {
+            <div class="rounded-xl border-2 bg-white px-2 py-3 text-center" [class]="table.urgent ? 'border-[#D97745]' : 'border-[#16A34A]'">
+              <p class="landing-serif text-[19px] font-semibold leading-none" [class]="table.urgent ? 'text-[#B85C32]' : 'text-[#16A34A]'">{{ table.label }}</p>
+              <p class="mt-1 text-[10px] font-bold text-stone-400">{{ table.orders }} ped.</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <!-- Actividad + Nota -->
+  <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <div class="rounded-2xl border border-stone-900/10 bg-white p-7">
+      <div class="flex items-center justify-between">
+        <p class="landing-eyebrow">Movimiento de hoy</p>
+        <a routerLink="/admin/orders" class="text-[12px] font-medium text-[#B85C32] transition-colors hover:text-[#D97745]">Ver pedidos <span aria-hidden="true">→</span></a>
+      </div>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Actividad reciente</h2>
+      @if (recentOrders().length === 0) {
+        <div class="mt-5 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-6 text-center">
+          <p class="text-sm font-semibold text-stone-500">Aún no hay movimiento hoy.</p>
+        </div>
+      } @else {
+        <div class="mt-2 divide-y divide-stone-100">
+          @for (order of recentOrders(); track $index) {
+            <div class="grid grid-cols-[52px_1fr_auto_auto] items-center gap-4 py-3.5">
+              <p class="admin-data text-[12px] font-bold text-[#B85C32]">{{ orderTime(order.createdAt) }}</p>
+              <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ order.customerName }}</p>
+              <p class="truncate text-[12px] font-normal text-stone-400">{{ order.tableNumber ?? 'Mostrador' }} · {{ (order.items ?? []).length }} ítems</p>
+              <p class="text-[12px] font-bold text-stone-500">{{ statusLabel(order.status) }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+
+    <div class="rounded-2xl bg-[#D97745] p-7 text-white">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 text-white/80" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09zM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z" /></svg>
+      <p class="mt-4 text-[11px] font-medium uppercase tracking-[0.14em] text-white/80">Nota de cocina</p>
+      @if (latestProduct(); as dish) {
+        <p class="landing-serif mt-2 text-[28px] font-medium leading-[1.15]">Hoy tenemos <em>{{ dish.name }}</em></p>
+        <p class="mt-2 text-[12px] font-medium text-white/80">{{ formatPrice(dish.price) }} · {{ dish.available ? 'Disponible' : 'En pausa' }}</p>
+      } @else {
+        <p class="landing-serif mt-2 text-[28px] font-medium leading-[1.15]">Aún no hay platos en carta.</p>
+        <a routerLink="/admin/products" class="mt-2 inline-block text-[12px] font-bold text-white underline underline-offset-4">Agregar el primero →</a>
+      }
+    </div>
+  </div>
 </div>
+

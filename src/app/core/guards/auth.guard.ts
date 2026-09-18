@@ -4,15 +4,16 @@ import { catchError, map, of } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 /**
- * Solo usuarios autenticados. Si no hay usuario en memoria (recarga de
- * página), intenta restaurar la sesión con las cookies antes de redirigir.
+ * Solo usuarios autenticados. Revalida la sesión contra el backend
+ * (cookies HttpOnly): si la cookie murió, expulsa a /login aunque
+ * quede caché local. Sin red, se mantiene la sesión local.
  */
 export const authGuard: CanActivateFn = () => {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  if (auth.isAuthenticated()) {
-    return true;
-  }
-  return router.createUrlTree(['/login']);
+  return auth.validateSession(true).pipe(
+    map((ok) => (ok ? true : router.createUrlTree(['/login']))),
+    catchError(() => of(true)),
+  );
 };

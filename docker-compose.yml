@@ -1,0 +1,60 @@
+services:
+  # Produccion: build Angular 22 + Nginx (usa tu Dockerfile multi-stage)
+  # IMPORTANTE: `up` solo NUNCA reconstruye la imagen (en ningún OS).
+  # Tras cambiar código usa UNA de estas:
+  #   docker compose up -d --build frontend   (una vez, recomendado)
+  #   docker compose up --watch               (rebuild automático al guardar)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Se hornean en el build. En prod pásalos con --env-file .env.prod.
+        API_URL: ${API_URL:-/api}
+        APP_BASE_URL: ${APP_BASE_URL:-http://localhost:4200}
+        BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://host.docker.internal:8080}
+    develop:
+      watch:
+        - action: rebuild
+          path: ./src
+        - action: rebuild
+          path: ./public
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./package-lock.json
+        - action: rebuild
+          path: ./Dockerfile
+        - action: rebuild
+          path: ./nginx.conf.template
+    environment:
+      # Origen del backend Spring Boot. Para backend local usa
+      # http://host.docker.internal:8080, para otro contenedor en la
+      # misma red usa http://backend:8080 (.env.prod ya trae ese valor)
+      BACKEND_ORIGIN: ${BACKEND_ORIGIN:-http://host.docker.internal:8080}
+      PORT: 80
+    ports:
+      - "4200:80"
+    restart: unless-stopped
+
+  # Desarrollo: ng serve con hot-reload (http://localhost:3000)
+  # Uso: docker compose --profile dev up frontend-dev
+  # OJO: este proxy (proxy.conf.json -> localhost:8080) espera el backend
+  # en TU PC (puerto 8080 publicado). Si el backend corre en OTRO contenedor
+  # de ESTE mismo compose, usa el compose raíz docker-compose.dev.yml, que
+  # ya trae proxy.conf.docker.json (-> http://backend:8080) + polling.
+  frontend-dev:
+    image: node:22-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.angular
+    ports:
+      - "3000:3000"
+    environment:
+      # Sin polling, en Windows los guardados no se detectan vía bind mount.
+      CHOKIDAR_USEPOLLING: "true"
+      NG_CLI_ANALYTICS: "false"
+    command: sh -c "npm install && npm run dev -- --poll 2000"
+    profiles: ["dev"]

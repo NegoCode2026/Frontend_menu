@@ -1,13 +1,15 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
 import { FileService } from '../../../core/services/file.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Category, Product } from '../../../core/models/models';
+import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
   selector: 'app-products',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, BusinessMobileNavComponent],
   templateUrl: './products.component.html',
 })
 export class ProductsComponent implements OnInit {
@@ -15,6 +17,8 @@ export class ProductsComponent implements OnInit {
   private readonly categoryService = inject(CategoryService);
   private readonly productService = inject(ProductService);
   private readonly fileService = inject(FileService);
+  private readonly auth = inject(AuthService);
+  readonly user = this.auth.user;
 
   readonly categories = signal<Category[]>([]);
   readonly products = signal<Product[]>([]);
@@ -28,6 +32,27 @@ export class ProductsComponent implements OnInit {
   readonly totalPages = signal(0);
   readonly totalElements = signal(0);
   readonly pageSize = 50;
+
+  // Filtros solo para el clon móvil (el desktop usa la tabla completa)
+  readonly searchQuery = signal('');
+  readonly categoryFilter = signal<number | 'ALL'>('ALL');
+
+  readonly filteredProducts = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const cat = this.categoryFilter();
+    return this.products().filter((p) => {
+      const matchesCat = cat === 'ALL' || p.categoryId === cat;
+      const matchesQ =
+        !q ||
+        p.name.toLowerCase().includes(q) ||
+        (p.description ?? '').toLowerCase().includes(q);
+      return matchesCat && matchesQ;
+    });
+  });
+
+  logout(): void {
+    this.auth.forceLogout();
+  }
 
   readonly form: FormGroup = this.fb.group({
     categoryId: [null, Validators.required],

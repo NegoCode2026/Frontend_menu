@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Entorno y secretos (nunca commitear .env con valores reales)
+.env
+.env.*

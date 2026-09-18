@@ -2,6 +2,15 @@ import { Routes } from '@angular/router';
 import { AdminLayoutComponent } from './admin-layout/admin-layout.component';
 import { roleGuard } from '../../core/guards/role.guard';
 
+/**
+ * Rutas tenant (dashboard, orders, restaurant, categories, products, qr,
+ * users, settings) = solo roles de restaurante. El SUPER_ADMIN tiene
+ * restaurantId null y esos endpoints responden 403, así que el guard lo
+ * manda a /admin/super-admin/dashboard. La gestión global vive bajo
+ * /admin/super-admin (solo SUPER_ADMIN).
+ */
+const tenantGuard = roleGuard('RESTAURANT_ADMIN', 'RESTAURANT_USER');
+
 export const adminRoutes: Routes = [
   {
     path: '',
@@ -10,35 +19,42 @@ export const adminRoutes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
+        canActivate: [tenantGuard],
         loadComponent: () => import('./dashboard/dashboard.component').then((m) => m.DashboardComponent),
       },
       {
         path: 'orders',
+        canActivate: [tenantGuard],
         loadComponent: () => import('./orders/orders.component').then((m) => m.OrdersComponent),
       },
       {
         path: 'restaurant',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./restaurant/restaurant.component').then((m) => m.RestaurantComponent),
       },
       {
         path: 'categories',
+        canActivate: [tenantGuard],
         loadComponent: () => import('./categories/categories.component').then((m) => m.CategoriesComponent),
       },
       {
         path: 'products',
+        canActivate: [tenantGuard],
         loadComponent: () => import('./products/products.component').then((m) => m.ProductsComponent),
       },
       {
         path: 'qr',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./qr/qr.component').then((m) => m.QrComponent),
       },
       {
         path: 'users',
-        canActivate: [roleGuard('SUPER_ADMIN', 'RESTAURANT_ADMIN')],
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./users/users.component').then((m) => m.UsersComponent),
       },
       {
         path: 'settings',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./settings/settings.component').then((m) => m.SettingsComponent),
       },
       {

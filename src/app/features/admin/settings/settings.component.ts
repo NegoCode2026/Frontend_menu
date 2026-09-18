@@ -1,18 +1,26 @@
 import { Component, inject, signal, OnInit, PLATFORM_ID } from '@angular/core';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Plan, Subscription } from '../../../core/models/models';
+import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 declare const ePayco: any;
 
 @Component({
   selector: 'app-settings',
-  imports: [DatePipe],
+  imports: [DatePipe, BusinessMobileNavComponent],
   templateUrl: './settings.component.html',
 })
 export class SettingsComponent implements OnInit {
   private readonly subscriptionService = inject(SubscriptionService);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly auth = inject(AuthService);
+  readonly user = this.auth.user;
+
+  logout(): void {
+    this.auth.forceLogout();
+  }
 
   readonly plans = signal<Plan[]>([]);
   readonly subscription = signal<Subscription | null>(null);

@@ -1,198 +1,275 @@
-<div class="space-y-6 anim-fade-in-up">
+<!-- MOBILE · clon visual estilo food-app (misma data y acciones) -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40">
+  <div class="px-5 pt-5 pb-4 bg-white">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-amber-500 text-sm font-black text-white shadow">
+          {{ user()?.name?.charAt(0) ?? 'T' }}
+        </div>
+        <div class="leading-tight">
+          <p class="text-[11px] font-medium text-stone-400">Panel to</p>
+          <p class="flex items-center gap-1 text-[13px] font-extrabold text-stone-900">
+            Mi Negocio
+            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-200">
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>En Vivo
+            </span>
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button (click)="toggleSound()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" [attr.aria-label]="soundEnabled() ? 'Silenciar alertas' : 'Activar alertas'">
+          <span class="text-lg">{{ soundEnabled() ? '🔔' : '🔕' }}</span>
+        </button>
+        <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <h1 class="mt-4 text-[30px] leading-[1.05] font-black tracking-tight text-stone-900">
+      Pedidos, <span class="text-stone-400 font-extrabold">cocina en vivo.</span>
+    </h1>
+
+    @if (showAlert()) {
+      <div class="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-emerald-500 px-4 py-3 text-white shadow-lg shadow-emerald-500/30">
+        <div class="flex items-center gap-2">
+          <span class="text-xl animate-bounce">🔔</span>
+          <span class="font-extrabold text-[13px]">{{ alertCount() === 1 ? '¡Nuevo pedido recibido!' : '¡' + alertCount() + ' pedidos nuevos!' }}</span>
+        </div>
+        <button type="button" (click)="dismissAlert()" class="px-2 py-1 text-lg font-bold text-white/70">✕</button>
+      </div>
+    }
+    @if (sessionExpired()) {
+      <div class="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+        <span class="text-xs font-extrabold text-amber-800">⚠️ Sesión expirada: no se detectan pedidos nuevos.</span>
+        <a routerLink="/login" class="shrink-0 rounded-xl bg-amber-600 px-3 py-2 text-[11px] font-bold text-white">Entrar</a>
+      </div>
+    }
+
+    <div class="mt-3 flex items-center gap-2 rounded-2xl bg-stone-100/80 px-4 py-3">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-4 w-4 shrink-0 text-stone-400"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+      <input
+        type="search"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        enterkeyhint="search"
+        placeholder="Buscar por orden, cliente o mesa…"
+        class="w-full bg-transparent text-[16px] font-medium text-stone-800 placeholder:text-stone-400 focus:outline-none"
+      />
+    </div>
+  </div>
+
+  <div class="rounded-t-[2.2rem] bg-[#ededf0] px-4 pt-5 min-h-[60vh]">
+    <div class="carousel-x hide-scrollbar -mx-1 flex items-start gap-1 overflow-x-auto px-1 pb-1">
+      <button (click)="statusFilter.set('ALL')" class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[15px] font-black text-stone-800 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition tabular-nums" [class.!bg-stone-900]="statusFilter() === 'ALL'" [class.!text-white]="statusFilter() === 'ALL'">{{ orders().length }}</span>
+        <span class="text-[11px] leading-none" [class.font-extrabold]="statusFilter() === 'ALL'" [class.text-stone-900]="statusFilter() === 'ALL'" [class.text-stone-400]="statusFilter() !== 'ALL'">Todas</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 transition-opacity" [class.opacity-100]="statusFilter() === 'ALL'" [class.opacity-0]="statusFilter() !== 'ALL'"></span>
+      </button>
+      <button (click)="statusFilter.set('PENDING')" class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[15px] font-black text-amber-600 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition tabular-nums" [class.!bg-stone-900]="statusFilter() === 'PENDING'" [class.!text-white]="statusFilter() === 'PENDING'">{{ pendingOrders().length }}</span>
+        <span class="text-[11px] leading-none" [class.font-extrabold]="statusFilter() === 'PENDING'" [class.text-stone-900]="statusFilter() === 'PENDING'" [class.text-stone-400]="statusFilter() !== 'PENDING'">Nuevas</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 transition-opacity" [class.opacity-100]="statusFilter() === 'PENDING'" [class.opacity-0]="statusFilter() !== 'PENDING'"></span>
+      </button>
+      <button (click)="statusFilter.set('CONFIRMED')" class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[15px] font-black text-blue-600 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition tabular-nums" [class.!bg-stone-900]="statusFilter() === 'CONFIRMED'" [class.!text-white]="statusFilter() === 'CONFIRMED'">{{ inProgressOrders().length }}</span>
+        <span class="text-[11px] leading-none" [class.font-extrabold]="statusFilter() === 'CONFIRMED'" [class.text-stone-900]="statusFilter() === 'CONFIRMED'" [class.text-stone-400]="statusFilter() !== 'CONFIRMED'">Cocina</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 transition-opacity" [class.opacity-100]="statusFilter() === 'CONFIRMED'" [class.opacity-0]="statusFilter() !== 'CONFIRMED'"></span>
+      </button>
+      <button (click)="statusFilter.set('DELIVERED')" class="flex w-[68px] shrink-0 flex-col items-center gap-1.5 active:scale-95 transition">
+        <span class="flex h-[62px] w-[62px] items-center justify-center rounded-full bg-white text-[15px] font-black text-emerald-600 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition tabular-nums" [class.!bg-stone-900]="statusFilter() === 'DELIVERED'" [class.!text-white]="statusFilter() === 'DELIVERED'">{{ deliveredOrders().length }}</span>
+        <span class="text-[11px] leading-none" [class.font-extrabold]="statusFilter() === 'DELIVERED'" [class.text-stone-900]="statusFilter() === 'DELIVERED'" [class.text-stone-400]="statusFilter() !== 'DELIVERED'">Servidas</span>
+        <span class="h-[3px] w-5 rounded-full bg-stone-900 transition-opacity" [class.opacity-100]="statusFilter() === 'DELIVERED'" [class.opacity-0]="statusFilter() !== 'DELIVERED'"></span>
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="mt-4 space-y-4">
+        @for (i of [1,2,3]; track $index) {
+          <div class="rounded-[1.6rem] bg-white p-4 shadow-sm">
+            <div class="flex items-center gap-3">
+              <div class="h-12 w-12 animate-pulse rounded-full bg-stone-100"></div>
+              <div class="flex-1 space-y-2"><div class="h-4 w-32 animate-pulse rounded bg-stone-100"></div><div class="h-3 w-20 animate-pulse rounded bg-stone-50"></div></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (filteredOrders().length === 0) {
+      <div class="mt-4 rounded-3xl bg-white p-6 text-center shadow-sm">
+        <p class="text-sm font-extrabold text-stone-900">Sin pedidos a la vista</p>
+        <p class="mt-1 text-xs text-stone-500">Ajusta la búsqueda o el filtro de estado.</p>
+      </div>
+    } @else {
+      <p class="mt-4 mb-3 text-center text-[11px] font-bold text-stone-400 tabular-nums">{{ filteredOrders().length }} pedidos · hoy {{ formatCurrency(totalRevenueToday()) }}</p>
+      <div class="space-y-4">
+        @for (order of filteredOrders(); track $index) {
+          <article class="rounded-[1.6rem] bg-white p-4 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+            <div class="flex items-center gap-3">
+              <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[15px] shadow ring-4"
+                [class]="order.status === 'PENDING' ? 'bg-gradient-to-br from-amber-400 to-amber-600 text-white ring-amber-50' : order.status === 'CONFIRMED' ? 'bg-gradient-to-br from-blue-500 to-blue-700 text-white ring-blue-50' : order.status === 'DELIVERED' ? 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white ring-emerald-50' : 'bg-stone-200 text-stone-500 ring-stone-100'">
+                {{ order.status === 'PENDING' ? '⏳' : order.status === 'CONFIRMED' ? '🍳' : order.status === 'DELIVERED' ? '✅' : '✕' }}
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[15px] font-extrabold text-stone-900">{{ order.orderNumber }}</p>
+                <p class="truncate text-[11px] font-medium text-stone-400">👤 {{ order.customerName }} · 📍 {{ order.tableNumber || 'Mesa' }}</p>
+              </div>
+              @if (order.status === 'PENDING') {
+                <span class="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-extrabold text-white">NUEVA</span>
+              } @else if (order.status === 'CONFIRMED') {
+                <span class="inline-flex items-center gap-1 rounded-full bg-[#D97745] px-2.5 py-1 text-[10px] font-extrabold text-white">COCINA</span>
+              } @else if (order.status === 'DELIVERED') {
+                <span class="inline-flex items-center gap-1 rounded-full bg-[#16A34A] px-2.5 py-1 text-[10px] font-extrabold text-white">SERVIDA</span>
+              } @else {
+                <span class="inline-flex items-center gap-1 rounded-full bg-stone-200 px-2.5 py-1 text-[10px] font-extrabold text-stone-500">OFF</span>
+              }
+            </div>
+            <p class="mt-2 text-[11px] font-semibold text-stone-500">{{ (order.items ?? []).length }} platos · {{ getTimeElapsed(order.createdAt) }}</p>
+            <div class="mt-3 flex items-center justify-between">
+              <p class="text-[17px] font-black text-stone-900">{{ formatCurrency(order.totalAmount) }}</p>
+              <div class="flex items-center gap-1.5">
+                <button (click)="openTicketModal(order)" class="rounded-full bg-stone-100 px-3.5 py-2 text-xs font-extrabold text-stone-700 active:scale-95 transition">🧾</button>
+                @if (order.status === 'PENDING') {
+                  <button (click)="updateStatus(order, 'CONFIRMED')" class="rounded-full bg-blue-600 px-4 py-2 text-xs font-extrabold text-white active:scale-95 transition">Cocinar</button>
+                } @else if (order.status === 'CONFIRMED') {
+                  @if (order.customerPhone) {
+                    <button (click)="sendWhatsAppReadyNotification(order)" class="rounded-full bg-emerald-500 px-3.5 py-2 text-xs font-extrabold text-white active:scale-95 transition">📱</button>
+                  }
+                  <button (click)="updateStatus(order, 'DELIVERED')" class="rounded-full bg-emerald-600 px-4 py-2 text-xs font-extrabold text-white active:scale-95 transition">Servir</button>
+                }
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+
+  <app-business-mobile-nav active="orders" />
+</div>
+
+<!-- DESKTOP · se mantiene intacto -->
+<div class="anim-fade-in-up">
+<div class="hidden lg:block space-y-6">
 
   <!-- ========================================================================= -->
   <!-- TOP HEADER & CONTROLS (Hidden on Print) -->
   <!-- ========================================================================= -->
-  <div class="no-print flex flex-col md:flex-row md:items-center justify-between gap-4">
-    <div>
-      <div class="flex items-center gap-2">
-        <h1 class="text-3xl font-extrabold text-stone-900 tracking-tight">Comandas & Pedidos 🍳</h1>
-        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-          En Vivo
+  <div class="no-print flex items-center justify-between gap-4 border-b border-stone-900/10 pb-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Pedidos</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
         </span>
-      </div>
-      <p class="text-stone-500 text-sm mt-0.5">Gestión de comandas de cocina y despacho de mesas en tiempo real.</p>
-
-      <!-- ALERTA DE PEDIDO NUEVO -->
-      @if (showAlert()) {
-        <div
-          class="mt-3 bg-emerald-500 text-white rounded-2xl px-5 py-3 flex items-center justify-between gap-3 shadow-lg shadow-emerald-500/30 anim-fade-in-scale"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-2xl animate-bounce">🔔</span>
-            <span class="font-extrabold text-sm">
-              {{ alertCount() === 1 ? '¡Nuevo pedido recibido!' : '¡' + alertCount() + ' pedidos nuevos recibidos!' }}
-            </span>
-          </div>
-          <button
-            type="button"
-            (click)="dismissAlert()"
-            class="text-white/70 hover:text-white text-lg font-bold transition-colors px-2 py-1"
-          >
-            ✕
-          </button>
-        </div>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
       }
-
-      <!-- SESION EXPIRADA -->
-      @if (sessionExpired()) {
-        <div
-          class="mt-3 bg-amber-50 border border-amber-300 rounded-2xl px-5 py-3 flex items-center justify-between gap-3 anim-fade-in-scale"
-        >
-          <div class="flex items-center gap-3">
-            <span class="text-2xl">⚠️</span>
-            <div>
-              <span class="font-extrabold text-sm text-amber-800">Sesión expirada</span>
-              <p class="text-xs text-amber-600">Los pedidos nuevos no se detectan automáticamente.</p>
-            </div>
-          </div>
-          <a
-            routerLink="/login"
-            class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold transition-colors shrink-0"
-          >
-            Iniciar sesión
-          </a>
-        </div>
+      <button (click)="fetchOrders()" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-600 transition-colors hover:bg-stone-100" aria-label="Actualizar pedidos" title="Actualizar">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        @if (totalActiveCount() > 0) {
+          <span class="admin-data absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-[#D97745] px-1 text-[10px] font-extrabold text-white">{{ totalActiveCount() }}</span>
+        }
+      </button>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
       }
     </div>
+  </div>
 
-    <!-- Quick Actions -->
+  <div class="no-print mt-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="landing-eyebrow">Cocina en marcha</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Pedidos</h1>
+    </div>
     <div class="flex flex-wrap items-center gap-2">
-      <!-- Sound toggle -->
-      <button
-        (click)="toggleSound()"
-        [class]="soundEnabled() ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-stone-100 text-stone-500 border-stone-200'"
-        class="px-3 py-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5"
-        title="Alerta sonora para nuevos pedidos"
-      >
-        <span>{{ soundEnabled() ? '🔔 Sonido Activo' : '🔕 Sonido Silenciado' }}</span>
+      <button (click)="toggleSound()" [class]="soundEnabled() ? 'border-[#EAC9A8] bg-[#F9DFC2] text-[#B85C32]' : 'border-stone-200 bg-white text-stone-400'" class="flex h-10 w-10 items-center justify-center rounded-full border transition-colors" [title]="soundEnabled() ? 'Silenciar alertas' : 'Activar alertas'">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
       </button>
-
-      <!-- Simulate test order -->
-      <button
-        (click)="simulateIncomingOrder()"
-        class="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors flex items-center gap-1.5 shadow-2xs"
-      >
-        <span>⚡ Simular Pedido</span>
+      <button (click)="viewMode.set(viewMode() === 'KANBAN' ? 'LIST' : 'KANBAN')" class="flex h-10 items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 text-[12px] font-bold text-stone-600 transition-colors hover:border-stone-300" title="Alternar tablero / lista">
+        {{ viewMode() === 'KANBAN' ? 'Ver lista' : 'Tablero cocina' }}
       </button>
-
-      <!-- View Switcher -->
-      <div class="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200">
-        <button
-          (click)="viewMode.set('KANBAN')"
-          [class]="viewMode() === 'KANBAN' ? 'bg-white text-stone-900 shadow-xs font-black' : 'text-stone-600 font-semibold'"
-          class="px-3 py-1.5 rounded-lg text-xs transition-all"
-        >
-          🍱 Tablero Cocina
-        </button>
-        <button
-          (click)="viewMode.set('LIST')"
-          [class]="viewMode() === 'LIST' ? 'bg-white text-stone-900 shadow-xs font-black' : 'text-stone-600 font-semibold'"
-          class="px-3 py-1.5 rounded-lg text-xs transition-all"
-        >
-          📋 Lista
-        </button>
-      </div>
-
-      <!-- Refresh button -->
-      <button
-        (click)="fetchOrders()"
-        class="p-2 bg-stone-100 text-stone-700 rounded-xl hover:bg-stone-200 transition-colors border border-stone-200"
-        title="Recargar pedidos"
-      >
-        🔄
+      <button (click)="simulateIncomingOrder()" class="flex h-10 items-center rounded-full border border-dashed border-stone-300 px-4 text-[12px] font-bold text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-600" title="Pedido de prueba">
+        Simular
       </button>
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="landing-btn-dark">+ Nuevo pedido</a>
+      }
     </div>
   </div>
 
-  <!-- Metric Badges Row -->
-  <div class="no-print grid grid-cols-2 sm:grid-cols-4 gap-4">
-    <div class="bg-white rounded-2xl p-4 border border-stone-100 shadow-xs flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Nuevos por Aceptar</p>
-        <p class="text-2xl font-black text-amber-600 mt-0.5">{{ pendingOrders().length }}</p>
-      </div>
-      <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
-        ⏳
-      </div>
+  <!-- ALERTA DE PEDIDO NUEVO -->
+  @if (showAlert()) {
+    <div class="no-print mt-4 flex items-center justify-between gap-3 rounded-xl bg-[#16A34A] px-5 py-3 text-white shadow-lg anim-fade-in-scale">
+      <p class="text-sm font-bold">
+        {{ alertCount() === 1 ? '¡Nuevo pedido recibido!' : '¡' + alertCount() + ' pedidos nuevos recibidos!' }}
+      </p>
+      <button type="button" (click)="dismissAlert()" class="px-2 py-1 text-lg font-bold text-white/70 hover:text-white transition-colors">✕</button>
     </div>
+  }
 
-    <div class="bg-white rounded-2xl p-4 border border-stone-100 shadow-xs flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">En Preparación</p>
-        <p class="text-2xl font-black text-blue-600 mt-0.5">{{ inProgressOrders().length }}</p>
-      </div>
-      <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
-        🍳
-      </div>
+  <!-- SESION EXPIRADA -->
+  @if (sessionExpired()) {
+    <div class="no-print mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-5 py-3 anim-fade-in-scale">
+      <p class="text-sm font-bold text-amber-800">Sesión expirada — los pedidos nuevos no se detectan.</p>
+      <a routerLink="/login" class="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-700">Iniciar sesión</a>
     </div>
+  }
 
-    <div class="bg-white rounded-2xl p-4 border border-stone-100 shadow-xs flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Completados Hoy</p>
-        <p class="text-2xl font-black text-emerald-600 mt-0.5">{{ deliveredOrders().length }}</p>
-      </div>
-      <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
-        ✅
-      </div>
-    </div>
-
-    <div class="bg-white rounded-2xl p-4 border border-stone-100 shadow-xs flex items-center justify-between">
-      <div>
-        <p class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Total Registrado</p>
-        <p class="text-xl font-black text-stone-900 mt-0.5">{{ formatCurrency(totalRevenueToday()) }}</p>
-      </div>
-      <div class="w-10 h-10 rounded-xl bg-stone-100 text-stone-700 flex items-center justify-center text-lg">
-        💰
-      </div>
-    </div>
-  </div>
-
-  <!-- Search & Filter Bar -->
-  <div class="no-print flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-100 shadow-xs">
-    <div class="relative w-full sm:w-80">
-      <input
-        type="text"
-        [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value)"
-        placeholder="Buscar por orden, cliente o mesa…"
-        class="w-full rounded-xl border border-stone-200 pl-9 pr-4 py-2 text-xs text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-400 bg-stone-50/50"
-      />
-      <span class="absolute left-3 top-2.5 text-stone-400 text-xs">🔍</span>
-    </div>
-
-    <div class="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+  <!-- Tabs de estado + búsqueda -->
+  <div class="no-print mt-8 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+    <div class="flex items-center gap-2 overflow-x-auto pb-1">
       <button
         (click)="statusFilter.set('ALL')"
-        [class]="statusFilter() === 'ALL' ? 'bg-stone-900 text-white font-bold' : 'bg-stone-100 text-stone-600'"
-        class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors"
+        [class]="statusFilter() === 'ALL' ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+        class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
       >
-        Todas ({{ orders().length }})
+        Todos <span class="admin-data ml-1 font-extrabold" [class]="statusFilter() === 'ALL' ? 'text-[#D97745]' : 'text-stone-400'">{{ orders().length }}</span>
       </button>
       <button
         (click)="statusFilter.set('PENDING')"
-        [class]="statusFilter() === 'PENDING' ? 'bg-amber-500 text-white font-bold' : 'bg-stone-100 text-stone-600'"
-        class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors"
+        [class]="statusFilter() === 'PENDING' ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+        class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
       >
-        Nuevas ({{ pendingOrders().length }})
+        Pendientes <span class="admin-data ml-1 font-extrabold" [class]="statusFilter() === 'PENDING' ? 'text-[#D97745]' : 'text-stone-400'">{{ pendingOrders().length }}</span>
       </button>
       <button
         (click)="statusFilter.set('CONFIRMED')"
-        [class]="statusFilter() === 'CONFIRMED' ? 'bg-blue-600 text-white font-bold' : 'bg-stone-100 text-stone-600'"
-        class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors"
+        [class]="statusFilter() === 'CONFIRMED' ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+        class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
       >
-        Cocina ({{ inProgressOrders().length }})
+        En preparación <span class="admin-data ml-1 font-extrabold" [class]="statusFilter() === 'CONFIRMED' ? 'text-[#D97745]' : 'text-stone-400'">{{ confirmedCount() }}</span>
       </button>
       <button
         (click)="statusFilter.set('DELIVERED')"
-        [class]="statusFilter() === 'DELIVERED' ? 'bg-emerald-600 text-white font-bold' : 'bg-stone-100 text-stone-600'"
-        class="px-3 py-1.5 rounded-xl text-xs whitespace-nowrap transition-colors"
+        [class]="statusFilter() === 'DELIVERED' ? 'bg-[#1C1917] text-white' : 'border border-stone-200 bg-white text-stone-500 hover:border-stone-300'"
+        class="shrink-0 rounded px-4 py-2.5 text-[13px] font-medium transition-colors"
       >
-        Entregadas ({{ deliveredOrders().length }})
+        Listos <span class="admin-data ml-1 font-extrabold" [class]="statusFilter() === 'DELIVERED' ? 'text-[#D97745]' : 'text-stone-400'">{{ readyCount() }}</span>
       </button>
     </div>
+    <div class="relative w-full lg:w-72">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="absolute left-3.5 top-3 h-4 w-4 text-stone-400"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
+      <input
+        type="search"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+        placeholder="Buscar orden, cliente o mesa…"
+        class="w-full rounded border border-stone-200 bg-white py-2.5 pl-10 pr-4 text-[13px] text-stone-900 placeholder-stone-400 focus:outline-none input-glow"
+      />
+    </div>
   </div>
+
+  <!-- Lista / Tablero -->
 
   <!-- ========================================================================= -->
   <!-- KANBAN BOARD VIEW (KDS - Kitchen Display System) -->
@@ -205,7 +282,7 @@
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-amber-200/60">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-amber-500 animate-ping"></span>
-            <h2 class="font-black text-sm text-stone-900 uppercase tracking-wider">1. Nuevos / Por Confirmar</h2>
+            <h2 class="text-[13px] font-extrabold uppercase tracking-[0.06em] text-stone-900">1. Nuevos / Por Confirmar</h2>
           </div>
           <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900">
             {{ pendingOrders().length }}
@@ -219,7 +296,7 @@
               <p>No hay pedidos pendientes por confirmar</p>
             </div>
           } @else {
-            @for (order of pendingOrders(); track order.id) {
+            @for (order of pendingOrders(); track $index) {
               <div class="bg-white rounded-2xl p-4 border-2 border-amber-300 shadow-md space-y-3 relative hover:shadow-lg transition-shadow">
                 <!-- Header -->
                 <div class="flex items-start justify-between">
@@ -227,7 +304,7 @@
                     <span class="font-black text-sm text-stone-900 tracking-tight block">{{ order.orderNumber }}</span>
                     <span class="text-[11px] text-stone-500 font-semibold">{{ getTimeElapsed(order.createdAt) }} • {{ formatTime(order.createdAt) }}</span>
                   </div>
-                  <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-stone-900 text-white">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-stone-900 text-white">
                     📍 {{ order.tableNumber || 'Mesa' }}
                   </span>
                 </div>
@@ -245,10 +322,10 @@
 
                 <!-- Items list summary -->
                 <div class="space-y-1 text-xs">
-                  @for (item of order.items; track item.id) {
+                  @for (item of order.items ?? []; track $index) {
                     <div class="flex items-start justify-between gap-2 border-b border-stone-100 pb-1">
                       <div>
-                        <span class="font-black text-stone-900">{{ item.quantity }}x</span>
+                        <span class="font-extrabold text-stone-900">{{ item.quantity }}x</span>
                         <span class="font-bold text-stone-800 ml-1">{{ item.productName }}</span>
                         @if (item.notes) {
                           <span class="block text-[10px] text-amber-600 italic">↳ {{ item.notes }}</span>
@@ -272,7 +349,7 @@
                     </button>
                     <button
                       (click)="updateStatus(order, 'CONFIRMED')"
-                      class="px-3.5 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white font-extrabold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-sm"
+                      class="px-3.5 py-2 rounded-full bg-gradient-to-r from-blue-600 to-blue-500 text-white font-extrabold text-xs hover:from-blue-700 hover:to-blue-600 transition-all shadow-sm"
                     >
                       🍳 Pasar a Cocina
                     </button>
@@ -289,7 +366,7 @@
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-blue-200/60">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-blue-600"></span>
-            <h2 class="font-black text-sm text-stone-900 uppercase tracking-wider">2. En Cocina / Preparando</h2>
+            <h2 class="text-[13px] font-extrabold uppercase tracking-[0.06em] text-stone-900">2. En Cocina / Preparando</h2>
           </div>
           <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-blue-200 text-blue-900">
             {{ inProgressOrders().length }}
@@ -303,14 +380,14 @@
               <p>No hay comandas en cocción ahora</p>
             </div>
           } @else {
-            @for (order of inProgressOrders(); track order.id) {
+            @for (order of inProgressOrders(); track $index) {
               <div class="bg-white rounded-2xl p-4 border-2 border-blue-300 shadow-md space-y-3 relative hover:shadow-lg transition-shadow">
                 <div class="flex items-start justify-between">
                   <div>
                     <span class="font-black text-sm text-stone-900 tracking-tight block">{{ order.orderNumber }}</span>
                     <span class="text-[11px] text-blue-600 font-bold">En fuego: {{ getTimeElapsed(order.updatedAt || order.createdAt) }}</span>
                   </div>
-                  <span class="px-2.5 py-1 rounded-xl text-xs font-black bg-blue-600 text-white">
+                  <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-600 text-white">
                     📍 {{ order.tableNumber || 'Mesa' }}
                   </span>
                 </div>
@@ -323,10 +400,10 @@
                 </div>
 
                 <div class="space-y-1.5 text-xs">
-                  @for (item of order.items; track item.id) {
+                  @for (item of order.items ?? []; track $index) {
                     <div class="flex items-start justify-between gap-2 border-b border-stone-100 pb-1">
                       <div>
-                        <span class="font-black text-blue-700 text-sm">{{ item.quantity }}x</span>
+                        <span class="font-extrabold text-blue-700 text-sm">{{ item.quantity }}x</span>
                         <span class="font-bold text-stone-900 ml-1.5">{{ item.productName }}</span>
                         @if (item.notes) {
                           <span class="block text-[10px] text-amber-700 font-semibold italic">↳ {{ item.notes }}</span>
@@ -374,7 +451,7 @@
         <div class="flex items-center justify-between pb-3 mb-3 border-b border-emerald-200/60">
           <div class="flex items-center gap-2">
             <span class="w-3 h-3 rounded-full bg-emerald-500"></span>
-            <h2 class="font-black text-sm text-stone-900 uppercase tracking-wider">3. Servidos / Completados</h2>
+            <h2 class="text-[13px] font-extrabold uppercase tracking-[0.06em] text-stone-900">3. Servidos / Completados</h2>
           </div>
           <span class="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-200 text-emerald-900">
             {{ deliveredOrders().length }}
@@ -388,14 +465,14 @@
               <p>Aún no hay comandas servidas</p>
             </div>
           } @else {
-            @for (order of deliveredOrders(); track order.id) {
+            @for (order of deliveredOrders(); track $index) {
               <div class="bg-white rounded-2xl p-4 border border-stone-200 shadow-xs space-y-2 opacity-90 hover:opacity-100 transition-opacity">
                 <div class="flex items-start justify-between">
                   <div>
                     <span class="font-black text-sm text-stone-900">{{ order.orderNumber }}</span>
                     <span class="text-[11px] text-stone-400 block">{{ formatTime(order.updatedAt || order.createdAt) }}</span>
                   </div>
-                  <span class="px-2 py-0.5 rounded-lg text-xs font-bold bg-emerald-100 text-emerald-800">
+                  <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
                     {{ order.tableNumber || 'Mesa' }}
                   </span>
                 </div>
@@ -408,7 +485,7 @@
                     @if (order.customerPhone) {
                       <button
                         (click)="sendWhatsAppReadyNotification(order)"
-                        class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] border border-emerald-200 flex items-center gap-1"
+                        class="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold text-[11px] border border-emerald-200 flex items-center gap-1"
                       >
                         <span>📱 Notificar WhatsApp</span>
                       </button>
@@ -434,83 +511,67 @@
   <!-- LIST VIEW (TABULAR) -->
   <!-- ========================================================================= -->
   @if (viewMode() === 'LIST') {
-    <div class="no-print bg-white rounded-3xl border border-stone-100 shadow-sm overflow-hidden">
+    @if (loading()) {
+      <div class="no-print mt-6 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
+        <div class="animate-pulse divide-y divide-stone-100">
+          @for (i of [1,2,3,4]; track $index) {
+            <div class="flex items-center gap-6 px-6 py-5">
+              <div class="h-4 w-16 rounded bg-stone-100"></div>
+              <div class="h-4 w-24 rounded bg-stone-100"></div>
+              <div class="h-4 flex-1 rounded bg-stone-100"></div>
+              <div class="h-6 w-24 rounded-full bg-stone-100"></div>
+            </div>
+          }
+        </div>
+      </div>
+    } @else if (filteredOrders().length === 0) {
+      <div class="no-print mt-6 rounded-xl border border-dashed border-stone-300 bg-white px-6 py-10 text-center">
+        <p class="landing-serif text-[20px] font-medium text-[#1C1917]">Sin pedidos con este filtro.</p>
+        <button (click)="statusFilter.set('ALL'); searchQuery.set('')" class="mt-2 text-[13px] font-bold text-[#B85C32] hover:text-[#D97745]">Ver todos →</button>
+      </div>
+    } @else {
+    <div class="no-print mt-6 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs text-stone-700">
-          <thead class="bg-stone-50 border-b border-stone-100 text-[11px] font-black uppercase tracking-wider text-stone-400">
-            <tr>
-              <th class="py-3.5 px-4">Orden</th>
-              <th class="py-3.5 px-4">Hora</th>
-              <th class="py-3.5 px-4">Cliente</th>
-              <th class="py-3.5 px-4">Mesa / Destino</th>
-              <th class="py-3.5 px-4">Ítems</th>
-              <th class="py-3.5 px-4">Total</th>
-              <th class="py-3.5 px-4">Estado</th>
-              <th class="py-3.5 px-4 text-right">Acciones</th>
+        <table class="w-full text-left">
+          <thead>
+            <tr class="bg-[#F8F3EB] text-[11px] font-medium uppercase tracking-[0.1em] text-stone-500">
+              <th class="px-6 py-4 font-medium">Pedido</th>
+              <th class="px-6 py-4 font-medium">Mesa</th>
+              <th class="px-6 py-4 font-medium">Detalle</th>
+              <th class="px-6 py-4 font-medium">Estado</th>
+              <th class="px-6 py-4 font-medium">Tiempo</th>
+              <th class="px-6 py-4"><span class="sr-only">Acciones</span></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-stone-100">
-            @for (order of filteredOrders(); track order.id) {
-              <tr class="hover:bg-stone-50/80 transition-colors">
-                <td class="py-3.5 px-4 font-black text-stone-900">{{ order.orderNumber }}</td>
-                <td class="py-3.5 px-4 text-stone-500 font-semibold">{{ formatTime(order.createdAt) }}</td>
-                <td class="py-3.5 px-4 font-bold text-stone-900">{{ order.customerName }}</td>
-                <td class="py-3.5 px-4">
-                  <span class="px-2 py-0.5 rounded-lg bg-stone-100 text-stone-800 font-bold text-[11px]">
-                    {{ order.tableNumber || 'Mesa' }}
+            @for (order of filteredOrders(); track $index) {
+              <tr (click)="openTicketModal(order)" class="cursor-pointer transition-colors hover:bg-stone-50/70">
+                <td class="px-6 py-4 text-[13px] font-bold text-[#1C1917]">#{{ order.orderNumber }}</td>
+                <td class="px-6 py-4 text-[13px] font-medium text-stone-600">{{ order.tableNumber || 'Mostrador' }}</td>
+                <td class="max-w-[280px] truncate px-6 py-4 text-[13px] font-normal text-stone-500">{{ orderItemsSummary(order) }}</td>
+                <td class="px-6 py-4">
+                  <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 {{ statusMeta(order.status).pill }}">
+                    <span class="h-1.5 w-1.5 rounded-full {{ statusMeta(order.status).dot }}"></span>
+                    {{ statusMeta(order.status).label }}
                   </span>
                 </td>
-                <td class="py-3.5 px-4 font-semibold">{{ order.items.length }} ítems</td>
-                <td class="py-3.5 px-4 font-black text-stone-900">{{ formatCurrency(order.totalAmount) }}</td>
-                <td class="py-3.5 px-4">
-                  @if (order.status === 'PENDING') {
-                    <span class="px-2.5 py-1 rounded-xl text-[11px] font-black bg-amber-100 text-amber-800">
-                      Pendiente
-                    </span>
-                  } @else if (order.status === 'CONFIRMED') {
-                    <span class="px-2.5 py-1 rounded-xl text-[11px] font-black bg-blue-100 text-blue-800">
-                      En Cocina
-                    </span>
-                  } @else if (order.status === 'DELIVERED') {
-                    <span class="px-2.5 py-1 rounded-xl text-[11px] font-black bg-emerald-100 text-emerald-800">
-                      Entregado
-                    </span>
-                  } @else {
-                    <span class="px-2.5 py-1 rounded-xl text-[11px] font-black bg-stone-100 text-stone-500">
-                      Cancelado
-                    </span>
-                  }
+                <td class="admin-data px-6 py-4 text-[13px] font-bold" [class]="isLate(order) ? 'text-red-600' : 'text-stone-500'">
+                  {{ orderMinutes(order) ?? '—' }}{{ orderMinutes(order) !== null ? ' min' : '' }}
                 </td>
-                <td class="py-3.5 px-4 text-right space-x-2">
-                  <button
-                    (click)="openTicketModal(order)"
-                    class="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 font-bold text-stone-700"
-                  >
-                    Ticket
-                  </button>
-                  @if (order.customerPhone) {
-                    <button
-                      (click)="sendWhatsAppReadyNotification(order)"
-                      class="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold hover:bg-emerald-600"
-                      title="Notificar WhatsApp que ya está listo"
-                    >
-                      📱 WhatsApp
-                    </button>
-                  }
-                  @if (order.status === 'PENDING') {
-                    <button
-                      (click)="updateStatus(order, 'CONFIRMED')"
-                      class="px-3 py-1 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700"
-                    >
-                      Cocinar
-                    </button>
-                  } @else if (order.status === 'CONFIRMED') {
-                    <button
-                      (click)="updateStatus(order, 'DELIVERED')"
-                      class="px-3 py-1 rounded-lg bg-emerald-600 text-white font-bold hover:bg-emerald-700"
-                    >
-                      Servir
-                    </button>
+                <td class="relative px-6 py-4 text-right" (click)="$event.stopPropagation()">
+                  <button (click)="toggleMenu(order.id)" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-black tracking-widest text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700" aria-label="Acciones">···</button>
+                  @if (openMenuId() !== null && openMenuId() === order.id) {
+                    <div class="absolute right-4 top-12 z-20 w-48 rounded-xl border border-stone-200 bg-white py-1.5 text-left shadow-xl anim-fade-in-scale">
+                      <button (click)="openTicketModal(order); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">Ver ticket</button>
+                      @if (order.customerPhone) {
+                        <button (click)="sendWhatsAppReadyNotification(order); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">Notificar WhatsApp</button>
+                      }
+                      @if (order.status === 'PENDING') {
+                        <button (click)="updateStatus(order, 'CONFIRMED'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">Cocinar →</button>
+                      } @else if (order.status === 'CONFIRMED') {
+                        <button (click)="updateStatus(order, 'DELIVERED'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#16A34A] transition-colors hover:bg-emerald-50">Servir →</button>
+                      }
+                    </div>
                   }
                 </td>
               </tr>
@@ -519,10 +580,13 @@
         </table>
       </div>
     </div>
+    }
   }
 
+</div><!-- /DESKTOP -->
+
   <!-- ========================================================================= -->
-  <!-- KITCHEN POS TICKET MODAL -->
+  <!-- KITCHEN POS TICKET MODAL (compartido móvil + desktop) -->
   <!-- ========================================================================= -->
   @if (selectedTicketOrder()) {
     <div class="no-print fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
@@ -565,7 +629,7 @@
               </div>
             }
             @if (selectedTicketOrder()!.notes) {
-              <div class="bg-amber-100 text-amber-900 p-2 rounded-lg font-bold mt-2 text-[11px]">
+              <div class="bg-amber-100 text-amber-900 p-2 rounded-full font-bold mt-2 text-[11px]">
                 NOTA GENERAL: {{ selectedTicketOrder()!.notes }}
               </div>
             }
@@ -577,7 +641,7 @@
               <span>CANT / DESCRIPCIÓN</span>
               <span>IMPORTE</span>
             </div>
-            @for (item of selectedTicketOrder()!.items; track item.id) {
+            @for (item of selectedTicketOrder()!.items ?? []; track $index) {
               <div class="space-y-0.5">
                 <div class="flex justify-between font-bold text-stone-900 text-xs">
                   <span>{{ item.quantity }}x {{ item.productName }}</span>
@@ -657,7 +721,7 @@
       </div>
 
       <div class="py-2 border-b-2 border-black space-y-2">
-        @for (item of selectedTicketOrder()!.items; track item.id) {
+        @for (item of selectedTicketOrder()!.items ?? []; track $index) {
           <div>
             <p class="font-black text-sm">{{ item.quantity }}x {{ item.productName }}</p>
             @if (item.notes) {
