@@ -84,17 +84,102 @@
 </div>
 
 <!-- DESKTOP · se mantiene intacto -->
-<div class="anim-fade-in-up max-w-4xl">
-<div class="hidden lg:block">
-  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-    <div>
-      <h1 class="admin-title">Plan y Suscripción</h1>
-      <p class="admin-sub">Acceso total a la plataforma Tavita para tu restaurante.</p>
+<div class="anim-fade-in-up max-w-6xl">
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10">
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Configuración</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10V7l2-4h14l2 4v3M3 10a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M9 10V7l1-4m5 7V7l-1-4M3 7h18M4 13v8h16v-8M9 21v-6h6v6" /></svg>
+          Ver página pública
+        </a>
+      }
     </div>
-      <span class="chip bg-amber-50 text-amber-800 ring-1 ring-amber-200 shadow-xs self-start sm:self-auto">
-        ⭐ Suscripción Única Todo Incluido
-      </span>
   </div>
+
+  <!-- Hero -->
+  <div class="mt-8">
+    <p class="landing-eyebrow">Tu espacio</p>
+    <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Configuración</h1>
+  </div>
+
+  <div class="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[220px_1fr]">
+    <!-- Tabs -->
+    <div class="flex gap-2 lg:flex-col lg:gap-1">
+      <button
+        (click)="activeTab.set('general')"
+        [class]="activeTab() === 'general' ? 'bg-[#F9DFC2] font-bold text-[#1C1917]' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'"
+        class="rounded-lg px-4 py-2.5 text-left text-[13px] font-medium transition-colors"
+      >
+        Información general
+      </button>
+      <button
+        (click)="activeTab.set('billing')"
+        [class]="activeTab() === 'billing' ? 'bg-[#F9DFC2] font-bold text-[#1C1917]' : 'text-stone-500 hover:bg-stone-50 hover:text-stone-800'"
+        class="rounded-lg px-4 py-2.5 text-left text-[13px] font-medium transition-colors"
+      >
+        Facturación
+      </button>
+    </div>
+
+    <!-- Panel -->
+    <div class="min-w-0 rounded-xl border border-stone-900/10 bg-white p-6 sm:p-8">
+      @if (activeTab() === 'general') {
+        <h2 class="landing-serif text-[26px] font-medium text-[#1C1917]">Información general</h2>
+        <p class="mt-1 text-[13px] font-normal text-stone-500">Estos datos aparecen en tu página pública y en los mensajes de confirmación.</p>
+
+        @if (generalMessage(); as gMsg) {
+          <div
+            [class]="gMsg.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-700'"
+            class="mt-4 rounded-xl border px-4 py-3 text-sm anim-fade-in-scale"
+          >
+            {{ gMsg.text }}
+          </div>
+        }
+
+        <form [formGroup]="generalForm" (ngSubmit)="saveGeneral()" class="mt-6 space-y-5">
+          <div>
+            <label class="field-label" for="set-name">Nombre del restaurante</label>
+            <input id="set-name" type="text" formControlName="name" class="mt-1.5 w-full rounded border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow" />
+          </div>
+          <div>
+            <label class="field-label" for="set-desc">Descripción</label>
+            <textarea id="set-desc" formControlName="description" rows="4" class="mt-1.5 w-full resize-y rounded border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow"></textarea>
+          </div>
+          <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label class="field-label" for="set-phone">Teléfono</label>
+              <input id="set-phone" type="tel" formControlName="phone" class="mt-1.5 w-full rounded border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow" />
+            </div>
+            <div>
+              <label class="field-label" for="set-address">Dirección</label>
+              <input id="set-address" type="text" formControlName="address" class="mt-1.5 w-full rounded border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow" />
+            </div>
+          </div>
+          <button type="submit" [disabled]="generalForm.invalid || savingGeneral()" class="landing-btn-dark disabled:opacity-50 disabled:pointer-events-none">
+            {{ savingGeneral() ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </form>
+      } @else {
+
+        <h2 class="landing-serif text-[26px] font-medium text-[#1C1917]">Facturación</h2>
+        <p class="mt-1 text-[13px] font-normal text-stone-500">Tu plan y suscripción de Tavita.</p>
 
   @if (message()) {
     <div
@@ -234,5 +319,8 @@
       En modo dev la activación es inmediata; en producción abre la pasarela ePayco Smart Checkout.
     </p>
   }
+  }
+    </div>
+  </div>
 </div><!-- /DESKTOP -->
 </div>

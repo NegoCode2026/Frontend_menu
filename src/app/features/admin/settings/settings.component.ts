@@ -1,19 +1,23 @@
 import { Component, inject, signal, OnInit, PLATFORM_ID } from '@angular/core';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SubscriptionService } from '../../../core/services/subscription.service';
+import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Plan, Subscription } from '../../../core/models/models';
+import { Plan, Restaurant, Subscription } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 declare const ePayco: any;
 
 @Component({
   selector: 'app-settings',
-  imports: [DatePipe, BusinessMobileNavComponent],
+  imports: [DatePipe, ReactiveFormsModule, BusinessMobileNavComponent],
   templateUrl: './settings.component.html',
 })
 export class SettingsComponent implements OnInit {
   private readonly subscriptionService = inject(SubscriptionService);
+  private readonly restaurantService = inject(RestaurantService);
+  private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
@@ -21,6 +25,20 @@ export class SettingsComponent implements OnInit {
   logout(): void {
     this.auth.forceLogout();
   }
+
+  readonly activeTab = signal<'general' | 'billing'>('general');
+  readonly restaurant = signal<Restaurant | null>(null);
+  readonly menuSlug = signal<string | null>(null);
+  readonly isOpen = signal(true);
+
+  readonly generalForm: FormGroup = this.fb.group({
+    name: ['', [Validators.required, Validators.maxLength(120)]],
+    description: [''],
+    phone: [''],
+    address: [''],
+  });
+  readonly savingGeneral = signal(false);
+  readonly generalMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly plans = signal<Plan[]>([]);
   readonly subscription = signal<Subscription | null>(null);
@@ -40,6 +58,52 @@ export class SettingsComponent implements OnInit {
     this.subscriptionService.getMine().subscribe({
       next: (subscription) => this.subscription.set(subscription),
       error: () => undefined,
+    });
+
+    this.restaurantService.getMine().subscribe({
+      next: (r) => {
+        this.restaurant.set(r);
+        this.menuSlug.set(r.slug);
+        this.isOpen.set(r.open);
+        this.generalForm.patchValue({
+          name: r.name,
+          description: r.description ?? '',
+          phone: r.phone ?? '',
+          address: r.address ?? '',
+        });
+      },
+      error: () => undefined,
+    });
+  }
+
+  saveGeneral(): void {
+    if (this.generalForm.invalid || this.savingGeneral()) return;
+    const current = this.restaurant();
+    if (!current) return;
+    this.savingGeneral.set(true);
+    this.generalMessage.set(null);
+    const v = this.generalForm.value;
+    this.restaurantService.updateMine({
+      name: v.name,
+      slug: current.slug,
+      logoUrl: current.logoUrl ?? null,
+      description: v.description || null,
+      phone: v.phone || null,
+      address: v.address || null,
+      whatsapp: current.whatsapp ?? null,
+      instagram: current.instagram ?? null,
+      facebook: current.facebook ?? null,
+      taxId: current.taxId ?? null,
+      estimatedPrepTime: current.estimatedPrepTime ?? null,
+    }).subscribe({
+      next: () => {
+        this.savingGeneral.set(false);
+        this.generalMessage.set({ type: 'success', text: 'Datos actualizados correctamente' });
+      },
+      error: (err) => {
+        this.savingGeneral.set(false);
+        this.generalMessage.set({ type: 'error', text: err.error?.message ?? 'No se pudo guardar' });
+      },
     });
   }
 
