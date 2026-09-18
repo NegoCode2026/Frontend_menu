@@ -7,6 +7,10 @@ import { ApiService } from './api.service';
 import { AuthResponse, TokenUser } from '../models/models';
 import { setCsrfToken } from '../interceptors/csrf.interceptor';
 
+const LOGIN_AT_KEY = 'tavita_login_at';
+/** Sesión máxima: al día siguiente se pide iniciar sesión de nuevo. */
+const SESSION_MAX_AGE_MS = 24 * 3600 * 1000;
+
 /**
  * Estado de autenticación basado en signals, SIN tokens en localStorage:
  * los JWT viven en cookies HttpOnly gestionadas por el backend y el
@@ -32,6 +36,10 @@ export class AuthService {
    * activa en cookies, restaura el usuario. Nunca falla el arranque.
    */
   initialize(): Observable<null> {
+    if (this.isLoginExpired()) {
+      this.clearSession();
+      return of(null);
+    }
     return this.bootstrapCsrf().pipe(
       switchMap(() => this.restoreSession()),
       catchError(() => of(null)),
@@ -39,9 +47,21 @@ export class AuthService {
     );
   }
 
-  /** Establece la cookie XSRF-TOKEN (GET /auth/csrf) y guarda el token en memoria. */
-  bootstrapCsrf(): Observable<string> {
-    return this.api.get<string>('/auth/csrf').pipe(
+  /** Guarda el momento del login para exigir re-login cada 24h. */
+  private stampLogin(): void {
+    try { localStorage.setItem(LOGIN_AT_KEY, String(Date.now())); } catch {}
+  }
+
+  /** true si pasaron más de 24h desde el login: toca iniciar sesión de nuevo. */
+  private isLoginExpired(): boolean {
+    try {
+      const at = Number(localStorage.getItem(LOGIN_AT_KEY) ?? 0);
+      return !(at > 0) || Date.now() - at >= SESSION_MAX_AGE_MS;
+    } catch {
+      return false;
+    }
+  }
+  bootstrapCsrf(): Observable<string> {    return this.api.get<string>('/auth/csrf').pipe(
       tap((token) => setCsrfToken(token)),
       catchError(() => {
         setCsrfToken(null);
@@ -57,6 +77,7 @@ export class AuthService {
         const user = this.normalizeUser(r.user);
         this.userSignal.set(user);
         try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
+        this.stampLogin();
       }),
       map((r) => this.normalizeUser(r.user)),
     );
@@ -75,6 +96,7 @@ export class AuthService {
         const user = this.normalizeUser(r.user);
         this.userSignal.set(user);
         try { localStorage.setItem('tavita_user', JSON.stringify(user)); } catch {}
+        this.stampLogin();
       }),
       map((r) => this.normalizeUser(r.user)),
     );
@@ -151,6 +173,10 @@ export class AuthService {
   /** Valida la sesión contra el backend (máximo 1 vez por minuto,
    *  salvo `force`). 401/403 = fuera; error de red = se mantiene la sesión local. */
   validateSession(force = false): Observable<boolean> {
+    if (this.isLoginExpired()) {
+      this.clearSession();
+      return of(false);
+    }
     if (!this.isAuthenticated()) {
       return this.restoreSession().pipe(map((user) => user != null));
     }
@@ -184,6 +210,7 @@ export class AuthService {
   clearSession(): void {
     this.userSignal.set(null);
     try { localStorage.removeItem('tavita_user'); } catch {}
+    try { localStorage.removeItem(LOGIN_AT_KEY); } catch {}
   }
 
   /** Rol canónico sin prefijo ROLE_ (migra cachés antiguas). */
