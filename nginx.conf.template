@@ -4,6 +4,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Cabeceras de seguridad (se repiten por location: nginx no hereda
+    # las del nivel server cuando el location ya define add_header).
+    # Sin CSP estricta a propósito: el checkout ePayco carga scripts
+    # externos y una CSP mal calibrada rompería los pagos.
+
     # SPA: servir index.html para rutas de la app.
     # OJO: este location sirve index.html para "/" y rutas SPA, así que
     # debe llevar no-cache aquí mismo (el bloque "location = /index.html"
@@ -11,29 +16,49 @@ server {
     location / {
         try_files $uri $uri/ /index.html;
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     # index.html literal: nunca cachear (el SW maneja la caché)
     location = /index.html {
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     # ngsw.json: manifiesto de versiones del Service Worker. SIEMPRE
     # revalidar o el navegador tarda minutos en enterarse de un deploy nuevo.
     location = /ngsw.json {
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     # Service Worker (worker + manifiesto): no-cache para revalidar siempre.
     # Sin esto el navegador tarda minutos en enterarse de un deploy nuevo.
     location = /ngsw-worker.js {
         add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
         add_header Service-Worker-Allowed "/" always;
     }
 
     # Web manifest: MIME type correcto y no cachear
     location = /manifest.webmanifest {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
         add_header Content-Type "application/manifest+json";
     }
 
@@ -46,18 +71,30 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     # Imágenes subidas por el backend (^~ por el mismo motivo que /api/)
     location ^~ /uploads/ {
         proxy_pass ${BACKEND_ORIGIN};
         proxy_set_header Host $host;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     # Cache de assets con hash (JS, CSS, imágenes estáticas)
     location ~* \.(js|css|png|jpg|jpeg|gif|webp|svg|ico)$ {
         expires 7d;
         add_header Cache-Control "public, immutable";
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     }
 
     gzip on;

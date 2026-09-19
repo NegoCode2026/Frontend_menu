@@ -5,6 +5,7 @@ import { SubscriptionService } from '../../../core/services/subscription.service
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Plan, Restaurant, Subscription } from '../../../core/models/models';
+import { environment } from '../../../../environments/environment';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 declare const ePayco: any;
@@ -139,7 +140,7 @@ export class SettingsComponent implements OnInit {
     const checkout = ePayco.checkout.configure({
       sessionId,
       type: 'onpage',
-      test: true,
+      test: environment.epaycoTest,
     });
 
     checkout.setHooks({
@@ -207,9 +208,15 @@ export class SettingsComponent implements OnInit {
   downloadReceipt(): void {
     const sub = this.subscription();
     if (!sub) return;
+    const esc = (v: unknown): string =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
     const name = this.restaurant()?.name ?? 'Mi restaurante';
     const period = `Desde ${sub.startsAt} · Hasta ${sub.endsAt ?? '—'}`;
-    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comprobante ${sub.plan.name}</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;color:#1c1917"><p style="font-size:11px;letter-spacing:2px;color:#78716c">TAVITA · ${name}</p><h1>Comprobante de suscripción</h1><p><strong>Plan:</strong> ${sub.plan.name}</p><p><strong>Valor:</strong> ${this.formatCurrency(sub.plan.priceMonthly)} / mes</p><p><strong>Periodo:</strong> ${period}</p><p><strong>Estado:</strong> ${sub.status}</p></body></html>`;
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comprobante ${esc(sub.plan.name)}</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;color:#1c1917"><p style="font-size:11px;letter-spacing:2px;color:#78716c">TAVITA · ${esc(name)}</p><h1>Comprobante de suscripción</h1><p><strong>Plan:</strong> ${esc(sub.plan.name)}</p><p><strong>Valor:</strong> ${this.formatCurrency(sub.plan.priceMonthly)} / mes</p><p><strong>Periodo:</strong> ${esc(period)}</p><p><strong>Estado:</strong> ${esc(sub.status)}</p></body></html>`;
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
