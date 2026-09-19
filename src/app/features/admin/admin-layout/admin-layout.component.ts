@@ -73,8 +73,9 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Vigía de sesión: si las cookies mueren, a /login.
-    // Periódico + inmediato al volver a la pestaña.
+    // Periódico + inmediato al volver a la pestaña. En pausa si está oculta.
     const checkSession = () => {
+      if (document.visibilityState === 'hidden') return;
       this.auth.validateSession(true).subscribe({
         next: (ok) => {
           if (!ok) this.auth.redirectToLogin();

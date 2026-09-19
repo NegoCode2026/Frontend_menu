@@ -24,6 +24,7 @@
           <img
             [src]="menu()!.restaurant.logoUrl"
             alt="Logo"
+            decoding="async"
             (error)="onImageError($event)"
             class="h-11 w-11 rounded-full bg-white object-cover shadow-sm ring-1 ring-stone-200"
           />
@@ -154,6 +155,8 @@
                   <img
                     [src]="category.products[0]!.imageUrl"
                     [alt]="category.name"
+                    loading="lazy"
+                    decoding="async"
                     (error)="onImageError($event)"
                     class="h-full w-full object-cover"
                   />
@@ -218,6 +221,7 @@
                             [src]="product.imageUrl"
                             [alt]="product.name"
                             loading="lazy"
+                            decoding="async"
                             (error)="onImageError($event)"
                             class="h-full w-full object-cover"
                           />
