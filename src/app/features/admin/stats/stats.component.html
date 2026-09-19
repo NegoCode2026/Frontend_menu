@@ -1,0 +1,158 @@
+<!-- VENTAS · móvil -->
+<div class="lg:hidden -mx-4 -mt-8 -mb-8 bg-white pb-40 no-print">
+  <div class="border-b border-stone-900/10 bg-white px-5 py-4">
+    <p class="landing-eyebrow">Ventas</p>
+    <h1 class="landing-serif mt-2 text-[32px] font-medium leading-[1.08] text-[#1C1917]">Resumen</h1>
+  </div>
+  <div class="px-5">
+    <div class="mt-6 grid grid-cols-2 gap-3">
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Ingresos</p>
+        <p class="admin-data mt-1.5 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(revenue()) }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Pedidos</p>
+        <p class="admin-data mt-1.5 text-[22px] font-black text-[#1C1917]">{{ validOrders().length }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Ticket prom.</p>
+        <p class="admin-data mt-1.5 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(ticketAvg()) }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-4">
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Platos</p>
+        <p class="admin-data mt-1.5 text-[22px] font-black text-[#1C1917]">{{ itemsSold() }}</p>
+      </div>
+    </div>
+    <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-5">
+      <p class="landing-eyebrow">Últimos {{ rangeDays() }} días</p>
+      <div class="mt-4 flex h-36 items-end gap-2">
+        @for (d of daily(); track $index) {
+          <div class="flex flex-1 flex-col items-center gap-1.5">
+            <div class="w-full rounded-t-md bg-[#D97745]" [style.height.%]="barHeight(d.revenue)" [title]="formatCurrency(d.revenue)"></div>
+            <span class="text-[9px] font-medium capitalize text-stone-400">{{ d.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+    <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-5">
+      <p class="landing-eyebrow">Lo más pedido</p>
+      @if (topProducts().length === 0) {
+        <p class="mt-3 text-[13px] text-stone-400">Aún no hay ventas registradas.</p>
+      } @else {
+        <div class="mt-2 divide-y divide-stone-100">
+          @for (p of topProducts(); track $index) {
+            <div class="flex items-center justify-between gap-3 py-2.5">
+              <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ p.name }}</p>
+              <p class="admin-data shrink-0 text-[12px] font-bold text-stone-500">{{ p.qty }} · {{ formatCurrency(p.revenue) }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+  <app-business-mobile-nav active="home" />
+</div>
+
+<!-- VENTAS · desktop -->
+<div class="hidden lg:block bg-white -mx-4 sm:-mx-6 lg:-mx-8 -my-8 px-4 sm:px-6 lg:px-8 pb-10 no-print">
+  <!-- Topbar -->
+  <div class="flex items-center justify-between gap-4 border-b border-stone-900/10 py-4">
+    <p class="text-[13px] font-normal text-stone-400">
+      Espacio de trabajo <span class="mx-1.5 text-stone-300">›</span>
+      <span class="font-bold text-[#1C1917]">Ventas</span>
+    </p>
+    <div class="flex items-center gap-4">
+      @if (isOpen()) {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#16A34A]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A] pulse-dot"></span>
+          Servicio activo
+        </span>
+      } @else {
+        <span class="flex items-center gap-1.5 text-[12px] font-bold text-[#B85C32]">
+          <span class="h-1.5 w-1.5 rounded-full bg-[#B85C32]"></span>
+          Servicio pausado
+        </span>
+      }
+      @if (menuSlug()) {
+        <a [href]="'/menu/' + menuSlug()" target="_blank" class="inline-flex items-center gap-2 rounded border border-stone-200 px-4 py-2.5 text-[13px] font-medium text-stone-700 transition-colors hover:border-stone-300 hover:text-[#1C1917]">
+          Ver página pública
+        </a>
+      }
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="mt-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="landing-eyebrow">Rendimiento de tu carta</p>
+      <h1 class="landing-serif mt-4 text-[52px] font-medium leading-[1.05] text-[#1C1917]">Ventas</h1>
+    </div>
+    <div class="flex items-center gap-1 rounded-lg border border-stone-200 bg-white p-1">
+      <button (click)="rangeDays.set(7)" [class]="rangeDays() === 7 ? 'bg-[#1C1917] text-white' : 'text-stone-500 hover:text-stone-800'" class="rounded-md px-4 py-2 text-[13px] font-bold transition-colors">7 días</button>
+      <button (click)="rangeDays.set(30)" [class]="rangeDays() === 30 ? 'bg-[#1C1917] text-white' : 'text-stone-500 hover:text-stone-800'" class="rounded-md px-4 py-2 text-[13px] font-bold transition-colors">30 días</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="mt-8 grid grid-cols-2 gap-4 xl:grid-cols-4">
+    <div class="border-b-2 border-b-[#D97745] bg-[#F9DFC2] p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Ingresos</p>
+      <p class="admin-data mt-2 text-[34px] font-black leading-none text-[#1C1917]">{{ formatCurrency(revenue()) }}</p>
+      <p class="mt-2 text-[11px] font-bold text-[#16A34A]">{{ validOrders().length }} pedidos cobrados</p>
+    </div>
+    <div class="border-b border-stone-900/15 bg-white p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Pedidos</p>
+      <p class="admin-data mt-2 text-[34px] font-black leading-none text-[#1C1917]">{{ validOrders().length }}</p>
+      <p class="mt-2 text-[11px] font-medium text-stone-400">sin cancelados</p>
+    </div>
+    <div class="border-b border-stone-900/15 bg-white p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Ticket promedio</p>
+      <p class="admin-data mt-2 text-[34px] font-black leading-none text-[#1C1917]">{{ formatCurrency(ticketAvg()) }}</p>
+      <p class="mt-2 text-[11px] font-medium text-stone-400">por pedido</p>
+    </div>
+    <div class="border-b border-stone-900/15 bg-white p-6">
+      <p class="text-[11px] font-medium uppercase tracking-[0.12em] text-stone-500">Platos vendidos</p>
+      <p class="admin-data mt-2 text-[34px] font-black leading-none text-[#1C1917]">{{ itemsSold() }}</p>
+      <p class="mt-2 text-[11px] font-medium text-stone-400">unidades totales</p>
+    </div>
+  </div>
+
+  <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1.6fr_1fr]">
+    <!-- Barras -->
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-7">
+      <p class="landing-eyebrow">Últimos {{ rangeDays() }} días</p>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Ingresos por día</h2>
+      <div class="mt-6 flex h-52 items-end gap-2 sm:gap-3">
+        @for (d of daily(); track $index) {
+          <div class="flex min-w-0 flex-1 flex-col items-center gap-2">
+            <span class="admin-data text-[10px] font-bold text-stone-400">{{ d.revenue > 0 ? formatCurrency(d.revenue) : '' }}</span>
+            <div class="w-full rounded-t-lg bg-gradient-to-t from-[#B85C32] to-[#D97745]" [style.height.%]="barHeight(d.revenue)" [title]="d.label + ': ' + formatCurrency(d.revenue)"></div>
+            <span class="truncate text-[10px] font-medium capitalize text-stone-400">{{ d.label }}</span>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- Top productos -->
+    <div class="rounded-2xl border border-stone-900/10 border-t-2 border-t-[#D97745] bg-white p-7">
+      <p class="landing-eyebrow">Lo más pedido</p>
+      <h2 class="landing-serif mt-3 text-[30px] font-medium text-[#1C1917]">Top platos</h2>
+      @if (topProducts().length === 0) {
+        <p class="mt-4 rounded-xl border border-dashed border-stone-200 bg-stone-50 px-4 py-6 text-center text-[13px] font-semibold text-stone-500">Aún no hay ventas registradas.</p>
+      } @else {
+        <div class="mt-3 divide-y divide-stone-100">
+          @for (p of topProducts(); track $index; let idx = $index) {
+            <div class="flex items-center gap-3 py-3">
+              <span class="admin-data flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F9DFC2] text-[12px] font-extrabold text-[#B85C32]">0{{ idx + 1 }}</span>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-bold text-[#1C1917]">{{ p.name }}</p>
+                <p class="admin-data text-[11px] font-medium text-stone-400">{{ p.qty }} vendidos</p>
+              </div>
+              <p class="admin-data shrink-0 text-[13px] font-extrabold text-[#1C1917]">{{ formatCurrency(p.revenue) }}</p>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</div>

@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, PLATFORM_ID } from '@angular/core';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -20,11 +21,20 @@ export class SettingsComponent implements OnInit {
   private readonly restaurantService = inject(RestaurantService);
   private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 
   logout(): void {
     this.auth.forceLogout();
+  }
+
+  logoutAll(): void {
+    if (!confirm('¿Cerrar tu sesión en todos los dispositivos?')) return;
+    this.auth.logoutAll().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
+    });
   }
 
   readonly activeTab = signal<'general' | 'billing'>('general');

@@ -108,6 +108,35 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.openMenuId.update((current) => (current === id ? null : id));
   }
 
+  /** Exporta los pedidos filtrados a CSV (compatible con Excel). */
+  exportCsv(): void {
+    const rows = this.filteredOrders();
+    const cell = (v: unknown): string => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const lines = [
+      'Pedido,Fecha,Cliente,Mesa,Detalle,Total,Estado',
+      ...rows.map((o) =>
+        [
+          cell(o.orderNumber),
+          cell(o.createdAt),
+          cell(o.customerName),
+          cell(o.tableNumber ?? ''),
+          cell(this.orderItemsSummary(o)),
+          cell(o.totalAmount ?? 0),
+          cell(o.status),
+        ].join(',')
+      ),
+    ];
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `ventas-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   /** Detalle compacto "2x Nombre · 1x Otro" para la tabla. */
   orderItemsSummary(order: Order): string {
     const items = order.items ?? [];

@@ -201,6 +201,9 @@
       <button (click)="simulateIncomingOrder()" class="flex h-10 items-center rounded-full border border-dashed border-stone-300 px-4 text-[12px] font-bold text-stone-400 transition-colors hover:border-stone-400 hover:text-stone-600" title="Pedido de prueba">
         Simular
       </button>
+      <button (click)="exportCsv()" class="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 transition-colors hover:border-stone-300 hover:text-[#1C1917]" title="Exportar ventas a CSV" aria-label="Exportar CSV">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+      </button>
       @if (menuSlug()) {
         <a [href]="'/menu/' + menuSlug()" target="_blank" class="landing-btn-dark">+ Nuevo pedido</a>
       }
