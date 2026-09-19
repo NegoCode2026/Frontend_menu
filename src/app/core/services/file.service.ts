@@ -12,14 +12,23 @@ export class FileService {
   constructor(private api: ApiService) {}
 
   /**
-   * Sube una imagen y devuelve la URL firmada y el fileId.
-   * El FormData se envía como multipart/form-data; Angular HttpClient
-   * detecta FormData automáticamente y deja que el browser ponga el
-   * Content-Type con el boundary correcto (no se fuerza application/json).
+   * Convierte la imagen a cadena Base64 Data URI (data:image/...;base64,...).
+   * Almacenamiento directo en base de datos sin peticiones HTTP extra ni timeouts.
    */
   upload(file: File): Observable<UploadResult> {
-    const formData = new FormData();
-    formData.append('file', file);
-    return this.api.post<UploadResult>('/files/upload', formData);
+    return new Observable<UploadResult>((observer) => {
+      if (!file || !file.type.startsWith('image/')) {
+        observer.error({ error: { message: 'El archivo debe ser una imagen válida' } });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        observer.next({ url: dataUrl, fileId: dataUrl });
+        observer.complete();
+      };
+      reader.onerror = (err) => observer.error(err);
+      reader.readAsDataURL(file);
+    });
   }
 }
