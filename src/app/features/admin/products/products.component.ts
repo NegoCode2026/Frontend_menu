@@ -3,7 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
-import { FileService } from '../../../core/services/file.service';
+import { FileService, UploadResult } from '../../../core/services/file.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Category, Product } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
@@ -176,8 +176,10 @@ export class ProductsComponent implements OnInit {
     if (!file) return;
     this.uploading.set(true);
     this.fileService.upload(file).subscribe({
-      next: ({ url }) => {
-        this.previewUrl.set(url);
+      next: (result: UploadResult) => {
+        // Guardamos la URL firmada para la preview y para enviar al backend.
+        // El backend en toStoredValue() extrae el fileId limpio para almacenar en BD.
+        this.previewUrl.set(result.url);
         this.uploading.set(false);
       },
       error: (err) => {
@@ -221,7 +223,10 @@ export class ProductsComponent implements OnInit {
         name: product.name,
         price: product.price,
         description: product.description,
+        // CRÍTICO: se debe incluir imageUrl para no borrarla en la BD
+        imageUrl: product.imageUrl,
         available: !product.available,
+        position: product.position,
       })
       .subscribe({ next: () => this.reload() });
   }
