@@ -98,7 +98,7 @@
           <!-- Email -->
           <div>
             <label class="block text-[13px] font-bold text-[#1C1917]" for="email">Correo electrónico</label>
-            <input id="email" type="email" formControlName="email" placeholder="tu@restaurante.com" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
+            <input id="email" type="email" formControlName="email" autocomplete="username" placeholder="tu@restaurante.com" class="mt-2 w-full rounded border border-stone-200 px-4 py-3 text-sm bg-white text-stone-900 placeholder-stone-400 focus:outline-none input-glow transition-all duration-200" />
             @if (form.get('email')?.hasError('conflict')) {
               <p class="text-xs text-red-600 mt-1 anim-fade-in-scale">Este correo ya se encuentra registrado</p>
             } @else if (form.get('email')?.touched && form.get('email')?.invalid) {

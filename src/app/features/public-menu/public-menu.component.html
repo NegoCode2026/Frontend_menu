@@ -24,6 +24,7 @@
           <img
             [src]="menu()!.restaurant.logoUrl"
             alt="Logo"
+            decoding="async"
             (error)="onImageError($event)"
             class="h-11 w-11 rounded-full bg-white object-cover shadow-sm ring-1 ring-stone-200"
           />
@@ -39,7 +40,7 @@
         ></span>
       </div>
       <div class="min-w-0 flex-1">
-        <p class="text-[11px] font-medium leading-tight text-stone-400">Delivery to</p>
+        <p class="text-[11px] font-medium leading-tight text-stone-400">Tu pedido en</p>
         <p class="truncate text-[14px] font-extrabold leading-tight text-stone-900">
           @if (selectedTablePreset()) {
             Mesa {{ selectedTablePreset() }} · {{ menu()!.restaurant.name }}
@@ -49,14 +50,6 @@
           <span class="ml-0.5 inline-block align-middle text-[10px] text-stone-400">⌄</span>
         </p>
       </div>
-      <button
-        aria-label="Notificaciones"
-        class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-900 transition-transform active:scale-90"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-6 w-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-        </svg>
-      </button>
       <button
         (click)="openCart()"
         [disabled]="cartTotalCount() === 0"
@@ -136,14 +129,14 @@
     <div class="sticky top-0 z-30 rounded-t-[2.5rem] bg-stone-200/80 pt-2 backdrop-blur-xl">
       <div class="mx-auto max-w-3xl">
         <nav class="carousel-x hide-scrollbar flex items-start gap-3 overflow-x-auto px-5 py-4 sm:px-6">
-          <button (click)="scrollToTop(); setFilterTag('ALL')" class="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label="Ver todo">
+          <button (click)="scrollToTop()" class="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label="Ver todo">
             <span class="flex h-16 w-16 items-center justify-center rounded-full bg-white text-stone-800 shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-transform active:scale-95">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6">
                 <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 002 4.25v2.5A2.25 2.25 0 004.25 9h2.5A2.25 2.25 0 009 6.75v-2.5A2.25 2.25 0 006.75 2h-2.5zm7.5 0A2.25 2.25 0 009.5 4.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 0014.25 2h-2.5zM4.25 11A2.25 2.25 0 002 13.25v2.5A2.25 2.25 0 004.25 18h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 006.75 11h-2.5zm7.5 0a2.25 2.25 0 00-2.25 2.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5a2.25 2.25 0 00-2.25-2.25h-2.5z" clip-rule="evenodd" />
               </svg>
             </span>
             <span class="text-[11px] font-extrabold text-stone-900">Todo</span>
-            <span class="h-0.5 w-6 rounded-full" [class]="activeFilterTag() === 'ALL' ? 'bg-stone-900' : 'bg-transparent'"></span>
+            <span class="h-0.5 w-6 rounded-full bg-stone-900"></span>
           </button>
           @for (category of menu()!.categories; track category.id) {
             <button (click)="setCategory(category.id)" class="flex w-16 shrink-0 flex-col items-center gap-1.5">
@@ -154,6 +147,8 @@
                   <img
                     [src]="category.products[0]!.imageUrl"
                     [alt]="category.name"
+                    loading="lazy"
+                    decoding="async"
                     (error)="onImageError($event)"
                     class="h-full w-full object-cover"
                   />
@@ -218,6 +213,7 @@
                             [src]="product.imageUrl"
                             [alt]="product.name"
                             loading="lazy"
+                            decoding="async"
                             (error)="onImageError($event)"
                             class="h-full w-full object-cover"
                           />
@@ -441,16 +437,18 @@
             </span>
           }
         </button>
-        <a
-          [href]="'https://wa.me/' + (menu()!.restaurant.whatsapp || menu()!.restaurant.phone || '573009876543')"
-          target="_blank"
-          aria-label="Ayuda por WhatsApp"
+        @if (contactPhone()) {
+          <a
+            [href]="'https://wa.me/' + contactPhone()"
+            target="_blank"
+            aria-label="Ayuda por WhatsApp"
           class="flex h-11 w-11 items-center justify-center rounded-full text-stone-400 transition-colors hover:bg-white/10 hover:text-white active:scale-95"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.75 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.75 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           </svg>
         </a>
+        }
         @if (cartTotalCount() > 0) {
           <button
             (click)="openCart()"

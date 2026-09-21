@@ -122,6 +122,18 @@ export class AuthService {
     );
   }
 
+  /** Cierra la sesión en TODOS los dispositivos (revoca refresh tokens). */
+  logoutAll(): Observable<void> {
+    return this.bootstrapCsrf().pipe(
+      switchMap(() => this.api.post<void>('/auth/logout-all')),
+      tap(() => this.clearSession()),
+      catchError(() => {
+        this.clearSession();
+        return of(undefined);
+      }),
+    );
+  }
+
   private authLogout(): Observable<void> {
     return this.bootstrapCsrf().pipe(
       switchMap(() => this.api.post<void>('/auth/logout')),

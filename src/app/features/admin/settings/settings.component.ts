@@ -1,10 +1,12 @@
 import { Component, inject, signal, OnInit, PLATFORM_ID } from '@angular/core';
 import { DatePipe, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Plan, Restaurant, Subscription } from '../../../core/models/models';
+import { environment } from '../../../../environments/environment';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 declare const ePayco: any;
@@ -19,11 +21,20 @@ export class SettingsComponent implements OnInit {
   private readonly restaurantService = inject(RestaurantService);
   private readonly fb = inject(FormBuilder);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 
   logout(): void {
     this.auth.forceLogout();
+  }
+
+  logoutAll(): void {
+    if (!confirm('¿Cerrar tu sesión en todos los dispositivos?')) return;
+    this.auth.logoutAll().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login']),
+    });
   }
 
   readonly activeTab = signal<'general' | 'billing'>('general');
@@ -139,7 +150,7 @@ export class SettingsComponent implements OnInit {
     const checkout = ePayco.checkout.configure({
       sessionId,
       type: 'onpage',
-      test: true,
+      test: environment.epaycoTest,
     });
 
     checkout.setHooks({
@@ -184,5 +195,46 @@ export class SettingsComponent implements OnInit {
 
   formatCurrency(value: number): string {
     return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+  }
+
+  nextChargeLine(): string | null {
+    const sub = this.subscription();
+    if (!sub?.endsAt) return null;
+    try {
+      const date = new Date(sub.endsAt);
+      if (Number.isNaN(date.getTime())) return null;
+      const label = new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long', year: 'numeric' }).format(date);
+      return `Próximo cobro · ${label}`.toUpperCase();
+    } catch {
+      return null;
+    }
+  }
+
+  scrollToPlans(): void {
+    document.getElementById('planes')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /** Comprobante real de la suscripción vigente (plan, precio y periodo). */
+  downloadReceipt(): void {
+    const sub = this.subscription();
+    if (!sub) return;
+    const esc = (v: unknown): string =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const name = this.restaurant()?.name ?? 'Mi restaurante';
+    const period = `Desde ${sub.startsAt} · Hasta ${sub.endsAt ?? '—'}`;
+    const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Comprobante ${esc(sub.plan.name)}</title></head><body style="font-family:sans-serif;max-width:560px;margin:40px auto;color:#1c1917"><p style="font-size:11px;letter-spacing:2px;color:#78716c">TAVITA · ${esc(name)}</p><h1>Comprobante de suscripción</h1><p><strong>Plan:</strong> ${esc(sub.plan.name)}</p><p><strong>Valor:</strong> ${this.formatCurrency(sub.plan.priceMonthly)} / mes</p><p><strong>Periodo:</strong> ${esc(period)}</p><p><strong>Estado:</strong> ${esc(sub.status)}</p></body></html>`;
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `comprobante-${sub.plan.code ?? 'plan'}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   }
 }

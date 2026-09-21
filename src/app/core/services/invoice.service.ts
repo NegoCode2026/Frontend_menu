@@ -1,6 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Order } from '../models/models';
 
+/** Escapa texto para interpolarlo en HTML sin riesgo de XSS. */
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export interface InvoiceRestaurantInfo {
   name: string;
   slug?: string;
@@ -13,8 +23,7 @@ export interface InvoiceRestaurantInfo {
 }
 
 @Injectable({ providedIn: 'root' })
-export class InvoiceService {
-  formatCurrency(value: number): string {
+export class InvoiceService {  formatCurrency(value: number): string {
     return new Intl.NumberFormat('es-CO', {
       style: 'currency',
       currency: 'COP',
@@ -58,15 +67,15 @@ export class InvoiceService {
         ? '🛵 Domicilio'
         : order.orderType === 'TAKEAWAY'
         ? '🛍️ Para Llevar'
-        : `🍽️ En Mesa (${order.tableNumber || 'Mesa'})`;
+        : `🍽️ En Mesa (${escapeHtml(order.tableNumber) || 'Mesa'})`;
 
     const itemsRows = order.items
       .map(
         (item, idx) => `
         <tr style="border-bottom: 1px dashed #e5e7eb;">
           <td style="padding: 10px 4px; vertical-align: top; font-size: 13px; color: #374151;">
-            <div style="font-weight: 700; color: #111827;">${idx + 1}. ${item.productName}</div>
-            ${item.notes ? `<div style="font-size: 11px; color: #92400e; background-color: #fef3c7; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">Nota: ${item.notes}</div>` : ''}
+            <div style="font-weight: 700; color: #111827;">${idx + 1}. ${escapeHtml(item.productName)}</div>
+            ${item.notes ? `<div style="font-size: 11px; color: #92400e; background-color: #fef3c7; padding: 2px 6px; border-radius: 4px; display: inline-block; margin-top: 2px;">Nota: ${escapeHtml(item.notes)}</div>` : ''}
           </td>
           <td style="padding: 10px 4px; text-align: center; vertical-align: top; font-weight: 700; font-size: 13px; color: #111827;">
             ${item.quantity}
@@ -88,7 +97,7 @@ export class InvoiceService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Factura Pedido ${order.orderNumber} - ${restaurant.name}</title>
+        <title>Factura Pedido ${escapeHtml(order.orderNumber)} - ${escapeHtml(restaurant.name)}</title>
         <style>
           @page {
             margin: 15mm;
@@ -244,14 +253,14 @@ export class InvoiceService {
       <body>
         <div class="invoice-box">
           <div class="header">
-            <h1 class="restaurant-name">${restaurant.name}</h1>
+            <h1 class="restaurant-name">${escapeHtml(restaurant.name)}</h1>
             <div class="restaurant-info">
-              ${restaurant.taxId ? `<span>${restaurant.taxId}</span><br>` : ''}
-              ${restaurant.address ? `<span>📍 ${restaurant.address}</span><br>` : ''}
-              ${restaurant.phone || restaurant.whatsapp ? `<span>📞 ${restaurant.phone || restaurant.whatsapp}</span>` : ''}
+              ${restaurant.taxId ? `<span>${escapeHtml(restaurant.taxId)}</span><br>` : ''}
+              ${restaurant.address ? `<span>📍 ${escapeHtml(restaurant.address)}</span><br>` : ''}
+              ${restaurant.phone || restaurant.whatsapp ? `<span>📞 ${escapeHtml(restaurant.phone || restaurant.whatsapp)}</span>` : ''}
             </div>
             <div>
-              <span class="badge-order">COMPROBANTE DE PEDIDO #${order.orderNumber}</span>
+              <span class="badge-order">COMPROBANTE DE PEDIDO #${escapeHtml(order.orderNumber)}</span>
             </div>
           </div>
 
@@ -263,7 +272,7 @@ export class InvoiceService {
           <div class="info-grid">
             <div class="info-item">
               <div class="info-label">Cliente</div>
-              <div class="info-value">${order.customerName || 'Cliente'}</div>
+              <div class="info-value">${escapeHtml(order.customerName) || 'Cliente'}</div>
             </div>
             <div class="info-item">
               <div class="info-label">Ubicación / Tipo</div>
@@ -280,12 +289,12 @@ export class InvoiceService {
             ${order.customerPhone ? `
             <div class="info-item">
               <div class="info-label">Teléfono de Contacto</div>
-              <div class="info-value">${order.customerPhone}</div>
+              <div class="info-value">${escapeHtml(order.customerPhone)}</div>
             </div>` : ''}
             ${order.notes ? `
             <div class="info-item" style="grid-column: span 2;">
               <div class="info-label">Observaciones Generales</div>
-              <div class="info-value" style="font-style: italic;">${order.notes}</div>
+              <div class="info-value" style="font-style: italic;">${escapeHtml(order.notes)}</div>
             </div>` : ''}
           </div>
 
@@ -319,7 +328,7 @@ export class InvoiceService {
           </div>
 
           <div class="footer">
-            <p style="margin: 0; font-weight: 700; color: #4b5563;">¡Gracias por tu pedido en ${restaurant.name}!</p>
+            <p style="margin: 0; font-weight: 700; color: #4b5563;">¡Gracias por tu pedido en ${escapeHtml(restaurant.name)}!</p>
             <p style="margin: 4px 0 0 0;">Factura y comprobante digital generado a través de <strong>Tavita</strong></p>
           </div>
         </div>

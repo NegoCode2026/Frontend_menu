@@ -176,68 +176,60 @@
             {{ savingGeneral() ? 'Guardando…' : 'Guardar cambios' }}
           </button>
         </form>
+
+        <div class="mt-8 rounded-xl border border-stone-200 bg-stone-50 p-5">
+          <p class="text-[14px] font-bold text-[#1C1917]">Sesiones activas</p>
+          <p class="mt-0.5 text-[13px] font-normal text-stone-500">Cierra tu sesión en todos los dispositivos a la vez.</p>
+          <button (click)="logoutAll()" class="mt-3 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-[13px] font-bold text-red-600 transition-colors hover:bg-red-50">
+            Cerrar todas las sesiones
+          </button>
+        </div>
       } @else {
 
-        <h2 class="landing-serif text-[26px] font-medium text-[#1C1917]">Facturación</h2>
-        <p class="mt-1 text-[13px] font-normal text-stone-500">Tu plan y suscripción de Tavita.</p>
-
-  @if (message()) {
-    <div
-      [class]="message()!.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'"
-      class="mt-4 rounded-2xl border px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale"
-    >
-      <span class="text-lg">{{ message()!.type === 'success' ? '✅' : '⚠️' }}</span>
-      <span>{{ message()!.text }}</span>
-    </div>
-  }
-
-  @if (subscription()) {
-    <div
-      [class]="subscription()!.status === 'ACTIVE'
-        ? 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 text-white shadow-emerald-500/20'
-        : 'bg-stone-100 text-stone-700'"
-      class="mt-6 rounded-3xl p-6 flex flex-col sm:flex-row sm:items-center gap-4 shadow-xl anim-fade-in-scale"
-    >
-      <div
-        class="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shrink-0"
-        [class]="subscription()!.status === 'ACTIVE' ? 'bg-white/20 backdrop-blur-sm' : 'bg-white/60'"
-      >
-        {{ subscription()!.status === 'ACTIVE' ? '✨' : '⏸️' }}
-      </div>
-      <div class="flex-1">
-        <div class="flex items-center gap-2">
-          <p class="text-lg font-black tracking-[-0.01em]">
-            {{ subscription()!.status === 'ACTIVE' ? 'Suscripción Tavita Activa' : 'Suscripción ' + subscription()!.status }}
-          </p>
-          <span class="bg-white/20 backdrop-blur-sm text-white text-[11px] font-black uppercase px-2.5 py-0.5 rounded-md">
-            {{ subscription()!.plan.name }}
-          </span>
-        </div>
-        <p class="text-xs sm:text-sm opacity-90 mt-0.5">
-          Activa desde {{ subscription()!.startsAt | date: 'mediumDate' }}
-          @if (subscription()!.endsAt) {
-            · Renovación: {{ subscription()!.endsAt | date: 'mediumDate' }}
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 class="landing-serif text-[26px] font-medium text-[#1C1917]">Facturación</h2>
+            <p class="mt-1 text-[13px] font-normal text-stone-500">Administra tu plan y consulta tus próximos cargos.</p>
+          </div>
+          @if (subscription(); as sub0) {
+            <span class="shrink-0 rounded bg-[#F9DFC2] px-3 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#B85C32]">{{ sub0.plan.name }}</span>
           }
-        </p>
-      </div>
-      @if (subscription()!.status === 'ACTIVE') {
-        <button
-          (click)="cancel()"
-          [disabled]="subscribing()"
-          class="rounded-full px-4 py-2.5 text-xs font-bold transition-all bg-white/20 hover:bg-white/30 disabled:opacity-50 border border-white/20 shrink-0"
-        >
-          {{ subscribing() ? 'Cancelando…' : 'Cancelar suscripción' }}
-        </button>
-      }
-    </div>
-  }
+        </div>
+
+        @if (subscription(); as sub) {
+          <div class="mt-6 rounded-xl bg-[#1C1917] p-6 sm:p-7 text-white anim-fade-in-scale">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <p class="text-[11px] font-medium uppercase tracking-[0.14em] text-white/60">{{ nextChargeLine() ?? 'Suscripción Tavita' }}</p>
+                <p class="landing-serif mt-2 text-[40px] font-medium leading-none">{{ formatCurrency(sub.plan.priceMonthly) }}<span class="ml-1 align-middle text-[14px] font-normal text-white/60">/ mes</span></p>
+                @if (sub.status === 'ACTIVE') {
+                  <p class="mt-2 text-[13px] font-medium text-white/80">Renovación automática activada</p>
+                } @else {
+                  <p class="mt-2 text-[13px] font-medium text-amber-300">Estado: {{ sub.status }}</p>
+                }
+              </div>
+              <button (click)="scrollToPlans()" class="shrink-0 rounded border border-white/25 px-5 py-2.5 text-[13px] font-bold text-white transition-colors hover:border-white/50 hover:bg-white/5">
+                Gestionar plan
+              </button>
+            </div>
+          </div>
+          <div class="mt-2 flex items-center justify-between py-4">
+            <p class="text-[14px] font-bold text-[#1C1917]">Historial de facturas</p>
+            <button (click)="downloadReceipt()" class="text-[13px] font-bold text-[#B85C32] transition-colors hover:text-[#D97745]">Descargar comprobante <span aria-hidden="true">→</span></button>
+          </div>
+          @if (sub.status === 'ACTIVE') {
+            <button (click)="cancel()" [disabled]="subscribing()" class="text-[12px] font-semibold text-stone-400 transition-colors hover:text-red-600 disabled:opacity-50">
+              {{ subscribing() ? 'Cancelando…' : 'Cancelar suscripción' }}
+            </button>
+          }
+        }
 
   @if (loading()) {
     <div class="flex items-center justify-center py-16">
       <div class="w-10 h-10 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
     </div>
   } @else {
-    <div class="mt-8">
+    <div id="planes" class="mt-8 scroll-mt-6">
       @for (plan of plans(); track plan.id) {
         <div class="bg-white rounded-3xl border-2 border-primary-500/40 p-8 shadow-xl shadow-stone-200/50 relative overflow-hidden group">
           <!-- Top Badge -->

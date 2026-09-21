@@ -35,9 +35,8 @@ export class PublicMenuComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly activeCategory = signal<number | null>(null);
 
-  // Search & Filter signals
+  // Search signals
   readonly searchQuery = signal('');
-  readonly activeFilterTag = signal<string>('ALL');
 
   // Dish detail modal
   readonly selectedDish = signal<DishModalItem | null>(null);
@@ -63,6 +62,13 @@ export class PublicMenuComponent {
    *  tipo de pedido quedan bloqueados para el cliente. */
   readonly tableLocked = signal(false);
 
+  /** WhatsApp del restaurante, si existe (sin números de prueba). */
+  readonly contactPhone = computed(() => {
+    const r = this.menu()?.restaurant;
+    const phone = r?.whatsapp || r?.phone || '';
+    return phone.replace(/\D/g, '');
+  });
+
   readonly orderForm: FormGroup = this.fb.group({
     customerName: ['', [Validators.required, Validators.maxLength(120)]],
     customerPhone: ['', [Validators.maxLength(30)]],
@@ -87,31 +93,22 @@ export class PublicMenuComponent {
     () => this.menu()?.restaurant.estimatedPrepTime || '20-30 min'
   );
 
-  // Filtered categories & products based on search & tags
+  // Filtered categories & products based on search
   readonly filteredCategories = computed(() => {
     const currentMenu = this.menu();
     if (!currentMenu) return [];
 
     const query = this.searchQuery().trim().toLowerCase();
-    const tag = this.activeFilterTag();
 
     return currentMenu.categories
       .map((category) => {
         const filteredProducts = category.products.filter((product) => {
-          const matchQuery =
+          if (!product) return false;
+          return (
             !query ||
-            product.name.toLowerCase().includes(query) ||
-            (product.description && product.description.toLowerCase().includes(query));
-
-          if (!matchQuery) return false;
-
-          if (tag === 'ALL') return true;
-          if (tag === 'POPULAR') return product.price > 28000;
-          if (tag === 'VEGAN') return product.name.toLowerCase().includes('vegan') || category.name.toLowerCase().includes('ensalada');
-          if (tag === 'DRINKS') return category.name.toLowerCase().includes('bebida') || category.name.toLowerCase().includes('cóctel');
-          if (tag === 'MEAT') return category.name.toLowerCase().includes('brasa') || category.name.toLowerCase().includes('corte') || category.name.toLowerCase().includes('hamburguesa');
-
-          return true;
+            (product.name ?? '').toLowerCase().includes(query) ||
+            (product.description && product.description.toLowerCase().includes(query))
+          );
         });
 
         return {
@@ -178,13 +175,8 @@ export class PublicMenuComponent {
     document.getElementById('menu-search')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  setFilterTag(tag: string): void {
-    this.activeFilterTag.set(tag);
-  }
-
   clearSearch(): void {
     this.searchQuery.set('');
-    this.activeFilterTag.set('ALL');
   }
 
   // Dish modal
@@ -324,7 +316,12 @@ export class PublicMenuComponent {
       })),
     };
 
-    const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || 'negobistro-gourmet';
+    const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || '';
+    if (!targetSlug) {
+      this.submittingOrder.set(false);
+      this.orderErrorMessage.set('No se pudo identificar el restaurante. Recarga la página.');
+      return;
+    }
 
     this.orderService.createPublicOrder(targetSlug, payload).subscribe({
       next: (order) => {
@@ -341,9 +338,10 @@ export class PublicMenuComponent {
   }
 
   sendOrderByWhatsApp(): void {
-    if (this.isClosed()) return;
+    if (this.isClosed() || this.cart().length === 0) return;
     const restaurant = this.menu()?.restaurant;
-    const phone = restaurant?.whatsapp || restaurant?.phone || '573009876543';
+    const phone = restaurant?.whatsapp || restaurant?.phone || '';
+    if (!phone) return;
     const formVal = this.orderForm.value;
     const name = formVal.customerName || 'Cliente';
     const typeLabel = this.orderType() === 'DINE_IN' ? `📍 Mesa: ${formVal.tableNumber}` : this.orderType() === 'DELIVERY' ? `🛵 Domicilio: ${formVal.deliveryAddress || 'Dirección no indicada'}` : '🛍️ Para Llevar';
@@ -397,10 +395,13 @@ export class PublicMenuComponent {
         notes: item.notes,
       })),
     };
-    const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || 'negobistro-gourmet';
+    const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || '';
+    if (!targetSlug) return;
     this.orderService.createPublicOrder(targetSlug, payload).subscribe({
       next: (savedOrder) => {
         this.orderSuccess.set(savedOrder);
+        this.cart.set([]);
+        this.showCartModal.set(false);
       },
     });
   }
@@ -419,7 +420,7 @@ export class PublicMenuComponent {
       phone: r?.phone,
       whatsapp: r?.whatsapp,
       address: r?.address,
-      taxId: r?.taxId || 'NIT: 901.458.912-4',
+      taxId: r?.taxId ?? null,
       estimatedPrepTime: this.estimatedPrepTime(),
     };
   }
