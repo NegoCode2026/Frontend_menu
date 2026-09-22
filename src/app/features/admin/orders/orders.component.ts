@@ -67,9 +67,10 @@ export class OrdersComponent implements OnInit, OnDestroy {
       const matchNum = (order.orderNumber ?? '').toLowerCase().includes(query);
       const matchName = (order.customerName ?? '').toLowerCase().includes(query);
       const matchTable = (order.tableNumber || '').toLowerCase().includes(query);
+      const matchAddress = (order.deliveryAddress || '').toLowerCase().includes(query);
       const matchPhone = (order.customerPhone || '').toLowerCase().includes(query);
 
-      return matchNum || matchName || matchTable || matchPhone;
+      return matchNum || matchName || matchTable || matchAddress || matchPhone;
     });
   });
 
@@ -85,6 +86,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   readonly formCustomerName = signal('');
   readonly formCustomerPhone = signal('');
   readonly formTable = signal('');
+  readonly formDeliveryAddress = signal('');
   readonly formOrderType = signal<OrderType>('DINE_IN');
   readonly formNotes = signal('');
   readonly formItems = signal<CreateOrderItemRequest[]>([]);
@@ -105,6 +107,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formCustomerName.set('');
     this.formCustomerPhone.set('');
     this.formTable.set('');
+    this.formDeliveryAddress.set('');
     this.formOrderType.set('DINE_IN');
     this.formNotes.set('');
     this.formItems.set([]);
@@ -118,6 +121,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formCustomerName.set(order.customerName);
     this.formCustomerPhone.set(order.customerPhone ?? '');
     this.formTable.set(order.tableNumber ?? '');
+    this.formDeliveryAddress.set(order.deliveryAddress ?? '');
     this.formOrderType.set(order.orderType ?? 'DINE_IN');
     this.formNotes.set(order.notes ?? '');
     this.formItems.set(
@@ -175,6 +179,14 @@ export class OrdersComponent implements OnInit, OnDestroy {
     return ORDER_TYPE_LABELS[type ?? 'DINE_IN'] ?? 'Mesa';
   }
 
+  /** Destino mostrado en tarjetas y ticket: la dirección para domicilio, la mesa en el resto. */
+  destinationLabel(order: Order): string {
+    if (order?.orderType === 'DELIVERY') {
+      return order.deliveryAddress || order.tableNumber || 'Dirección no indicada';
+    }
+    return order.tableNumber || 'Mesa';
+  }
+
   statusLabel(status: OrderStatus): string {
     return ORDER_STATUS_LABELS[status] ?? status;
   }
@@ -219,6 +231,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
       this.manualSaving.set(false);
       this.manualError.set(typeof err === 'object' && err && 'message' in err ? String((err as { message?: unknown }).message) : 'No se pudo guardar el pedido.');
     };
+    const deliveryAddress = this.formDeliveryAddress().trim() || undefined;
 
     if (editing != null && editing.id != null) {
       const payload: UpdateOrderRequest = {
@@ -229,15 +242,15 @@ export class OrdersComponent implements OnInit, OnDestroy {
         items,
       };
       if (this.formTable().trim()) payload.tableNumber = this.formTable().trim();
+      if (deliveryAddress) payload.deliveryAddress = deliveryAddress;
       this.orderService.updateMine(editing.id, payload).subscribe({ next: finish, error: fail });
     } else {
       const table = this.formTable().trim();
       this.orderService
         .createMine({
           ...createBase,
-          tableNumber:
-            table ||
-            (this.formOrderType() === 'DELIVERY' ? 'Domicilio' : undefined),
+          tableNumber: table || undefined,
+          deliveryAddress,
         })
         .subscribe({ next: finish, error: fail });
     }
@@ -566,8 +579,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
     if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
       cleanPhone = '57' + cleanPhone;
     }
+    const destination = this.destinationLabel(order);
+    const destinationLine =
+      order.orderType === 'DELIVERY'
+        ? `📍 *Dirección de entrega:* ${destination}`
+        : `📍 *Destino/Mesa:* ${destination}`;
 
-    const message = `¡Hola *${order.customerName}*! 👋\n\n🎉 *¡Tu pedido ${order.orderNumber} ya está listo!* 🍽️\n📍 *Destino/Mesa:* ${order.tableNumber || 'Mesa'}\n\nPuedes pasar a retirarlo o ya va en camino.\n¡Gracias por tu compra! 😊`;
+    const message = `¡Hola *${order.customerName}*! 👋\n\n🎉 *¡Tu pedido ${order.orderNumber} ya está listo!* 🍽️\n${destinationLine}\n\nPuedes pasar a retirarlo o ya va en camino.\n¡Gracias por tu compra! 😊`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     if (openDirectly) {

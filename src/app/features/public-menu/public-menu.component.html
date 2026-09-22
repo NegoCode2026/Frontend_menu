@@ -849,7 +849,7 @@
               <div>
                 <span class="text-[10px] uppercase font-bold text-stone-400 block">Ubicación / Tipo:</span>
                 <span class="font-extrabold text-stone-900">
-                  {{ invoiceOrder()!.orderType === 'DELIVERY' ? '🛵 Domicilio' : invoiceOrder()!.orderType === 'TAKEAWAY' ? '🛍️ Llevar' : '🍽️ ' + (invoiceOrder()!.tableNumber || 'En Mesa') }}
+                  {{ invoiceOrder()!.orderType === 'DELIVERY' ? '🛵 Domicilio' + (invoiceOrder()!.deliveryAddress ? ' — ' + invoiceOrder()!.deliveryAddress : '') : invoiceOrder()!.orderType === 'TAKEAWAY' ? '🛍️ Llevar' : '🍽️ ' + (invoiceOrder()!.tableNumber || 'En Mesa') }}
                 </span>
               </div>
               <div>

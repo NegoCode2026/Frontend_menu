@@ -86,6 +86,7 @@ export class OrderService {
           customerName: payload.customerName,
           customerPhone: payload.customerPhone ?? null,
           tableNumber: payload.tableNumber ?? (payload.orderType === 'DELIVERY' ? 'Domicilio' : 'Mesa'),
+          deliveryAddress: payload.deliveryAddress ?? null,
           orderType: payload.orderType ?? 'DINE_IN',
           notes: payload.notes ?? null,
           status: 'PENDING',

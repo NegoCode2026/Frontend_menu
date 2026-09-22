@@ -310,6 +310,7 @@ export interface Order {
   customerName: string;
   customerPhone: string | null;
   tableNumber: string | null;
+  deliveryAddress?: string | null;
   orderType: OrderType;
   notes: string | null;
   status: OrderStatus;
@@ -339,6 +340,7 @@ export interface UpdateOrderRequest {
   customerName?: string;
   customerPhone?: string;
   tableNumber?: string;
+  deliveryAddress?: string;
   notes?: string;
   orderType?: OrderType;
   items?: CreateOrderItemRequest[];
