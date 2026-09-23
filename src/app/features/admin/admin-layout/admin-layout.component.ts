@@ -63,6 +63,7 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     { path: '/admin/orders', label: 'Pedidos', icon: 'M5 3h14v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L7.3 19.5 5 21V3zM9 8h6M9 12h6', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
     { path: '/admin/tables', label: 'Mesas', icon: 'M3 6h18v13H3zM3 10h18M9 10v9M15 10v9', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
     { path: '/admin/profits', label: 'Ventas', icon: 'M4 20V10M10 20V4M16 20v-8M2 20h20', roles: ['RESTAURANT_ADMIN'] },
+    { path: '/admin/cash', label: 'Caja', icon: 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2', roles: ['RESTAURANT_ADMIN', 'CASHIER'] },
     { path: '/admin/inventory', label: 'Inventario', icon: 'M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2zM16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2', roles: ['RESTAURANT_ADMIN'] },
     { path: '/admin/products', label: 'Menú', icon: 'M3 17a9 9 0 0 1 18 0H3zM2 21h20M12 8V5M10 5h4', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER'] },
     { path: '/admin/qr', label: 'Código QR', icon: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h4v4h-4zM18 18h3v3h-3z', roles: ['RESTAURANT_ADMIN'] },

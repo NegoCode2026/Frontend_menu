@@ -294,6 +294,7 @@ export interface AdminUser {
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'DELIVERED' | 'CANCELLED';
 export type OrderType = 'DINE_IN' | 'DELIVERY' | 'TAKEAWAY';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER';
 
 export interface OrderItem {
   id: number;
@@ -325,6 +326,8 @@ export interface Order {
   notes: string | null;
   status: OrderStatus;
   totalAmount: number;
+  paymentMethod?: PaymentMethod | null;
+  paidAt?: string | null;
   estimatedPrepTime?: string | null;
   readyAt?: string | null;
   deliveredAt?: string | null;

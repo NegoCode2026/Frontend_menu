@@ -6,7 +6,7 @@ import { RealtimeService } from '../../../core/services/realtime.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { ProductService } from '../../../core/services/product.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { CreateOrderItemRequest, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, Order, OrderStatus, OrderType, Product, UpdateOrderRequest } from '../../../core/models/models';
+import { CreateOrderItemRequest, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, Order, OrderStatus, OrderType, PaymentMethod, Product, UpdateOrderRequest } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
@@ -611,6 +611,33 @@ export class OrdersComponent implements OnInit, OnDestroy {
         this.fetchOrders();
       },
     });
+  }
+
+  /** Cobra un pedido entregado. Solo cajero/admin (el guard de ruta lo limita). */
+  payOrder(order: Order, method: PaymentMethod): void {
+    if (order.id == null) return;
+    this.orderService.payOrder(order.id, method).subscribe({
+      next: (updated) => {
+        this.orders.update((list) => list.map((o) => (o && o.id === order.id ? updated : o)));
+        if (this.selectedTicketOrder()?.id === order.id) {
+          this.selectedTicketOrder.set(updated);
+        }
+      },
+      error: (err) => console.error('Error cobrando pedido:', err),
+    });
+  }
+
+  paymentLabel(method: PaymentMethod | null | undefined): string {
+    switch (method) {
+      case 'CASH':
+        return '💵 Efectivo';
+      case 'CARD':
+        return '💳 Tarjeta';
+      case 'TRANSFER':
+        return '📲 Transferencia';
+      default:
+        return 'Sin cobrar';
+    }
   }
 
   sendWhatsAppReadyNotification(order: Order, openDirectly = false): void {

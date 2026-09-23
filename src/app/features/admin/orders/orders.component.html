@@ -149,6 +149,15 @@
                     <button (click)="updateStatus(order, 'DELIVERED')" class="rounded-full bg-emerald-600 px-4 py-2 text-xs font-extrabold text-white active:scale-95 transition">Servir</button>
                   }
                 }
+                @if (order.status === 'DELIVERED') {
+                  @if (order.paymentMethod) {
+                    <span class="rounded-full bg-stone-900 px-3 py-2 text-xs font-extrabold text-white">{{ paymentLabel(order.paymentMethod) }}</span>
+                  } @else {
+                    <button (click)="payOrder(order, 'CASH')" class="rounded-full bg-amber-500 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">💵</button>
+                    <button (click)="payOrder(order, 'CARD')" class="rounded-full bg-sky-600 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">💳</button>
+                    <button (click)="payOrder(order, 'TRANSFER')" class="rounded-full bg-violet-600 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">📲</button>
+                  }
+                }
               </div>
             </div>
           </article>
@@ -528,6 +537,13 @@
                 <div class="pt-2 flex items-center justify-between border-t border-stone-100 text-xs">
                   <span class="font-black text-stone-900">{{ formatCurrency(order.totalAmount) }}</span>
                   <div class="flex items-center gap-2">
+                    @if (order.paymentMethod) {
+                      <span class="px-2.5 py-1 rounded-full bg-stone-900 text-white font-bold text-[11px]">{{ paymentLabel(order.paymentMethod) }}</span>
+                    } @else {
+                      <button (click)="payOrder(order, 'CASH')" class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 font-bold text-[11px]" title="Cobrar en efectivo">💵</button>
+                      <button (click)="payOrder(order, 'CARD')" class="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 hover:bg-sky-200 font-bold text-[11px]" title="Cobrar con tarjeta">💳</button>
+                      <button (click)="payOrder(order, 'TRANSFER')" class="px-2.5 py-1 rounded-full bg-violet-100 text-violet-800 hover:bg-violet-200 font-bold text-[11px]" title="Cobrar por transferencia">📲</button>
+                    }
                     @if (order.customerPhone) {
                       <button
                         (click)="sendWhatsAppReadyNotification(order)"

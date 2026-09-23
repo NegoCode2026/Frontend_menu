@@ -35,7 +35,13 @@ export const adminRoutes: Routes = [
       {
         path: 'profits',
         canActivate: [roleGuard('RESTAURANT_ADMIN')],
-        loadComponent: () => import('./profits/profits.component').then((m) => m.ProfitsComponent),
+        loadComponent: () =>
+          import('./profits/profits.component').then((m) => m.ProfitsComponent),
+      },
+      {
+        path: 'cash',
+        canActivate: [roleGuard('RESTAURANT_ADMIN', 'CASHIER')],
+        loadComponent: () => import('./cash/cash.component').then((m) => m.CashComponent),
       },
       {
         path: 'tables',

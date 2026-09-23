@@ -4,7 +4,7 @@ import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { TenantBackendService } from './tenant-backend.service';
 import { environment } from '../../../environments/environment';
-import { CreateOrderRequest, Order, OrderStats, OrderStatus, UpdateOrderRequest } from '../models/models';
+import { CreateOrderRequest, Order, OrderStats, OrderStatus, PaymentMethod, UpdateOrderRequest } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
@@ -217,7 +217,7 @@ export class OrderService {
     );
   }
 
-  updateStatusMine(id: number, status: OrderStatus): Observable<Order> {
+    updateStatusMine(id: number, status: OrderStatus): Observable<Order> {
     return this.api.patch<Order>(`/orders/${id}/status`, { status }).pipe(
       catchError((err) => {
         if (!this.demoMode) {
@@ -238,6 +238,11 @@ export class OrderService {
         throw new Error('Order not found');
       })
     );
+  }
+
+  /** Cobra un pedido entregado (método de pago). */
+  payOrder(id: number, paymentMethod: PaymentMethod): Observable<Order> {
+    return this.api.post<Order>(`/orders/${id}/pay`, { paymentMethod });
   }
 
   simulateNewOrder(): Order {
