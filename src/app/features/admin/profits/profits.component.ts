@@ -1,9 +1,16 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportsService, ProfitPeriod } from '../../../core/services/reports.service';
+import { OrderService } from '../../../core/services/order.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfitsResponse } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
+
+interface TopProduct {
+  name: string;
+  qty: number;
+  revenue: number;
+}
 
 @Component({
   selector: 'app-profits',
@@ -12,6 +19,7 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 })
 export class ProfitsComponent implements OnInit {
   private readonly reports = inject(ReportsService);
+  private readonly ordersApi = inject(OrderService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 
@@ -19,6 +27,7 @@ export class ProfitsComponent implements OnInit {
   readonly date = signal<string>(new Date().toISOString().slice(0, 10));
   readonly data = signal<ProfitsResponse | null>(null);
   readonly loading = signal(true);
+  readonly soldItems = signal(0);
 
   readonly marginPct = computed(() => {
     const d = this.data();
@@ -26,7 +35,14 @@ export class ProfitsComponent implements OnInit {
     return Math.round((d.profit / d.revenue) * 100);
   });
 
+  readonly ticketAvg = computed(() => {
+    const d = this.data();
+    return d && d.orders > 0 ? d.revenue / d.orders : 0;
+  });
+
   readonly maxRevenue = computed(() => Math.max(1, ...(this.data()?.days.map((x) => x.revenue) ?? [1])));
+
+  readonly topProducts = signal<TopProduct[]>([]);
 
   ngOnInit(): void {
     this.reload();
@@ -45,6 +61,26 @@ export class ProfitsComponent implements OnInit {
         this.loading.set(false);
       },
       error: () => this.loading.set(false),
+    });
+    // Ticket extraído del backend; top e ítems se agregan de los pedidos.
+    this.ordersApi.listMine().subscribe({
+      next: (orders) => {
+        const valid = (Array.isArray(orders) ? orders : []).filter((o) => !!o && o.status !== 'CANCELLED');
+        this.soldItems.set(valid.reduce((s, o) => s + (o.items ?? []).reduce((a, i) => a + (i.quantity || 0), 0), 0));
+        const map = new Map<string, { qty: number; revenue: number }>();
+        for (const o of valid) {
+          for (const item of o.items ?? []) {
+            const entry = map.get(item.productName || 'Sin nombre') ?? { qty: 0, revenue: 0 };
+            entry.qty += item.quantity || 0;
+            entry.revenue += item.subtotal ?? (item.unitPrice || 0) * (item.quantity || 0);
+            map.set(item.productName || 'Sin nombre', entry);
+          }
+        }
+        this.topProducts.set(
+          [...map.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.qty - a.qty).slice(0, 5)
+        );
+      },
+      error: () => undefined,
     });
   }
 

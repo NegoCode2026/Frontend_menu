@@ -60,12 +60,8 @@
         <p class="mt-1.5 text-[10px] font-bold text-[#16A34A]">{{ cartaPct() }}% carta lista</p>
       </div>
       <div class="p-4">
-        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Categorías</p>
-        @if (!loading() && categoryCount() === 0) {
-          <a routerLink="/admin/categories" class="mt-1.5 inline-block text-[12px] font-bold text-[#B85C32]">Crea tu primera →</a>
-        } @else {
-          <p class="landing-serif mt-1.5 text-[32px] font-medium leading-none text-[#1C1917]">{{ categoryCount() }}</p>
-        }
+        <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Platos</p>
+        <a routerLink="/admin/products" class="mt-1.5 inline-block text-[12px] font-bold text-[#B85C32]">Gestionar menú →</a>
       </div>
       <div class="border-l border-stone-900/15 p-4">
         <p class="text-[10px] font-medium uppercase tracking-[0.1em] text-stone-500">Plan</p>

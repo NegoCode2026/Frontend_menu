@@ -79,7 +79,7 @@ export class ProductService {
         const newProduct: Product = {
           id: Date.now(),
           restaurantId: 1,
-          categoryId: request.categoryId,
+          categoryId: request.categoryId ?? null,
           name: request.name,
           description: request.description ?? null,
           price: request.price,
@@ -109,7 +109,7 @@ export class ProductService {
         if (idx !== -1) {
           const updated: Product = {
             ...list[idx],
-            categoryId: request.categoryId,
+            categoryId: request.categoryId ?? list[idx].categoryId,
             name: request.name,
             description: request.description ?? null,
             price: request.price,

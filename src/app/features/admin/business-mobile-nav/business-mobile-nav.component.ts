@@ -50,11 +50,11 @@ import { MobileMenuService } from '../../../core/services/mobile-menu.service';
           </a>
         } @else {
           <a
-            routerLink="/admin/categories"
-            aria-label="Categorías"
-            class="flex h-11 w-11 items-center justify-center rounded-full active:scale-90 transition {{ active() === 'categories' ? 'bg-[#ff5c00] text-white' : 'text-[#9a9aa0]' }}"
+            routerLink="/admin/staff"
+            aria-label="Turno"
+            class="flex h-11 w-11 items-center justify-center rounded-full active:scale-90 transition {{ active() === 'staff' ? 'bg-[#ff5c00] text-white' : 'text-[#9a9aa0]' }}"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-[22px] w-[22px]"><circle cx="5" cy="5" r="1.6"/><circle cx="12" cy="5" r="1.6"/><circle cx="19" cy="5" r="1.6"/><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/><circle cx="5" cy="19" r="1.6"/><circle cx="12" cy="19" r="1.6"/><circle cx="19" cy="19" r="1.6"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="h-[22px] w-[22px]"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </a>
         }
         <button
@@ -72,7 +72,7 @@ export class BusinessMobileNavComponent {
   private readonly auth = inject(AuthService);
   private readonly menu = inject(MobileMenuService);
 
-  readonly active = input<'home' | 'orders' | 'products' | 'qr' | 'categories' | 'none'>('none');
+  readonly active = input<'home' | 'orders' | 'products' | 'qr' | 'staff' | 'none'>('none');
 
   readonly isAdmin = computed(() => {
     const raw = this.auth.user()?.role ?? '';

@@ -95,7 +95,7 @@ export class ProductsComponent implements OnInit {
   }
 
   readonly form: FormGroup = this.fb.group({
-    categoryId: [null, Validators.required],
+    categoryId: [null],
     name: ['', [Validators.required, Validators.maxLength(160)]],
     description: [''],
     price: [null, [Validators.required, Validators.min(0)]],
@@ -110,7 +110,6 @@ export class ProductsComponent implements OnInit {
     this.categoryService.list(0, 100).subscribe({
       next: (result) => {
         this.categories.set(result.content);
-        if (result.content.length > 0) this.form.get('categoryId')?.setValue(result.content[0]!.id);
         this.reload();
       },
       error: () => this.loading.set(false),
@@ -149,7 +148,7 @@ export class ProductsComponent implements OnInit {
   startCreate(): void {
     this.editingId.set(-1);
     this.form.reset({
-      categoryId: this.categories()[0]?.id ?? null,
+      categoryId: null,
       name: '',
       description: '',
       price: null,

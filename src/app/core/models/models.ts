@@ -147,7 +147,7 @@ export interface CategoryRequest {
 export interface Product {
   id: number;
   restaurantId: number;
-  categoryId: number;
+  categoryId: number | null;
   name: string;
   description: string | null;
   price: number;
@@ -164,7 +164,7 @@ export interface Product {
 }
 
 export interface ProductRequest {
-  categoryId: number;
+  categoryId?: number | null;
   name: string;
   description?: string | null;
   price: number;
