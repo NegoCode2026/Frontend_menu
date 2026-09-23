@@ -250,7 +250,8 @@ export class ProductsComponent implements OnInit {
     });
   }
 
-  categoryName(categoryId: number): string {
+  categoryName(categoryId: number | null): string {
+    if (categoryId == null) return 'Sin categoría';
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';
   }
 
