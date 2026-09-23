@@ -28,11 +28,6 @@ export const adminRoutes: Routes = [
         loadComponent: () => import('./orders/orders.component').then((m) => m.OrdersComponent),
       },
       {
-        path: 'staff',
-        canActivate: [tenantGuard],
-        loadComponent: () => import('./staff/staff.component').then((m) => m.StaffComponent),
-      },
-      {
         path: 'inventory',
         canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./inventory/inventory.component').then((m) => m.InventoryComponent),

@@ -2,6 +2,7 @@ import { Component, inject, signal, OnInit, computed, OnDestroy } from '@angular
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
+import { RealtimeService } from '../../../core/services/realtime.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { ProductService } from '../../../core/services/product.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -15,11 +16,16 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 })
 export class OrdersComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
-  private readonly restaurantService = inject(RestaurantService);
+  private readonly realtime = inject(RealtimeService);
   private readonly productService = inject(ProductService);
+  private readonly restaurantService = inject(RestaurantService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
+  /** WebSocket staff: true cuando el canal en vivo está conectado. */
+  readonly live = this.realtime.connected;
   private orderSub?: Subscription;
+  private wsSub?: Subscription;
+  private readonly seenIds = new Set<number>();
   private pollingTimer?: ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>;
   private pollCount = 0;
   private pollCountdownTimer?: ReturnType<typeof setInterval>;
@@ -396,12 +402,25 @@ export class OrdersComponent implements OnInit, OnDestroy {
     });
 
     // Polling: starts fast (3s) then slows down (12s) after 60s
+    // (respaldo por si el WebSocket se cae; el canal en vivo avisa al instante)
     this.startPolling();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+
+    // Canal en vivo: el pedido del cliente entra sin esperar el polling
+    try {
+      this.wsSub = this.realtime.connect().subscribe({
+        next: (event) => this.applyLiveOrder(event.order),
+        error: () => undefined,
+      });
+    } catch {
+      // Sin restaurante en sesión: el guard ya redirige al login
+    }
   }
 
   ngOnDestroy(): void {
     this.orderSub?.unsubscribe();
+    this.wsSub?.unsubscribe();
+    this.realtime.disconnect();
     this.stopPolling();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
   }
@@ -412,13 +431,41 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.lastSyncIso = null;
     this.orderService.listMine().subscribe({
       next: (data) => {
-        this.orders.set(Array.isArray(data) ? data : []);
+        const arr = Array.isArray(data) ? data : [];
+        this.orders.set(arr);
+        arr.forEach((o) => {
+          if (o?.id != null) this.seenIds.add(o.id);
+        });
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Evento del canal en vivo: inserta/actualiza y alerta si es pedido nuevo. */
+  private applyLiveOrder(order: Order): void {
+    if (order?.id == null) return;
+    const isNew = !this.seenIds.has(order.id);
+    this.seenIds.add(order.id);
+    this.orders.update((list) => {
+      const idx = list.findIndex((o) => o && o.id === order.id);
+      if (idx !== -1) {
+        const copy = [...list];
+        copy[idx] = order;
+        return copy;
+      }
+      return [order, ...list];
+    });
+    if (isNew && order.status === 'PENDING') {
+      this.alertCount.set(1);
+      this.showAlert.set(true);
+      setTimeout(() => this.showAlert.set(false), 6_000);
+      if (this.soundEnabled()) {
+        this.playKitchenNotificationSound();
+      }
+    }
   }
 
   // --- Polling: detect new orders from other devices & fire alarm ---

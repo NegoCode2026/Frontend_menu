@@ -60,7 +60,6 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
 
   readonly allNavItems = [
     { path: '/admin/dashboard', label: 'Resumen', icon: 'M3 3h7v7H3V3Zm11 0h7v7h-7V3ZM3 14h7v7H3v-7Zm11 0h7v7h-7v-7Z', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
-    { path: '/admin/staff', label: 'Turno en vivo', icon: 'M13 10V3L4 14h7v7l9-11h-7z', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
     { path: '/admin/orders', label: 'Pedidos', icon: 'M5 3h14v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L7.3 19.5 5 21V3zM9 8h6M9 12h6', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
     { path: '/admin/tables', label: 'Mesas', icon: 'M3 6h18v13H3zM3 10h18M9 10v9M15 10v9', roles: ['RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER'] },
     { path: '/admin/profits', label: 'Ventas', icon: 'M4 20V10M10 20V4M16 20v-8M2 20h20', roles: ['RESTAURANT_ADMIN'] },

@@ -50,11 +50,11 @@ import { MobileMenuService } from '../../../core/services/mobile-menu.service';
           </a>
         } @else {
           <a
-            routerLink="/admin/staff"
-            aria-label="Turno"
-            class="flex h-11 w-11 items-center justify-center rounded-full active:scale-90 transition {{ active() === 'staff' ? 'bg-[#ff5c00] text-white' : 'text-[#9a9aa0]' }}"
+            routerLink="/admin/tables"
+            aria-label="Mesas"
+            class="flex h-11 w-11 items-center justify-center rounded-full active:scale-90 transition {{ active() === 'none' ? 'text-[#9a9aa0]' : 'text-[#9a9aa0]' }}"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="h-[22px] w-[22px]"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.7" stroke="currentColor" class="h-[22px] w-[22px]"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6h18v13H3zM3 10h18M9 10v9M15 10v9"/></svg>
           </a>
         }
         <button
@@ -72,7 +72,7 @@ export class BusinessMobileNavComponent {
   private readonly auth = inject(AuthService);
   private readonly menu = inject(MobileMenuService);
 
-  readonly active = input<'home' | 'orders' | 'products' | 'qr' | 'staff' | 'none'>('none');
+  readonly active = input<'home' | 'orders' | 'products' | 'qr' | 'none'>('none');
 
   readonly isAdmin = computed(() => {
     const raw = this.auth.user()?.role ?? '';

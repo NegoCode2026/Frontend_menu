@@ -10,8 +10,9 @@
           <p class="text-[11px] font-medium text-stone-400">Panel to</p>
           <p class="flex items-center gap-1 text-[13px] font-extrabold text-stone-900">
             Mi Negocio
-            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-200">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>En Vivo
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold ring-1"
+              [class]="live() ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'">
+              <span class="h-1.5 w-1.5 rounded-full animate-pulse" [class]="live() ? 'bg-emerald-500' : 'bg-amber-500'"></span>{{ live() ? 'En Vivo' : 'Sincronizando' }}
             </span>
           </p>
         </div>
