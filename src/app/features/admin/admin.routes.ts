@@ -9,7 +9,7 @@ import { roleGuard } from '../../core/guards/role.guard';
  * manda a /admin/super-admin/dashboard. La gestión global vive bajo
  * /admin/super-admin (solo SUPER_ADMIN).
  */
-const tenantGuard = roleGuard('RESTAURANT_ADMIN', 'RESTAURANT_USER');
+const tenantGuard = roleGuard('RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER');
 
 export const adminRoutes: Routes = [
   {
@@ -26,6 +26,21 @@ export const adminRoutes: Routes = [
         path: 'orders',
         canActivate: [tenantGuard],
         loadComponent: () => import('./orders/orders.component').then((m) => m.OrdersComponent),
+      },
+      {
+        path: 'staff',
+        canActivate: [tenantGuard],
+        loadComponent: () => import('./staff/staff.component').then((m) => m.StaffComponent),
+      },
+      {
+        path: 'inventory',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
+        loadComponent: () => import('./inventory/inventory.component').then((m) => m.InventoryComponent),
+      },
+      {
+        path: 'profits',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
+        loadComponent: () => import('./profits/profits.component').then((m) => m.ProfitsComponent),
       },
       {
         path: 'tables',

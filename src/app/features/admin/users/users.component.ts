@@ -2,7 +2,7 @@ import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../../core/services/user.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
-import { User } from '../../../core/models/models';
+import { STAFF_ROLE_LABELS, User } from '../../../core/models/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
@@ -39,7 +39,7 @@ export class UsersComponent implements OnInit {
   roleLabel(role: string | null | undefined): string {
     const raw = role ?? '';
     const clean = raw.startsWith('ROLE_') ? raw.substring(5) : raw;
-    return clean === 'RESTAURANT_ADMIN' || clean === 'SUPER_ADMIN' ? 'Administrador' : 'Equipo';
+    return STAFF_ROLE_LABELS[clean] ?? 'Equipo';
   }
 
   memberSince(isoString: string | null | undefined): string {

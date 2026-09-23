@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable, of, Subject } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { TenantBackendService } from './tenant-backend.service';
 import { CreateOrderRequest, Order, OrderStatus } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
@@ -12,7 +13,10 @@ export class OrderService {
   private newOrderTrigger$ = new Subject<Order>();
   readonly onNewOrder$ = this.newOrderTrigger$.asObservable();
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private tenants: TenantBackendService,
+  ) {}
 
   private getStoredOrders(): Order[] {
     try {
@@ -35,7 +39,11 @@ export class OrderService {
   }
 
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
-    return this.api.post<Order>(`/public/orders/${slug}`, payload).pipe(
+    return this.tenants.ensureLoaded().pipe(
+      switchMap(() => {
+        this.tenants.pinFor(slug);
+        return this.api.post<Order>(`/public/orders/${slug}`, payload);
+      }),
       tap((order) => {
         const stored = this.getStoredOrders();
         this.saveStoredOrders([order, ...stored]);

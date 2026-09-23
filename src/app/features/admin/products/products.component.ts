@@ -100,6 +100,10 @@ export class ProductsComponent implements OnInit {
     description: [''],
     price: [null, [Validators.required, Validators.min(0)]],
     available: [true],
+    costPrice: [null, Validators.min(0)],
+    trackStock: [false],
+    stockQuantity: [null, Validators.min(0)],
+    lowStockThreshold: [5, Validators.min(0)],
   });
 
   ngOnInit(): void {
@@ -150,6 +154,10 @@ export class ProductsComponent implements OnInit {
       description: '',
       price: null,
       available: true,
+      costPrice: null,
+      trackStock: false,
+      stockQuantity: null,
+      lowStockThreshold: 5,
     });
     this.previewUrl.set(null);
   }
@@ -162,6 +170,10 @@ export class ProductsComponent implements OnInit {
       description: product.description ?? '',
       price: product.price,
       available: product.available,
+      costPrice: product.costPrice ?? null,
+      trackStock: product.trackStock ?? false,
+      stockQuantity: product.stockQuantity ?? null,
+      lowStockThreshold: product.lowStockThreshold ?? 5,
     });
     this.previewUrl.set(product.imageUrl);
   }

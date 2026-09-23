@@ -1,0 +1,116 @@
+<div class="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <p class="text-xs font-extrabold uppercase tracking-widest text-stone-400">Inventario</p>
+      <h1 class="landing-serif mt-1 text-[30px] font-medium text-[#1C1917]">Existencias y kardex</h1>
+    </div>
+    <button (click)="reload()" class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 active:scale-[0.98]">
+      Recargar
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+  }
+
+  @if (lowStock().length > 0) {
+    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+      <p class="text-sm font-extrabold text-amber-800">⚠️ {{ lowStock().length }} producto(s) con stock bajo o agotado</p>
+      <p class="mt-1 text-[13px] text-amber-700">{{ lowStock().map(p => p.name).join(' · ') }}</p>
+    </div>
+  }
+
+  <div class="mt-6 flex flex-wrap items-center gap-3">
+    <input
+      type="text"
+      placeholder="Buscar producto…"
+      [ngModel]="searchQuery()"
+      (ngModelChange)="searchQuery.set($event)"
+      class="w-full max-w-xs rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm focus:outline-none input-glow"
+    />
+    <label class="flex items-center gap-2 text-sm font-semibold text-stone-600">
+      <input type="checkbox" [ngModel]="onlyTracked()" (ngModelChange)="onlyTracked.set($event)" class="h-4 w-4 accent-[#ff5c00]" />
+      Solo con control de stock
+    </label>
+  </div>
+
+  @if (loading()) {
+    <div class="mt-6 space-y-0 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
+      @for (i of [1,2,3,4]; track $index) {
+        <div class="flex animate-pulse items-center gap-4 border-b border-stone-100 px-6 py-4 last:border-0">
+          <div class="h-10 w-10 rounded-full bg-stone-100"></div>
+          <div class="h-4 w-40 rounded bg-stone-100"></div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="mt-4 overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
+      @for (p of trackedProducts(); track p.id) {
+        <div class="flex flex-wrap items-center gap-3 border-b border-stone-100 px-4 py-3.5 last:border-0 sm:px-6">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-[15px] font-extrabold text-[#1C1917]">{{ p.name }}</p>
+            <p class="text-xs text-stone-500">
+              {{ formatCurrency(p.price) }} · costo {{ formatCurrency(p.costPrice) }} · margen {{ margin(p) }}
+              @if (!p.trackStock) {
+                <span class="ml-1 rounded-full bg-stone-100 px-2 py-0.5 font-bold text-stone-500">sin control</span>
+              }
+            </p>
+          </div>
+          @if (p.trackStock) {
+            <span class="rounded-full px-3 py-1 text-xs font-extrabold"
+              [class]="p.lowStock ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'">
+              {{ p.stockQuantity }} disp. / avisa en {{ p.lowStockThreshold }}
+            </span>
+            <button (click)="openAdjust(p)" class="rounded-full bg-stone-900 px-4 py-2 text-xs font-extrabold text-white active:scale-95">Ajustar</button>
+          } @else {
+            <span class="text-xs font-semibold text-stone-400">Activa el control en Menú → editar</span>
+          }
+        </div>
+      } @empty {
+        <p class="px-6 py-10 text-center text-sm text-stone-500">Sin productos con ese filtro.</p>
+      }
+    </div>
+  }
+
+  @if (adjustId() !== null) {
+    <div class="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-4 sm:items-center" (click)="closeAdjust()">
+      <div class="w-full max-w-sm rounded-3xl bg-white p-6" (click)="$event.stopPropagation()">
+        <h2 class="landing-serif text-[22px] font-medium text-[#1C1917]">Ajustar existencias</h2>
+        <p class="mt-1 text-sm text-stone-500">Escribe la cantidad NUEVA (no lo que sumas).</p>
+        <input type="number" min="0" step="1" [ngModel]="adjustQty()" (ngModelChange)="adjustQty.set($event)"
+          class="mt-4 w-full rounded-xl border border-stone-200 px-4 py-3 text-lg font-extrabold focus:outline-none input-glow" />
+        <select [ngModel]="adjustReason()" (ngModelChange)="adjustReason.set($event)"
+          class="mt-3 w-full rounded-xl border border-stone-200 bg-white px-4 py-3 text-sm">
+          <option value="RESTOCK">📦 Reposición</option>
+          <option value="ADJUST">✏️ Ajuste / conteo / merma</option>
+        </select>
+        <div class="mt-4 flex gap-3">
+          <button (click)="submitAdjust()" [disabled]="saving()" class="landing-btn-dark flex-1 disabled:opacity-50">
+            {{ saving() ? 'Guardando…' : 'Guardar' }}
+          </button>
+          <button (click)="closeAdjust()" class="rounded-full border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <h2 class="landing-serif mt-10 text-[22px] font-medium text-[#1C1917]">Últimos movimientos</h2>
+  <div class="mt-3 overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
+    @for (m of movements(); track m.id) {
+      <div class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 last:border-0 sm:px-6">
+        <span class="text-xs font-extrabold {{ m.quantity < 0 ? 'text-red-600' : 'text-emerald-600' }}">
+          {{ m.quantity > 0 ? '+' : '' }}{{ m.quantity }}
+        </span>
+        <span class="text-[13px] font-semibold text-stone-600">{{ reasonLabel(m.reason) }}</span>
+        @if (m.orderId) {
+          <span class="text-xs text-stone-400">pedido #{{ m.orderId }}</span>
+        }
+        <span class="ml-auto text-xs text-stone-400">{{ formatDate(m.createdAt) }}</span>
+      </div>
+    } @empty {
+      <p class="px-6 py-8 text-center text-sm text-stone-500">Aún no hay movimientos.</p>
+    }
+  </div>
+</div>
+
+<app-business-mobile-nav active="none"></app-business-mobile-nav>

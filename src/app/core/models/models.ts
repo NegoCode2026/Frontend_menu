@@ -154,6 +154,11 @@ export interface Product {
   imageUrl: string | null;
   available: boolean;
   position: number;
+  costPrice: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  trackStock: boolean;
+  lowStock: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -166,6 +171,10 @@ export interface ProductRequest {
   imageUrl?: string | null;
   available?: boolean | null;
   position?: number | null;
+  costPrice?: number | null;
+  stockQuantity?: number | null;
+  lowStockThreshold?: number | null;
+  trackStock?: boolean | null;
 }
 
 export interface PublicMenu {
@@ -356,3 +365,57 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string
   DELIVERED: { bg: 'bg-stone-100', text: 'text-stone-700', border: 'border-stone-200' },
   CANCELLED: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
 };
+
+/** Roles operativos del restaurante (además de RESTAURANT_ADMIN/USER). */
+export type StaffRole = 'WAITER' | 'CASHIER';
+
+export const STAFF_ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  RESTAURANT_ADMIN: 'Administrador',
+  RESTAURANT_USER: 'Equipo',
+  WAITER: 'Mesero',
+  CASHIER: 'Cajero',
+};
+
+export type MovementReason = 'ORDER' | 'CANCEL_RESTORE' | 'RESTOCK' | 'ADJUST';
+
+export interface StockMovement {
+  id: number;
+  productId: number;
+  quantity: number;
+  reason: MovementReason;
+  orderId: number | null;
+  createdAt: string;
+}
+
+export interface AdjustStockRequest {
+  productId: number;
+  quantity: number;
+  reason?: MovementReason | null;
+}
+
+export interface DailyProfit {
+  date: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  orders: number;
+}
+
+export interface ProfitsResponse {
+  period: string;
+  from: string;
+  to: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  orders: number;
+  days: DailyProfit[];
+}
+
+/** Evento WebSocket del staff (/topic/r/{rid}/orders). */
+export interface OrderEvent {
+  type: 'CREATED' | 'STATUS_CHANGED';
+  restaurantId: number;
+  order: Order;
+}

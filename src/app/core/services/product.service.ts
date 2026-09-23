@@ -29,6 +29,11 @@ export class ProductService {
           imageUrl: prod.imageUrl,
           available: prod.available,
           position: 0,
+          costPrice: 0,
+          stockQuantity: 0,
+          lowStockThreshold: 5,
+          trackStock: false,
+          lowStock: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -81,6 +86,11 @@ export class ProductService {
           imageUrl: request.imageUrl ?? null,
           available: request.available ?? true,
           position: request.position ?? 0,
+          costPrice: request.costPrice ?? 0,
+          stockQuantity: request.stockQuantity ?? 0,
+          lowStockThreshold: request.lowStockThreshold ?? 5,
+          trackStock: request.trackStock ?? false,
+          lowStock: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -106,6 +116,10 @@ export class ProductService {
             imageUrl: request.imageUrl ?? null,
             available: request.available ?? list[idx].available,
             position: request.position ?? list[idx].position,
+            costPrice: request.costPrice ?? list[idx].costPrice,
+            stockQuantity: request.stockQuantity ?? list[idx].stockQuantity,
+            lowStockThreshold: request.lowStockThreshold ?? list[idx].lowStockThreshold,
+            trackStock: request.trackStock ?? list[idx].trackStock,
             updatedAt: new Date().toISOString(),
           };
           list[idx] = updated;
