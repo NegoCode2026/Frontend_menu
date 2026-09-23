@@ -307,6 +307,7 @@ export interface Order {
   id: number;
   restaurantId: number;
   orderNumber: string;
+  trackingCode?: string | null;
   customerName: string;
   customerPhone: string | null;
   tableNumber: string | null;

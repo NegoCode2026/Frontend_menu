@@ -7,6 +7,9 @@ import { CreateOrderRequest, Order, OrderStats, OrderStatus, UpdateOrderRequest 
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
+const TRACKED_ORDERS_KEY = 'tavita_tracked_orders';
+
+type TrackedOrdersMap = { [slug: string]: Order[] };
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -40,6 +43,56 @@ export class OrderService {
     } catch {
       // Ignore localStorage write errors
     }
+  }
+
+  /** Guarda el pedido colocado en ESTA sesión/navegador para poder rastrearlo
+   *  desde el menú público sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
+  saveTrackedOrder(slug: string, order: Order): void {
+    try {
+      const map = this.readTracked();
+      map[slug] = [order, ...(map[slug] ?? [])];
+      const seen = new Set<number>();
+      map[slug] = map[slug]
+        .filter((o) => (o?.id != null && !seen.has(o.id) ? (seen.add(o.id), true) : false))
+        .slice(0, 5);
+      localStorage.setItem(TRACKED_ORDERS_KEY, JSON.stringify(map));
+    } catch {
+      // Ignore localStorage write errors
+    }
+  }
+
+  listTrackedOrders(slug: string): Order[] {
+    try {
+      return this.readTracked()[slug] ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  private readTracked(): TrackedOrdersMap {
+    try {
+      const raw = localStorage.getItem(TRACKED_ORDERS_KEY);
+      return raw ? (JSON.parse(raw) as TrackedOrdersMap) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /** Consulta en tiempo real el estado de un pedido por su código de seguimiento (sin autenticación). */
+  trackOrder(trackingCode: string): Observable<Order> {
+    return this.api.get<Order>(`/public/orders/track/${encodeURIComponent(trackingCode)}`).pipe(
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
+        const map = this.readTracked();
+        for (const slug of Object.keys(map)) {
+          const found = map[slug].find((o) => o.trackingCode === trackingCode);
+          if (found) return of(found);
+        }
+        return throwError(() => err);
+      })
+    );
   }
 
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
@@ -83,6 +136,7 @@ export class OrderService {
           id: Date.now(),
           restaurantId: 1,
           orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+          trackingCode: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `demo-${Date.now()}`,
           customerName: payload.customerName,
           customerPhone: payload.customerPhone ?? null,
           tableNumber: payload.tableNumber ?? (payload.orderType === 'DELIVERY' ? 'Domicilio' : 'Mesa'),

@@ -713,6 +713,21 @@
       </div>
     }
 
+    <!-- Floating tracked-order badge: entry point to the order status view -->
+    @if (trackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
+      <button
+        type="button"
+        (click)="openTracking()"
+        class="no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-full bg-stone-900 text-white pl-4 pr-1 py-1 shadow-2xl ring-1 ring-white/10 anim-fade-in-up"
+      >
+        <span class="w-2 h-2 rounded-full animate-pulse" [class]="isOrderFinal(trackedOrders()[0]!.status) ? 'bg-stone-500' : 'bg-amber-400'"></span>
+        <span class="text-xs font-extrabold whitespace-nowrap">
+          {{ trackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(trackedOrders()[0]!.status) }}
+        </span>
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-sm">➜</span>
+      </button>
+    }
+
     <!-- Order Success & Live Tracking Modal -->
     @if (orderSuccess()) {
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/75 backdrop-blur-sm anim-fade-in-scale">
@@ -781,10 +796,108 @@
             </div>
 
             <button
+              type="button"
+              (click)="openTracking()"
+              class="w-full py-3 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs transition-colors flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span>📦 Ver el estado de mi pedido</span>
+            </button>
+
+            <button
               (click)="closeSuccessModal()"
               class="w-full py-3 rounded-2xl bg-stone-900 text-white font-extrabold text-xs hover:bg-stone-800 transition-colors shadow-sm"
             >
               Volver al Menú
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Order Tracking Modal (estado del pedido de esta sesión) -->
+    @if (trackingOpen() && trackingOrder()) {
+      <div class="fixed inset-0 z-50 flex overflow-y-auto p-4 bg-stone-950/75 backdrop-blur-sm anim-fade-in">
+        <div class="m-auto bg-white rounded-3xl shadow-2xl border border-stone-100 max-w-md w-full overflow-hidden anim-fade-in-up">
+          <div class="p-4 bg-stone-900 text-white flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-lg">📦</span>
+              <span class="font-extrabold text-sm">Estado de mi pedido</span>
+            </div>
+            <button (click)="closeTracking()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-sm">✕</button>
+          </div>
+
+          <div class="p-5 space-y-4 overflow-y-auto max-h-[85vh]">
+            @if (trackedOrders().length > 1) {
+              <div class="flex gap-1.5 overflow-x-auto pb-1">
+                @for (t of trackedOrders(); track t.id) {
+                  <button type="button" (click)="selectTrackedOrder(t)" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-extrabold border transition-colors"
+                    [class]="trackingOrder()!.id === t.id ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200'">
+                    {{ t.orderNumber }}
+                  </button>
+                }
+              </div>
+            }
+
+            <div class="bg-stone-50 border border-stone-100 rounded-2xl p-4 text-center">
+              <span class="text-[11px] font-bold text-stone-400 uppercase tracking-wider">Número de pedido</span>
+              <p class="text-2xl font-black text-stone-900 tracking-tight">{{ trackingOrder()!.orderNumber }}</p>
+              <p class="mt-1.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-extrabold"
+                [class]="trackingOrder()!.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : isOrderFinal(trackingOrder()!.status) ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-800'">
+                @if (trackingLoading()) {
+                  <span class="w-1.5 h-1.5 rounded-full bg-current animate-ping"></span>
+                }
+                {{ trackingStepLabel(trackingOrder()!.status) }}
+              </p>
+            </div>
+
+            @if (trackingOrder()!.status === 'CANCELLED') {
+              <div class="rounded-2xl bg-red-50 border border-red-200 p-3.5 text-center">
+                <p class="text-sm font-black text-red-700">Su pedido fue cancelado</p>
+                <p class="text-[11px] text-red-600 mt-0.5">Contacta al restaurante si tienes dudas.</p>
+              </div>
+            } @else {
+              <div class="flex items-center gap-1">
+                @for (step of ['Recibido', 'En cocina', 'Listo', 'Entregado']; track $index) {
+                  <div class="flex-1">
+                    <div class="h-1.5 rounded-full" [class]="$index <= trackingStepIndex(trackingOrder()!.status) ? 'bg-emerald-500' : 'bg-stone-200'"></div>
+                    <p class="mt-1 text-[10px] font-bold text-center" [class]="$index <= trackingStepIndex(trackingOrder()!.status) ? 'text-emerald-700' : 'text-stone-400'">{{ step }}</p>
+                  </div>
+                }
+              </div>
+            }
+
+            @if ((trackingOrder()!.timeline ?? []).length > 0) {
+              <div class="rounded-2xl border border-stone-100 p-3 space-y-1.5">
+                <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest">Historial</p>
+                @for (ev of trackingOrder()!.timeline; track ev.id) {
+                  <p class="text-[11px] text-stone-600 flex items-center justify-between gap-2">
+                    <span class="font-bold">{{ trackingStepLabel(ev.toStatus) }}</span>
+                    <span class="text-right tabular-nums">{{ formatDate(ev.changedAt) }}</span>
+                  </p>
+                }
+              </div>
+            }
+
+            <div class="rounded-2xl border border-stone-100 p-3 space-y-1.5">
+              <p class="text-[10px] font-black text-stone-400 uppercase tracking-widest">Tu pedido</p>
+              @for (item of trackingOrder()!.items; track item.productId || item.id) {
+                <p class="text-xs text-stone-700 flex justify-between gap-2">
+                  <span class="font-bold">{{ item.quantity }}x {{ item.productName }}</span>
+                  <span class="tabular-nums">{{ formatCurrency(item.subtotal || item.unitPrice * item.quantity) }}</span>
+                </p>
+              }
+              <div class="flex justify-between border-t border-stone-100 pt-2 text-sm font-black text-stone-900">
+                <span>TOTAL</span>
+                <span class="tabular-nums">{{ formatCurrency(trackingOrder()!.totalAmount) }}</span>
+              </div>
+            </div>
+
+            @if ((trackingOrder()!.estimatedPrepTime || estimatedPrepTime())) {
+              <p class="text-[11px] text-stone-500 text-center">⏱️ Tiempo estimado: {{ trackingOrder()!.estimatedPrepTime || estimatedPrepTime() }}</p>
+            }
+
+            <button type="button" (click)="closeTracking()" class="w-full rounded-2xl bg-stone-900 text-white font-extrabold text-xs py-3 hover:bg-stone-800 transition-colors">
+              Volver al menú
             </button>
           </div>
         </div>

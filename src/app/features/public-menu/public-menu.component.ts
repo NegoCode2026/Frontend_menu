@@ -1,10 +1,10 @@
-import { Component, effect, inject, input, signal, computed } from '@angular/core';
+import { Component, effect, inject, input, signal, computed, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
 import { InvoiceService } from '../../core/services/invoice.service';
-import { CartItem, Order, OrderType, PublicMenu } from '../../core/models/models';
+import { CartItem, Order, OrderStatus, OrderType, PublicMenu } from '../../core/models/models';
 import { PwaBannerComponent } from '../../shared/pwa-banner/pwa-banner.component';
 
 interface DishModalItem {
@@ -21,7 +21,7 @@ interface DishModalItem {
   imports: [ReactiveFormsModule, RouterLink, PwaBannerComponent],
   templateUrl: './public-menu.component.html',
 })
-export class PublicMenuComponent {
+export class PublicMenuComponent implements OnDestroy {
   private readonly menuService = inject(MenuService);
   private readonly orderService = inject(OrderService);
   private readonly invoiceService = inject(InvoiceService);
@@ -53,6 +53,14 @@ export class PublicMenuComponent {
   // Invoice view / download modal
   readonly showInvoiceModal = signal(false);
   readonly invoiceOrder = signal<Order | null>(null);
+
+  // Seguimiento del pedido de esta sesión
+  readonly trackingOpen = signal(false);
+  readonly trackingLoading = signal(false);
+  readonly trackingOrder = signal<Order | null>(null);
+  readonly trackedOrders = signal<Order[]>([]);
+  private trackingTimer: ReturnType<typeof setInterval> | null = null;
+  private statusTimer: ReturnType<typeof setInterval> | null = null;
 
   // Order Type: DINE_IN, DELIVERY, TAKEAWAY
   readonly orderType = signal<OrderType>('DINE_IN');
@@ -147,6 +155,9 @@ export class PublicMenuComponent {
           if (menuData.categories.length > 0) {
             this.activeCategory.set(menuData.categories[0].id);
           }
+          const restaurantSlug = menuData.restaurant?.slug || slugVal;
+          this.trackedOrders.set(this.orderService.listTrackedOrders(restaurantSlug));
+          this.startStatusPolling();
           this.loading.set(false);
         },
         error: () => {
@@ -329,6 +340,8 @@ export class PublicMenuComponent {
         this.showCartModal.set(false);
         this.cart.set([]);
         this.orderSuccess.set(order);
+        this.orderService.saveTrackedOrder(targetSlug, order);
+        this.trackedOrders.set(this.orderService.listTrackedOrders(targetSlug));
       },
       error: (err) => {
         this.submittingOrder.set(false);
@@ -402,12 +415,148 @@ export class PublicMenuComponent {
         this.orderSuccess.set(savedOrder);
         this.cart.set([]);
         this.showCartModal.set(false);
+        this.orderService.saveTrackedOrder(targetSlug, savedOrder);
+        this.trackedOrders.set(this.orderService.listTrackedOrders(targetSlug));
       },
     });
   }
 
   closeSuccessModal(): void {
     this.orderSuccess.set(null);
+  }
+
+  // --- Seguimiento del pedido en tiempo real ---
+
+  openTracking(order?: Order): void {
+    const slug = this.slug().trim() || this.menu()?.restaurant.slug || '';
+    const stored = this.orderService.listTrackedOrders(slug);
+    const target = order ?? stored[0] ?? this.orderSuccess();
+    this.trackedOrders.set(stored);
+    this.trackingOrder.set(target ?? null);
+    this.trackingOpen.set(true);
+    this.stopTrackingPolling();
+    this.refreshTracking();
+    this.startTrackingPolling();
+  }
+
+  refreshTracking(): void {
+    const current = this.trackingOrder();
+    if (!current?.trackingCode) {
+      this.trackingLoading.set(false);
+      return;
+    }
+    this.trackingLoading.set(true);
+    this.orderService.trackOrder(current.trackingCode).subscribe({
+      next: (fresh) => {
+        const status = fresh.status;
+        this.trackingOrder.set(fresh);
+        this.trackedOrders.update((list) => {
+          const idx = list.findIndex((o) => o.id === fresh.id);
+          if (idx !== -1) {
+            const copy = [...list];
+            copy[idx] = fresh;
+            return copy;
+          }
+          return [fresh, ...list];
+        });
+        this.trackingLoading.set(false);
+        if (status === 'DELIVERED' || status === 'CANCELLED') {
+          this.stopTrackingPolling();
+        }
+      },
+      error: () => this.trackingLoading.set(false),
+    });
+  }
+
+  private startTrackingPolling(): void {
+    this.stopTrackingPolling();
+    this.trackingTimer = setInterval(() => this.refreshTracking(), 4000);
+  }
+
+  private stopTrackingPolling(): void {
+    if (this.trackingTimer) {
+      clearInterval(this.trackingTimer);
+      this.trackingTimer = null;
+    }
+  }
+
+  /** Polling de fondo: mantiene actualizado el estado mostrado en la píldora
+   *  flotante sin tener abierta la vista de seguimiento. */
+  private startStatusPolling(): void {
+    this.stopStatusPolling();
+    this.statusTimer = setInterval(() => this.refreshFirstTracked(), 6000);
+  }
+
+  private stopStatusPolling(): void {
+    if (this.statusTimer) {
+      clearInterval(this.statusTimer);
+      this.statusTimer = null;
+    }
+  }
+
+  private refreshFirstTracked(): void {
+    if (this.trackingOpen() || this.orderSuccess()) return;
+    const first = this.trackedOrders()[0];
+    if (!first?.trackingCode) return;
+    this.orderService.trackOrder(first.trackingCode).subscribe({
+      next: (fresh) => {
+        this.trackedOrders.update((list) => {
+          const idx = list.findIndex((o) => o.id === fresh.id);
+          if (idx !== -1) {
+            const copy = [...list];
+            copy[idx] = fresh;
+            return copy;
+          }
+          return [fresh, ...list];
+        });
+      },
+      error: () => undefined,
+    });
+  }
+
+  closeTracking(): void {
+    this.stopTrackingPolling();
+    this.trackingOpen.set(false);
+    this.trackingOrder.set(null);
+  }
+
+  selectTrackedOrder(order: Order): void {
+    this.trackingOrder.set(order);
+    this.refreshTracking();
+    this.startTrackingPolling();
+  }
+
+  isOrderFinal(status: OrderStatus | null | undefined): boolean {
+    return status === 'DELIVERED' || status === 'CANCELLED';
+  }
+
+  trackingStepLabel(status: OrderStatus | null | undefined): string {
+    switch (status) {
+      case 'PENDING': return 'Pendiente de confirmación';
+      case 'CONFIRMED': return 'Confirmado';
+      case 'IN_PREPARATION': return 'En cocina';
+      case 'READY': return 'Listo para entrega';
+      case 'DELIVERED': return 'Entregado';
+      case 'CANCELLED': return 'Cancelado';
+      default: return 'Pendiente';
+    }
+  }
+
+  /** Índice del paso actual dentro de la línea: Recibido → Cocina → Listo → Entregado. */
+  trackingStepIndex(status: OrderStatus | null | undefined): number {
+    switch (status) {
+      case 'PENDING': return 0;
+      case 'CONFIRMED': return 1;
+      case 'IN_PREPARATION': return 1;
+      case 'READY': return 2;
+      case 'DELIVERED': return 3;
+      default: return 0;
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.stopTrackingPolling();
+    this.stopStatusPolling();
   }
 
   // Invoice Actions
