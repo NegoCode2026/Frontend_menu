@@ -391,8 +391,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Cancelado',
 };
 
-export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; border: string }> = {
-  PENDING: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; border: string }> = {  PENDING: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   CONFIRMED: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
   IN_PREPARATION: { bg: 'bg-violet-50', text: 'text-violet-800', border: 'border-violet-200' },
   READY: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
@@ -400,8 +399,7 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string
   CANCELLED: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
 };
 
-/** Roles operativos del restaurante (además de RESTAURANT_ADMIN/USER). */
-export type StaffRole = 'WAITER' | 'CASHIER';
+/** Roles operativos del restaurante (además de RESTAURANT_ADMIN/USER). */export type StaffRole = 'WAITER' | 'CASHIER';
 
 export const STAFF_ROLE_LABELS: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin',
@@ -453,3 +451,8 @@ export interface OrderEvent {
   restaurantId: number;
   order: Order;
 }
+export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  DINE_IN: 'Mesa',
+  DELIVERY: 'Domicilio',
+  TAKEAWAY: 'Para llevar',
+};

@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, Subject } from 'rxjs';
+﻿import { Injectable } from '@angular/core';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { TenantBackendService } from './tenant-backend.service';
-import { CreateOrderRequest, Order, OrderStatus } from '../models/models';
+import { environment } from '../../../environments/environment';
+import { CreateOrderRequest, Order, OrderStats, OrderStatus, UpdateOrderRequest } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
@@ -15,6 +16,13 @@ type TrackedOrdersMap = { [slug: string]: Order[] };
 export class OrderService {
   private newOrderTrigger$ = new Subject<Order>();
   readonly onNewOrder$ = this.newOrderTrigger$.asObservable();
+
+  /**
+   * El fallback local (localStorage + pedidos de demostraci├│n) solo se usa en
+   * desarrollo: en producci├│n un pedido que no llega al backend NO debe ser
+   * fabricado localmente, para no "sonar" en el tablero sin existir.
+   */
+  private readonly demoMode = !environment.production;
 
   constructor(
     private api: ApiService,
@@ -41,8 +49,8 @@ export class OrderService {
     }
   }
 
-  /** Guarda el pedido colocado en ESTA sesión/navegador para poder rastrearlo
-   *  desde el menú público sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
+  /** Guarda el pedido colocado en ESTA sesi├│n/navegador para poder rastrearlo
+   *  desde el men├║ p├║blico sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
   saveTrackedOrder(slug: string, order: Order): void {
     try {
       const map = this.readTracked();
@@ -74,7 +82,7 @@ export class OrderService {
     }
   }
 
-  /** Consulta en tiempo real el estado de un pedido por su código de seguimiento (sin autenticación). */
+  /** Consulta en tiempo real el estado de un pedido por su c├│digo de seguimiento (sin autenticaci├│n). */
   trackOrder(trackingCode: string): Observable<Order> {
     return this.api.get<Order>(`/public/orders/track/${encodeURIComponent(trackingCode)}`).pipe(
       catchError((err) => {
@@ -92,6 +100,8 @@ export class OrderService {
   }
 
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
+    // Multi-docker: espera el registry remoto y fija el docker del slug
+    // para que pedido e imágenes vayan a la misma máquina.
     return this.tenants.ensureLoaded().pipe(
       switchMap(() => {
         this.tenants.pinFor(slug);
@@ -231,7 +241,7 @@ export class OrderService {
   }
 
   simulateNewOrder(): Order {
-    const sampleNames = ['Laura Martínez', 'Diego Morales', 'Felipe Castro', 'Camila Osorio', 'Juan Pablo Rincón'];
+    const sampleNames = ['Laura Mart├¡nez', 'Diego Morales', 'Felipe Castro', 'Camila Osorio', 'Juan Pablo Rinc├│n'];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const randomTable = `Mesa ${Math.floor(1 + Math.random() * 12)}`;
     
@@ -265,7 +275,7 @@ export class OrderService {
           unitPrice: p1.price,
           quantity: 1,
           subtotal: sub1,
-          notes: 'Término medio',
+          notes: 'T├®rmino medio',
         },
         {
           id: Date.now() + 2,
