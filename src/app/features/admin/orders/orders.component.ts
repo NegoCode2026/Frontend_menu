@@ -3,8 +3,9 @@ import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
+import { ProductService } from '../../../core/services/product.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Order, OrderStatus } from '../../../core/models/models';
+import { CreateOrderItemRequest, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, Order, OrderStatus, OrderType, Product, UpdateOrderRequest } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
@@ -15,6 +16,7 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 export class OrdersComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
   private readonly restaurantService = inject(RestaurantService);
+  private readonly productService = inject(ProductService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
   private orderSub?: Subscription;
@@ -65,17 +67,194 @@ export class OrdersComponent implements OnInit, OnDestroy {
       const matchNum = (order.orderNumber ?? '').toLowerCase().includes(query);
       const matchName = (order.customerName ?? '').toLowerCase().includes(query);
       const matchTable = (order.tableNumber || '').toLowerCase().includes(query);
+      const matchAddress = (order.deliveryAddress || '').toLowerCase().includes(query);
       const matchPhone = (order.customerPhone || '').toLowerCase().includes(query);
 
-      return matchNum || matchName || matchTable || matchPhone;
+      return matchNum || matchName || matchTable || matchAddress || matchPhone;
     });
   });
 
   /** Conteo para la pestaña "En preparación" (pedidos aceptados en cocina). */
   readonly confirmedCount = computed(() => this.orders().filter((o) => o && o.status === 'CONFIRMED').length);
 
-  /** Conteo para la pestaña "Listos" (pedidos servidos). */
-  readonly readyCount = computed(() => this.orders().filter((o) => o && o.status === 'DELIVERED').length);
+  /** Conteo para la pestaña "Listos" (pedidos listos para servir, servidos). */
+  readonly readyCount = computed(() => this.orders().filter((o) => o && (o.status === 'READY' || o.status === 'DELIVERED')).length);
+
+  // --- Pedido manual (crear / editar) ---
+  readonly manualModal = signal<'CREATE' | 'EDIT' | null>(null);
+  readonly editingOrder = signal<Order | null>(null);
+  readonly formCustomerName = signal('');
+  readonly formCustomerPhone = signal('');
+  readonly formTable = signal('');
+  readonly formDeliveryAddress = signal('');
+  readonly formOrderType = signal<OrderType>('DINE_IN');
+  readonly formNotes = signal('');
+  readonly formItems = signal<CreateOrderItemRequest[]>([]);
+  readonly availableProducts = signal<Product[]>([]);
+  readonly manualSaving = signal(false);
+  readonly manualError = signal<string | null>(null);
+
+  readonly formTotal = computed(() => {
+    const products = this.availableProducts();
+    return this.formItems().reduce((sum, item) => {
+      const product = products.find((p) => p.id === item.productId);
+      return sum + (product?.price ?? 0) * item.quantity;
+    }, 0);
+  });
+
+  openCreateOrderModal(): void {
+    this.editingOrder.set(null);
+    this.formCustomerName.set('');
+    this.formCustomerPhone.set('');
+    this.formTable.set('');
+    this.formDeliveryAddress.set('');
+    this.formOrderType.set('DINE_IN');
+    this.formNotes.set('');
+    this.formItems.set([]);
+    this.manualError.set(null);
+    this.loadManualProducts();
+    this.manualModal.set('CREATE');
+  }
+
+  openEditOrderModal(order: Order): void {
+    this.editingOrder.set(order);
+    this.formCustomerName.set(order.customerName);
+    this.formCustomerPhone.set(order.customerPhone ?? '');
+    this.formTable.set(order.tableNumber ?? '');
+    this.formDeliveryAddress.set(order.deliveryAddress ?? '');
+    this.formOrderType.set(order.orderType ?? 'DINE_IN');
+    this.formNotes.set(order.notes ?? '');
+    this.formItems.set(
+      (order.items ?? []).map((i) => ({ productId: i.productId, quantity: i.quantity, notes: i.notes ?? '' }))
+    );
+    this.manualError.set(null);
+    this.loadManualProducts();
+    this.manualModal.set('EDIT');
+  }
+
+  closeManualModal(): void {
+    this.manualModal.set(null);
+    this.editingOrder.set(null);
+    this.manualError.set(null);
+  }
+
+  private loadManualProducts(): void {
+    this.productService.list(undefined, 0, 200).subscribe({
+      next: (page) => this.availableProducts.set(page?.content ?? []),
+      error: () => this.availableProducts.set([]),
+    });
+  }
+
+  manualItemProduct(productId: number): Product | undefined {
+    return this.availableProducts().find((p) => p.id === productId);
+  }
+
+  addManualProduct(productId: number): void {
+    this.formItems.update((items) => {
+      const existing = items.find((i) => i.productId === productId);
+      if (existing) {
+        return items.map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + 1 } : i));
+      }
+      return [...items, { productId, quantity: 1, notes: '' }];
+    });
+  }
+
+  changeManualQuantity(productId: number, delta: number): void {
+    this.formItems.update((items) =>
+      items
+        .map((i) => (i.productId === productId ? { ...i, quantity: i.quantity + delta } : i))
+        .filter((i) => i.quantity > 0)
+    );
+  }
+
+  removeManualProduct(productId: number): void {
+    this.formItems.update((items) => items.filter((i) => i.productId !== productId));
+  }
+
+  isManualItemSelected(productId: number): boolean {
+    return this.formItems().some((i) => i.productId === productId);
+  }
+
+  orderTypeLabel(type?: OrderType): string {
+    return ORDER_TYPE_LABELS[type ?? 'DINE_IN'] ?? 'Mesa';
+  }
+
+  /** Destino mostrado en tarjetas y ticket: la dirección para domicilio, la mesa en el resto. */
+  destinationLabel(order: Order): string {
+    if (order?.orderType === 'DELIVERY') {
+      return order.deliveryAddress || order.tableNumber || 'Dirección no indicada';
+    }
+    return order.tableNumber || 'Mesa';
+  }
+
+  statusLabel(status: OrderStatus): string {
+    return ORDER_STATUS_LABELS[status] ?? status;
+  }
+
+  saveManualOrder(): void {
+    if (!this.formCustomerName().trim()) {
+      this.manualError.set('Ingresa el nombre del cliente.');
+      return;
+    }
+    const items = this.formItems().filter((i) => i.quantity > 0);
+    if (items.length === 0) {
+      this.manualError.set('Agrega al menos un producto al pedido.');
+      return;
+    }
+
+    this.manualSaving.set(true);
+    this.manualError.set(null);
+
+    const createBase = {
+      customerName: this.formCustomerName().trim(),
+      customerPhone: this.formCustomerPhone().trim() || undefined,
+      orderType: this.formOrderType(),
+      notes: this.formNotes().trim() || undefined,
+      items,
+    };
+
+    const editing = this.editingOrder();
+    const finish = (order: Order) => {
+      this.orders.update((list) => {
+        const existing = list.findIndex((o) => o.id === order.id);
+        if (existing !== -1) {
+          const updated = [...list];
+          updated[existing] = order;
+          return updated;
+        }
+        return [order, ...list];
+      });
+      this.manualSaving.set(false);
+      this.closeManualModal();
+    };
+    const fail = (err: unknown) => {
+      this.manualSaving.set(false);
+      this.manualError.set(typeof err === 'object' && err && 'message' in err ? String((err as { message?: unknown }).message) : 'No se pudo guardar el pedido.');
+    };
+    const deliveryAddress = this.formDeliveryAddress().trim() || undefined;
+
+    if (editing != null && editing.id != null) {
+      const payload: UpdateOrderRequest = {
+        customerName: createBase.customerName,
+        customerPhone: createBase.customerPhone,
+        orderType: createBase.orderType,
+        notes: createBase.notes,
+        items,
+      };
+      if (this.formTable().trim()) payload.tableNumber = this.formTable().trim();
+      if (deliveryAddress) payload.deliveryAddress = deliveryAddress;
+      this.orderService.updateMine(editing.id, payload).subscribe({ next: finish, error: fail });
+    } else {
+      const table = this.formTable().trim();
+      this.orderService
+        .createMine({
+          ...createBase,
+          tableNumber: table || undefined,
+          deliveryAddress,
+        })
+        .subscribe({ next: finish, error: fail });
+    }
+  }
 
   /** Etiqueta y píldora de estado para lectura rápida en cocina. */
   statusMeta(status: OrderStatus): { label: string; pill: string; dot: string } {
@@ -167,11 +346,11 @@ export class OrdersComponent implements OnInit, OnDestroy {
   );
 
   readonly inProgressOrders = computed(() =>
-    this.filteredOrders().filter((o) => o.status === 'CONFIRMED')
+    this.filteredOrders().filter((o) => o.status === 'CONFIRMED' || o.status === 'IN_PREPARATION')
   );
 
   readonly deliveredOrders = computed(() =>
-    this.filteredOrders().filter((o) => o.status === 'DELIVERED')
+    this.filteredOrders().filter((o) => o.status === 'READY' || o.status === 'DELIVERED')
   );
 
   readonly cancelledOrders = computed(() =>
@@ -230,6 +409,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   fetchOrders(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
+    this.lastSyncIso = null;
     this.orderService.listMine().subscribe({
       next: (data) => {
         this.orders.set(Array.isArray(data) ? data : []);
@@ -305,16 +485,40 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.startPolling();
   }
 
+  private lastSyncIso: string | null = null;
+  private pollTicks = 0;
+  private readonly FULL_REFRESH_TICKS = 5;
+
   private pollForNewOrders(): void {
     if (this.loading()) return;
-    this.orderService.listMine(undefined, true).subscribe({
+    this.pollTicks += 1;
+
+    // Cada N sondeos se hace recarga completa para reconciliar pedidos borrados/ajustes.
+    const doFullRefresh = this.lastSyncIso === null || this.pollTicks % this.FULL_REFRESH_TICKS === 0;
+    const since = doFullRefresh ? undefined : this.lastSyncIso ?? undefined;
+
+    this.orderService.listMine(undefined, true, since).subscribe({
       next: (latest) => {
         this.sessionExpired.set(false);
-        const current = this.orders();
-        const currentIds = new Set(current.map((o) => o.id));
-        const newOrders = latest.filter((o) => !currentIds.has(o.id));
+        this.lastSyncIso = new Date().toISOString();
 
-        this.orders.set(latest);
+        const current = this.orders();
+        let newOrders: Order[] = [];
+        let updatedList: Order[] = latest;
+
+        if (since) {
+          const byId = new Map<number, Order>(current.map((o) => [o.id, o]));
+          newOrders = latest.filter((o) => !byId.has(o.id));
+          for (const fresh of latest) byId.set(fresh.id, fresh);
+          updatedList = [...byId.values()].sort((a, b) =>
+            String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))
+          );
+        } else {
+          const currentIds = new Set(current.map((o) => o.id));
+          newOrders = latest.filter((o) => !currentIds.has(o.id));
+        }
+
+        this.orders.set(updatedList);
 
         if (newOrders.length > 0) {
           this.alertCount.set(newOrders.length);
@@ -347,13 +551,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
     }
 
     this.orderService.updateStatusMine(order.id, newStatus).subscribe({
-      next: () => {
-        if (newStatus === 'DELIVERED' && order.customerPhone) {
-          this.sendWhatsAppReadyNotification(order, true);
+      next: (updated) => {
+        this.orders.update((list) =>
+          list.map((o) => (o && o.id === order.id ? updated : o))
+        );
+        if (this.selectedTicketOrder()?.id === order.id) {
+          this.selectedTicketOrder.set(updated);
         }
       },
       error: (err) => {
         console.error('Error updating order status:', err);
+        this.fetchOrders();
       },
     });
   }
@@ -371,8 +579,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
     if (cleanPhone.length === 10 && cleanPhone.startsWith('3')) {
       cleanPhone = '57' + cleanPhone;
     }
+    const destination = this.destinationLabel(order);
+    const destinationLine =
+      order.orderType === 'DELIVERY'
+        ? `📍 *Dirección de entrega:* ${destination}`
+        : `📍 *Destino/Mesa:* ${destination}`;
 
-    const message = `¡Hola *${order.customerName}*! 👋\n\n🎉 *¡Tu pedido ${order.orderNumber} ya está listo!* 🍽️\n📍 *Destino/Mesa:* ${order.tableNumber || 'Mesa'}\n\nPuedes pasar a retirarlo o ya va en camino.\n¡Gracias por tu compra! 😊`;
+    const message = `¡Hola *${order.customerName}*! 👋\n\n🎉 *¡Tu pedido ${order.orderNumber} ya está listo!* 🍽️\n${destinationLine}\n\nPuedes pasar a retirarlo o ya va en camino.\n¡Gracias por tu compra! 😊`;
 
     const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
     if (openDirectly) {

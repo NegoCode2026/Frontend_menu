@@ -64,7 +64,7 @@ export class InvoiceService {  formatCurrency(value: number): string {
     const readyTime = this.calculateReadyTime(order.createdAt, restaurant.estimatedPrepTime || '20-30 min');
     const orderTypeLabel =
       order.orderType === 'DELIVERY'
-        ? '🛵 Domicilio'
+        ? `🛵 Domicilio${order.deliveryAddress ? ` — ${escapeHtml(order.deliveryAddress)}` : ''}`
         : order.orderType === 'TAKEAWAY'
         ? '🛍️ Para Llevar'
         : `🍽️ En Mesa (${escapeHtml(order.tableNumber) || 'Mesa'})`;
