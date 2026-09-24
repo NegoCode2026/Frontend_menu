@@ -876,8 +876,8 @@
   <!-- MANUAL ORDER MODAL (crear / editar pedido) -->
   <!-- ========================================================================= -->
   @if (manualModal()) {
-    <div class="no-print fixed inset-0 z-50 flex overflow-y-auto p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
-      <div class="m-auto bg-white rounded-3xl shadow-2xl border border-stone-100 max-w-lg w-full overflow-hidden max-h-[92vh] flex flex-col anim-fade-in-up">
+    <div class="no-print fixed inset-0 z-50 flex bg-stone-950/70 backdrop-blur-sm anim-fade-in">
+      <div class="m-0 flex h-[100dvh] max-h-none w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-white shadow-2xl anim-fade-in-up">
         <div class="p-4 bg-stone-100 text-stone-900 border-b border-stone-200 flex items-center justify-between">
           <div class="flex items-center gap-2">
             <span class="text-lg">{{ manualModal() === 'EDIT' ? '✏️' : '➕' }}</span>
