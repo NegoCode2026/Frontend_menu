@@ -33,7 +33,7 @@
         (input)="searchQuery.set($any($event.target).value)"
         enterkeyhint="search"
         placeholder="Buscar productos…"
-        class="w-full bg-transparent text-[16px] font-medium text-stone-800 placeholder:text-stone-400 focus:outline-none"
+        class="text-stone-900 bg-white w-full bg-transparent text-[16px] font-medium text-stone-800 placeholder:text-stone-400 focus:outline-none"
       />
     </div>
   </div>
@@ -145,7 +145,7 @@
           <div>
             <label class="field-label" for="rc-ing">Ingrediente</label>
             <select id="rc-ing" [ngModel]="selIngredientId()" (ngModelChange)="selIngredientId.set($event)"
-              class="mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm">
+              class="text-stone-900 mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm">
               <option [ngValue]="null">Elegir…</option>
               @for (ing of recipeIngredients(); track ing.id) {
                 <option [ngValue]="ing.id">{{ ing.name }} ({{ ing.stockQuantity }} {{ ing.unit }})</option>
@@ -155,7 +155,7 @@
           <div>
             <label class="field-label" for="rc-qty">Cant.</label>
             <input id="rc-qty" type="number" min="0" step="any" [ngModel]="selQty()" (ngModelChange)="selQty.set($event)"
-              class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm font-extrabold" placeholder="0" />
+              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-3 py-2.5 text-sm font-extrabold" placeholder="0" />
           </div>
           <button (click)="addRecipeLine()" class="rounded-xl bg-stone-900 px-4 py-2.5 text-sm font-extrabold text-white">+</button>
         </div>
@@ -243,7 +243,7 @@
           [value]="searchQuery()"
           (input)="searchQuery.set($any($event.target).value)"
           placeholder="Buscar en tu menú"
-          class="w-full rounded border border-stone-200 bg-white py-2.5 pl-10 pr-4 text-[13px] text-stone-900 placeholder-stone-400 focus:outline-none input-glow"
+          class="text-stone-900 w-full rounded border border-stone-200 py-2.5 pl-10 pr-4 text-[13px] text-stone-900 placeholder-stone-400 focus:outline-none input-glow"
         />
       </div>
     </div>
@@ -289,14 +289,14 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div class="space-y-1.5">
           <label class="field-label" for="prod-price">Precio</label>
-          <input id="prod-price" type="number" step="0.01" min="0" formControlName="price" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="18000" />
+          <input id="prod-price" type="number" step="0.01" min="0" formControlName="price" class="text-stone-900 text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="18000" />
           @if (form.get('price')?.invalid && form.get('price')?.touched) {
             <p class="text-xs text-red-600 pl-1">Ingresa un precio válido</p>
           }
         </div>
         <div class="space-y-1.5">
           <label class="field-label" for="prod-cost">Costo (para utilidades)</label>
-          <input id="prod-cost" type="number" step="0.01" min="0" formControlName="costPrice" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="12000" />
+          <input id="prod-cost" type="number" step="0.01" min="0" formControlName="costPrice" class="text-stone-900 text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="12000" />
         </div>
       </div>
 
@@ -318,7 +318,7 @@
 
       <div class="space-y-1.5">
         <label class="field-label" for="prod-name">Nombre</label>
-        <input id="prod-name" type="text" formControlName="name" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="Hamburguesa Especial" />
+        <input id="prod-name" type="text" formControlName="name" class="text-stone-900 text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="Hamburguesa Especial" />
         @if (form.get('name')?.invalid && form.get('name')?.touched) {
           <p class="text-xs text-red-600 pl-1">El nombre es obligatorio</p>
         }
@@ -326,7 +326,7 @@
 
       <div class="space-y-1.5">
         <label class="field-label" for="prod-desc">Descripción</label>
-        <textarea id="prod-desc" formControlName="description" rows="3" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400 resize-none" placeholder="Describe tu producto..."></textarea>
+        <textarea id="prod-desc" formControlName="description" rows="3" class="text-stone-900 text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400 resize-none" placeholder="Describe tu producto..."></textarea>
       </div>
 
       <div class="flex flex-wrap items-center gap-4">
