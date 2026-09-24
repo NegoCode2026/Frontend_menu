@@ -58,6 +58,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
   // Session expired warning
   readonly sessionExpired = signal(false);
 
+  // Sin conexión: la cocina sigue viendo lo cargado y las acciones se encolan
+  readonly offline = signal(!this.isBrowserOnline());
+  /** Ids con cambio de estado pendiente de envío. */
+  readonly pendingIds = signal<number[]>([]);
+  private outbox: Array<{ orderId: number; status: OrderStatus }> = [];
+
   // Live filtered orders
   readonly filteredOrders = computed(() => {
     const query = this.searchQuery().trim().toLowerCase();
@@ -405,6 +411,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     // (respaldo por si el WebSocket se cae; el canal en vivo avisa al instante)
     this.startPolling();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('online', this.onOnline);
+    window.addEventListener('offline', this.onOffline);
 
     // Canal en vivo: el pedido del cliente entra sin esperar el polling
     try {
@@ -423,6 +431,33 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.realtime.disconnect();
     this.stopPolling();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('online', this.onOnline);
+    window.removeEventListener('offline', this.onOffline);
+  }
+
+  private isBrowserOnline(): boolean {
+    try {
+      return typeof navigator === 'undefined' || navigator.onLine !== false;
+    } catch {
+      return true;
+    }
+  }
+
+  private readonly onOnline = (): void => {
+    this.offline.set(false);
+    this.fetchOrders();
+    this.flushOutbox();
+    this.pollCount = 0;
+    this.stopPolling();
+    this.startPolling();
+  };
+
+  private readonly onOffline = (): void => {
+    this.offline.set(true);
+  };
+
+  isPending(orderId: number | null | undefined): boolean {
+    return orderId != null && this.pendingIds().includes(orderId);
   }
 
   fetchOrders(): void {
@@ -547,6 +582,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.orderService.listMine(undefined, true, since).subscribe({
       next: (latest) => {
         this.sessionExpired.set(false);
+        const wasOffline = this.offline();
+        this.offline.set(false);
         this.lastSyncIso = new Date().toISOString();
 
         const current = this.orders();
@@ -567,6 +604,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
         this.orders.set(updatedList);
 
+        // Si volvió la conexión, reenvía lo encolado
+        if (wasOffline) this.flushOutbox();
+
         if (newOrders.length > 0) {
           this.alertCount.set(newOrders.length);
           this.showAlert.set(true);
@@ -581,9 +621,46 @@ export class OrdersComponent implements OnInit, OnDestroy {
         if (err?.status === 401) {
           this.sessionExpired.set(true);
           this.stopPolling(); // Stop polling until user re-logs in
+        } else if (err?.status === 0 || err?.status == null) {
+          // Backend inalcanzable (túnel/Supabase caídos): se conserva lo
+          // cargado, se avisa y el propio polling reintenta solo.
+          this.offline.set(true);
         }
       }
     });
+  }
+
+  /** Reenvía cambios de estado encolados sin conexión, en orden. */
+  private flushOutbox(): void {
+    if (this.outbox.length === 0 || this.offline()) return;
+    const batch = [...this.outbox];
+    this.outbox = [];
+    const sendNext = (): void => {
+      const item = batch.shift();
+      if (!item) return;
+      this.orderService.updateStatusMine(item.orderId, item.status).subscribe({
+        next: (updated) => {
+          this.orders.update((list) => list.map((o) => (o && o.id === item.orderId ? updated : o)));
+          this.pendingIds.update((ids) => ids.filter((id) => id !== item.orderId));
+          sendNext();
+        },
+        error: (err) => {
+          if (err?.status === 0 || err?.status == null) {
+            this.outbox.unshift(item, ...batch);
+            this.offline.set(true);
+          } else {
+            this.pendingIds.update((ids) => ids.filter((id) => id !== item.orderId));
+            this.fetchOrders();
+            sendNext();
+          }
+        },
+      });
+    };
+    sendNext();
+  }
+
+  private markPending(orderId: number): void {
+    this.pendingIds.update((ids) => (ids.includes(orderId) ? ids : [...ids, orderId]));
   }
 
   updateStatus(order: Order, newStatus: OrderStatus): void {
@@ -599,6 +676,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     this.orderService.updateStatusMine(order.id, newStatus).subscribe({
       next: (updated) => {
+        this.offline.set(false);
         this.orders.update((list) =>
           list.map((o) => (o && o.id === order.id ? updated : o))
         );
@@ -607,6 +685,20 @@ export class OrdersComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
+        if (err?.status === 401) {
+          this.sessionExpired.set(true);
+          this.stopPolling();
+          return;
+        }
+        if (err?.status === 0 || err?.status == null) {
+          // Sin conexión: se conserva el cambio optimista, se marca
+          // pendiente y se reenvía solo al volver.
+          this.offline.set(true);
+          this.outbox = this.outbox.filter((q) => q.orderId !== order.id);
+          this.outbox.push({ orderId: order.id, status: newStatus });
+          this.markPending(order.id);
+          return;
+        }
         console.error('Error updating order status:', err);
         this.fetchOrders();
       },
