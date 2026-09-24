@@ -118,7 +118,7 @@ export class InventoryComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.errorMessage.set(err.error?.message ?? 'No se pudo guardar el ingrediente');
+        this.errorMessage.set(this.apiError(err, 'No se pudo guardar el ingrediente'));
       },
     });
   }
@@ -163,6 +163,16 @@ export class InventoryComponent implements OnInit {
     this.reloadIngredients();
   }
 
+  /** Error legible: si el endpoint no existe (404), el docker está desactualizado. */
+  private apiError(err: unknown, fallback: string): string {
+    const status = (err as { status?: number })?.status;
+    if (status === 404) {
+      return 'El servidor está desactualizado (no tiene este endpoint). Actualiza el docker del restaurante.';
+    }
+    const msg = (err as { error?: { message?: string } })?.error?.message;
+    return msg ?? fallback;
+  }
+
   margin(p: Product): string {
     if (!p.price) return '—';
     const pct = ((p.price - (p.costPrice ?? 0)) / p.price) * 100;
@@ -191,7 +201,7 @@ export class InventoryComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.errorMessage.set(err.error?.message ?? 'No se pudo ajustar el stock');
+        this.errorMessage.set(this.apiError(err, 'No se pudo ajustar el stock'));
       },
     });
   }
@@ -234,7 +244,7 @@ export class InventoryComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
-        this.errorMessage.set(err.error?.message ?? 'No se pudo crear el producto');
+        this.errorMessage.set(this.apiError(err, 'No se pudo crear el producto'));
       },
     });
   }
