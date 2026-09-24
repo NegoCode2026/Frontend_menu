@@ -24,6 +24,33 @@
     <h1 class="mt-4 text-[30px] leading-[1.05] font-black tracking-tight text-stone-900">
       Equipo? <span class="text-stone-400 font-extrabold">Invita y gestiona.</span>
     </h1>
+    <button (click)="togglePermissions()" class="mt-3 flex w-full items-center justify-between rounded-2xl bg-stone-900 px-4 py-3 text-left text-white active:scale-[0.99] transition">
+      <span class="text-[13px] font-extrabold">🔑 Permisos por rol</span>
+      <span class="text-lg">{{ showPermissions() ? '−' : '+' }}</span>
+    </button>
+    @if (showPermissions()) {
+      <div class="mt-2 rounded-2xl bg-white p-4 shadow-sm">
+        <div class="flex gap-2">
+          @for (r of permRoles; track r.value) {
+            <button (click)="permRole.set(r.value)"
+              [class]="permRole() === r.value ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'"
+              class="flex-1 rounded-full px-3 py-2 text-xs font-extrabold">{{ r.label }}</button>
+          }
+        </div>
+        <div class="mt-3 space-y-1">
+          @for (p of permCatalog(); track p) {
+            <label class="flex items-center gap-3 rounded-xl px-2 py-2 active:bg-stone-50">
+              <input type="checkbox" [checked]="hasPerm(p)" (change)="togglePerm(p)" [disabled]="permSaving()"
+                class="h-5 w-5 accent-[#ff5c00]" />
+              <span class="text-[13px] font-bold text-stone-700">{{ permissionLabel(p) }}</span>
+            </label>
+          } @empty {
+            <p class="py-3 text-center text-xs text-stone-400">Cargando permisos…</p>
+          }
+        </div>
+        <p class="mt-2 text-[11px] text-stone-400">El administrador siempre tiene todo. Se guarda solo.</p>
+      </div>
+    }
   </div>
 
   <div class="rounded-t-[2.2rem] bg-[#ededf0] px-4 pt-5 min-h-[60vh]">
@@ -165,9 +192,34 @@
     }
   </div>
 
+  <!-- Permisos por rol -->
+  <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 class="landing-serif text-[24px] font-medium text-[#1C1917]">🔑 Permisos por rol</h2>
+        <p class="mt-1 text-[13px] text-stone-500">Cada restaurante decide qué puede hacer su equipo, meseros y caja. El administrador siempre tiene todo.</p>
+      </div>
+      <div class="flex gap-2">
+        @for (r of permRoles; track r.value) {
+          <button (click)="permRole.set(r.value); togglePermissionsOpen()"
+            [class]="permRole() === r.value ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-600'"
+            class="rounded-full px-4 py-2 text-xs font-extrabold">{{ r.label }}</button>
+        }
+      </div>
+    </div>
+    <div class="mt-4 grid grid-cols-1 gap-1 sm:grid-cols-2">
+      @for (p of permCatalog().length ? permCatalog() : defaultPerms(); track p) {
+        <label class="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-stone-50">
+          <input type="checkbox" [checked]="hasPerm(p)" (change)="togglePerm(p)" [disabled]="permSaving()"
+            class="h-5 w-5 accent-[#ff5c00]" />
+          <span class="text-sm font-bold text-stone-700">{{ permissionLabel(p) }}</span>
+        </label>
+      }
+    </div>
+  </div>
+
   @if (errorMessage()) {
-    <div class="mt-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0 mt-0.5 text-red-500">
+    <div class="mt-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale">      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0 mt-0.5 text-red-500">
         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
       </svg>
       <span>{{ errorMessage() }}</span>
