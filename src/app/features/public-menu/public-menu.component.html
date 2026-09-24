@@ -605,11 +605,26 @@
           <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100 flex items-center justify-between">
             <div>
               <span class="font-bold text-stone-500 text-xs block">Total a Pagar</span>
-              <span class="text-2xl font-black text-stone-900">{{ formatCurrency(cartTotalAmount()) }}</span>
+              <span class="text-2xl font-black text-stone-900">{{ formatCurrency(cartTotalWithTip()) }}</span>
+              @if (tipAmount() > 0) {
+                <span class="block text-[11px] font-bold text-stone-400">Subtotal {{ formatCurrency(cartTotalAmount()) }} + propina {{ formatCurrency(tipAmount()) }}</span>
+              }
             </div>
             <span class="text-xs font-bold text-stone-400 bg-white px-2.5 py-1 rounded-xl border border-stone-200">
               {{ cartTotalCount() }} {{ cartTotalCount() === 1 ? 'ítem' : 'ítems' }}
             </span>
+          </div>
+
+          <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
+            <p class="text-xs font-bold text-stone-500 mb-2">💛 Propina voluntaria</p>
+            <div class="flex gap-2">
+              <button type="button" (click)="setTip(0)" [class]="tipPercent() === 0 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">Sin propina</button>
+              <button type="button" (click)="setTip(5)" [class]="tipPercent() === 5 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">5%</button>
+              <button type="button" (click)="setTip(10)" [class]="tipPercent() === 10 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">10%</button>
+            </div>
           </div>
 
           <!-- Customer Form -->
@@ -695,7 +710,7 @@
                     <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                     <span>Enviando pedido a cocina…</span>
                   } @else {
-                    <span>🍳 Enviar Pedido a Cocina ({{ formatCurrency(cartTotalAmount()) }})</span>
+                    <span>🍳 Enviar Pedido a Cocina ({{ formatCurrency(cartTotalWithTip()) }})</span>
                   }
                 </button>
 

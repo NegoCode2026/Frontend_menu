@@ -101,6 +101,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
   readonly formDeliveryAddress = signal('');
   readonly formOrderType = signal<OrderType>('DINE_IN');
   readonly formNotes = signal('');
+  readonly formDiscount = signal<number | null>(null);
+  readonly formTip = signal<number | null>(null);
   readonly formItems = signal<CreateOrderItemRequest[]>([]);
   readonly availableProducts = signal<Product[]>([]);
   readonly manualSaving = signal(false);
@@ -108,10 +110,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   readonly formTotal = computed(() => {
     const products = this.availableProducts();
-    return this.formItems().reduce((sum, item) => {
+    const subtotal = this.formItems().reduce((sum, item) => {
       const product = products.find((p) => p.id === item.productId);
       return sum + (product?.price ?? 0) * item.quantity;
     }, 0);
+    const discount = Math.min(Math.max(this.formDiscount() ?? 0, 0), subtotal);
+    return subtotal - discount + Math.max(this.formTip() ?? 0, 0);
   });
 
   openCreateOrderModal(): void {
@@ -122,6 +126,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formDeliveryAddress.set('');
     this.formOrderType.set('DINE_IN');
     this.formNotes.set('');
+    this.formDiscount.set(null);
+    this.formTip.set(null);
     this.formItems.set([]);
     this.manualError.set(null);
     this.loadManualProducts();
@@ -136,6 +142,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formDeliveryAddress.set(order.deliveryAddress ?? '');
     this.formOrderType.set(order.orderType ?? 'DINE_IN');
     this.formNotes.set(order.notes ?? '');
+    this.formDiscount.set(order.discountAmount ?? null);
+    this.formTip.set(order.tipAmount ?? null);
     this.formItems.set(
       (order.items ?? []).map((i) => ({ productId: i.productId, quantity: i.quantity, notes: i.notes ?? '' }))
     );
@@ -222,6 +230,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
       customerPhone: this.formCustomerPhone().trim() || undefined,
       orderType: this.formOrderType(),
       notes: this.formNotes().trim() || undefined,
+      discountAmount: this.formDiscount() ?? null,
+      tipAmount: this.formTip() ?? null,
       items,
     };
 

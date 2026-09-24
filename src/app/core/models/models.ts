@@ -326,6 +326,8 @@ export interface Order {
   notes: string | null;
   status: OrderStatus;
   totalAmount: number;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
   paymentMethod?: PaymentMethod | null;
   paidAt?: string | null;
   estimatedPrepTime?: string | null;
@@ -356,6 +358,8 @@ export interface UpdateOrderRequest {
   deliveryAddress?: string;
   notes?: string;
   orderType?: OrderType;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
   items?: CreateOrderItemRequest[];
 }
 
@@ -382,6 +386,8 @@ export interface CreateOrderRequest {
   orderType?: OrderType;
   deliveryAddress?: string;
   notes?: string;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
   items: CreateOrderItemRequest[];
 }
 

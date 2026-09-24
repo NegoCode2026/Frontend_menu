@@ -29,6 +29,14 @@ export class InventoryComponent implements OnInit {
   readonly adjustReason = signal<MovementReason>('RESTOCK');
   readonly saving = signal(false);
 
+  // Alta rápida de producto con stock inicial
+  readonly showCreate = signal(false);
+  readonly newName = signal('');
+  readonly newPrice = signal<number | null>(null);
+  readonly newCost = signal<number | null>(null);
+  readonly newStock = signal<number | null>(null);
+  readonly newThreshold = signal<number>(5);
+
   readonly trackedProducts = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     return this.products()
@@ -73,9 +81,7 @@ export class InventoryComponent implements OnInit {
     this.adjustId.set(p.id);
     this.adjustQty.set(p.stockQuantity ?? 0);
     this.adjustReason.set('RESTOCK');
-  }
-
-  closeAdjust(): void {
+  }  closeAdjust(): void {
     this.adjustId.set(null);
     this.adjustQty.set(null);
   }
@@ -94,6 +100,49 @@ export class InventoryComponent implements OnInit {
       error: (err) => {
         this.saving.set(false);
         this.errorMessage.set(err.error?.message ?? 'No se pudo ajustar el stock');
+      },
+    });
+  }
+
+  openCreate(): void {
+    this.newName.set('');
+    this.newPrice.set(null);
+    this.newCost.set(null);
+    this.newStock.set(null);
+    this.newThreshold.set(5);
+    this.errorMessage.set(null);
+    this.showCreate.set(true);
+  }
+
+  closeCreate(): void {
+    this.showCreate.set(false);
+  }
+
+  submitCreate(): void {
+    const name = this.newName().trim();
+    const price = this.newPrice();
+    const stock = Math.max(this.newStock() ?? 0, 0);
+    if (!name || price == null || price < 0 || this.saving()) return;
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    this.productsApi.create({
+      categoryId: null,
+      name,
+      price,
+      costPrice: this.newCost() ?? null,
+      stockQuantity: stock,
+      lowStockThreshold: this.newThreshold() ?? 5,
+      trackStock: true,
+      available: true,
+    }).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeCreate();
+        this.reload();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.errorMessage.set(err.error?.message ?? 'No se pudo crear el producto');
       },
     });
   }
