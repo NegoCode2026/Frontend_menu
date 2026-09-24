@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ApiService } from './api.service';
-import { Page, Product, ProductRequest } from '../models/models';
+import { Page, Product, ProductRequest, RecipeItem, RecipeLineRequest } from '../models/models';
 import { DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const PRODUCTS_KEY = 'tavita_products_cache';
@@ -139,5 +139,14 @@ export class ProductService {
         return of(undefined);
       })
     );
+  }
+
+  /** Receta del plato (qué ingredientes lleva cada unidad). */
+  getRecipe(id: number): Observable<RecipeItem[]> {
+    return this.api.get<RecipeItem[]>(`/products/${id}/recipe`).pipe(catchError(() => of([])));
+  }
+
+  setRecipe(id: number, lines: RecipeLineRequest[]): Observable<RecipeItem[]> {
+    return this.api.put<RecipeItem[]>(`/products/${id}/recipe`, lines);
   }
 }

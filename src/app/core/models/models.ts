@@ -422,7 +422,8 @@ export type MovementReason = 'ORDER' | 'CANCEL_RESTORE' | 'RESTOCK' | 'ADJUST';
 
 export interface StockMovement {
   id: number;
-  productId: number;
+  productId: number | null;
+  ingredientId: number | null;
   quantity: number;
   reason: MovementReason;
   orderId: number | null;
@@ -459,6 +460,39 @@ export interface OrderEvent {
   type: 'CREATED' | 'STATUS_CHANGED';
   restaurantId: number;
   order: Order;
+}
+
+export interface Ingredient {
+  id: number;
+  name: string;
+  unit: string;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  trackStock: boolean;
+  lowStock: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IngredientRequest {
+  name: string;
+  unit?: string | null;
+  stockQuantity?: number | null;
+  lowStockThreshold?: number | null;
+  trackStock?: boolean | null;
+}
+
+export interface RecipeItem {
+  id: number;
+  ingredientId: number;
+  ingredientName: string;
+  unit: string;
+  quantity: number;
+}
+
+export interface RecipeLineRequest {
+  ingredientId: number;
+  quantity: number;
 }
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   DINE_IN: 'Mesa',

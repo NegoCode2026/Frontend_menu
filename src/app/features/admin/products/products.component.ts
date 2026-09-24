@@ -1,22 +1,24 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
+import { InventoryService } from '../../../core/services/inventory.service';
+import { Category, Ingredient, Product, RecipeItem } from '../../../core/models/models';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { FileService, UploadResult } from '../../../core/services/file.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Category, Product } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
   selector: 'app-products',
-  imports: [ReactiveFormsModule, BusinessMobileNavComponent],
+  imports: [FormsModule, ReactiveFormsModule, BusinessMobileNavComponent],
   templateUrl: './products.component.html',
 })
 export class ProductsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly categoryService = inject(CategoryService);
   private readonly productService = inject(ProductService);
+  private readonly inventoryApi = inject(InventoryService);
   private readonly restaurantService = inject(RestaurantService);
   private readonly fileService = inject(FileService);
   private readonly auth = inject(AuthService);
@@ -253,6 +255,77 @@ export class ProductsComponent implements OnInit {
   categoryName(categoryId: number | null): string {
     if (categoryId == null) return 'Sin categoría';
     return this.categories().find((c) => c.id === categoryId)?.name ?? '—';
+  }
+
+  // --- Receta del plato (ingredientes que se descuentan al vender) ---
+  readonly recipeProduct = signal<Product | null>(null);
+  readonly recipeLines = signal<RecipeItem[]>([]);
+  readonly recipeIngredients = signal<Ingredient[]>([]);
+  readonly recipeSaving = signal(false);
+  readonly selIngredientId = signal<number | null>(null);
+  readonly selQty = signal<number | null>(null);
+
+  readonly recipeCount = computed(() => this.recipeLines().length);
+
+  openRecipe(product: Product): void {
+    this.recipeProduct.set(product);
+    this.selIngredientId.set(null);
+    this.selQty.set(null);
+    this.errorMessage.set(null);
+    this.inventoryApi.ingredients().subscribe({
+      next: (list) => this.recipeIngredients.set(list ?? []),
+      error: () => this.recipeIngredients.set([]),
+    });
+    this.productService.getRecipe(product.id).subscribe({
+      next: (lines) => this.recipeLines.set(lines ?? []),
+      error: () => this.recipeLines.set([]),
+    });
+  }
+
+  openRecipeById(id: number): void {
+    const found = this.products().find((p) => p.id === id);
+    if (found) this.openRecipe(found);
+  }
+
+  closeRecipe(): void {
+    this.recipeProduct.set(null);
+    this.recipeLines.set([]);
+  }
+
+  addRecipeLine(): void {
+    const ingredientId = this.selIngredientId();
+    const qty = this.selQty();
+    if (ingredientId == null || qty == null || qty <= 0) return;
+    if (this.recipeLines().some((l) => l.ingredientId === ingredientId)) return;
+    const ing = this.recipeIngredients().find((i) => i.id === ingredientId);
+    this.recipeLines.update((lines) => [
+      ...lines,
+      { id: 0, ingredientId, ingredientName: ing?.name ?? '', unit: ing?.unit ?? 'und', quantity: qty },
+    ]);
+    this.selIngredientId.set(null);
+    this.selQty.set(null);
+  }
+
+  removeRecipeLine(ingredientId: number): void {
+    this.recipeLines.update((lines) => lines.filter((l) => l.ingredientId !== ingredientId));
+  }
+
+  saveRecipe(): void {
+    const product = this.recipeProduct();
+    if (!product || this.recipeSaving()) return;
+    this.recipeSaving.set(true);
+    this.errorMessage.set(null);
+    const lines = this.recipeLines().map((l) => ({ ingredientId: l.ingredientId, quantity: l.quantity }));
+    this.productService.setRecipe(product.id, lines).subscribe({
+      next: (saved) => {
+        this.recipeLines.set(saved ?? []);
+        this.recipeSaving.set(false);
+      },
+      error: (err) => {
+        this.recipeSaving.set(false);
+        this.errorMessage.set(err.error?.message ?? 'No se pudo guardar la receta');
+      },
+    });
   }
 
   formatCurrency(value: number): string {

@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product.service';
 import { InventoryService } from '../../../core/services/inventory.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { MovementReason, Product, StockMovement } from '../../../core/models/models';
+import { Ingredient, MovementReason, Product, StockMovement } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
@@ -37,6 +37,16 @@ export class InventoryComponent implements OnInit {
   readonly newStock = signal<number | null>(null);
   readonly newThreshold = signal<number>(5);
 
+  // Ingredientes (el stock de verdad; los platos los consumen por receta)
+  readonly ingredients = signal<Ingredient[]>([]);
+  readonly lowIngredients = signal<Ingredient[]>([]);
+  readonly showIngForm = signal(false);
+  readonly editingIng = signal<Ingredient | null>(null);
+  readonly ingName = signal('');
+  readonly ingUnit = signal('und');
+  readonly ingStock = signal<number | null>(null);
+  readonly ingThreshold = signal<number>(5);
+
   readonly trackedProducts = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
     return this.products()
@@ -46,6 +56,87 @@ export class InventoryComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  reloadIngredients(): void {
+    this.inventoryApi.ingredients().subscribe({
+      next: (list) => this.ingredients.set(list ?? []),
+      error: () => undefined,
+    });
+    this.inventoryApi.lowStockIngredients().subscribe({
+      next: (list) => this.lowIngredients.set(list ?? []),
+      error: () => undefined,
+    });
+  }
+
+  openIngCreate(): void {
+    this.editingIng.set(null);
+    this.ingName.set('');
+    this.ingUnit.set('und');
+    this.ingStock.set(null);
+    this.ingThreshold.set(5);
+    this.errorMessage.set(null);
+    this.showIngForm.set(true);
+  }
+
+  openIngEdit(ing: Ingredient): void {
+    this.editingIng.set(ing);
+    this.ingName.set(ing.name);
+    this.ingUnit.set(ing.unit);
+    this.ingStock.set(ing.stockQuantity);
+    this.ingThreshold.set(ing.lowStockThreshold);
+    this.errorMessage.set(null);
+    this.showIngForm.set(true);
+  }
+
+  closeIngForm(): void {
+    this.showIngForm.set(false);
+    this.editingIng.set(null);
+  }
+
+  submitIngForm(): void {
+    const name = this.ingName().trim();
+    if (!name || this.saving()) return;
+    this.saving.set(true);
+    this.errorMessage.set(null);
+    const payload = {
+      name,
+      unit: this.ingUnit().trim() || 'und',
+      stockQuantity: this.ingStock(),
+      lowStockThreshold: this.ingThreshold(),
+      trackStock: true,
+    };
+    const editing = this.editingIng();
+    const op = editing
+      ? this.inventoryApi.updateIngredient(editing.id, payload)
+      : this.inventoryApi.createIngredient(payload);
+    op.subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.closeIngForm();
+        this.reloadIngredients();
+      },
+      error: (err) => {
+        this.saving.set(false);
+        this.errorMessage.set(err.error?.message ?? 'No se pudo guardar el ingrediente');
+      },
+    });
+  }
+
+  adjustIng(ing: Ingredient, delta: number): void {
+    const next = Math.max((ing.stockQuantity ?? 0) + delta, 0);
+    this.inventoryApi.adjustIngredient(ing.id, next, delta >= 0 ? 'RESTOCK' : 'ADJUST').subscribe({
+      next: () => this.reloadIngredients(),
+      error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo ajustar'),
+    });
+  }
+
+  removeIng(ing: Ingredient): void {
+    if (!confirm(`¿Eliminar "${ing.name}"? (los platos que lo usen pierden ese ingrediente)`)) return;
+    this.inventoryApi.deleteIngredient(ing.id).subscribe({
+      next: () => this.reloadIngredients(),
+      error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo eliminar'),
+    });
   }
 
   reload(): void {
@@ -69,6 +160,7 @@ export class InventoryComponent implements OnInit {
       next: (page) => this.movements.set(page.content ?? []),
       error: () => undefined,
     });
+    this.reloadIngredients();
   }
 
   margin(p: Product): string {
