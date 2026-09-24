@@ -468,6 +468,7 @@ export interface Ingredient {
   unit: string;
   stockQuantity: number;
   lowStockThreshold: number;
+  unitCost: number;
   trackStock: boolean;
   lowStock: boolean;
   createdAt: string;
@@ -479,6 +480,7 @@ export interface IngredientRequest {
   unit?: string | null;
   stockQuantity?: number | null;
   lowStockThreshold?: number | null;
+  unitCost?: number | null;
   trackStock?: boolean | null;
 }
 

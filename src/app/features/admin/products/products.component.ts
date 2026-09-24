@@ -160,6 +160,10 @@ export class ProductsComponent implements OnInit {
       stockQuantity: null,
       lowStockThreshold: 5,
     });
+    this.formRecipeLines.set([]);
+    this.formSelIng.set(null);
+    this.formSelQty.set(null);
+    this.loadFormIngredients();
     this.previewUrl.set(null);
   }
 
@@ -175,6 +179,26 @@ export class ProductsComponent implements OnInit {
       trackStock: product.trackStock ?? false,
       stockQuantity: product.stockQuantity ?? null,
       lowStockThreshold: product.lowStockThreshold ?? 5,
+    });
+    this.formRecipeLines.set([]);
+    this.formSelIng.set(null);
+    this.formSelQty.set(null);
+    this.productService.getRecipe(product.id).subscribe({
+      next: (lines) => {
+        const base = (lines ?? []).map((l) => ({
+          ingredientId: l.ingredientId,
+          ingredientName: l.ingredientName,
+          unit: l.unit,
+          unitCost: 0,
+          quantity: l.quantity,
+        }));
+        this.formRecipeLines.set(base);
+        this.loadFormIngredients();
+      },
+      error: () => {
+        this.formRecipeLines.set([]);
+        this.loadFormIngredients();
+      },
     });
     this.previewUrl.set(product.imageUrl);
   }
@@ -217,16 +241,28 @@ export class ProductsComponent implements OnInit {
       : this.productService.update(this.editingId()!, request);
 
     operation.subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.cancelEdit();
-        this.reload();
+      next: (saved) => {
+        // La receta se guarda justo después (en crear, el plato ya tiene id).
+        const lines = this.formRecipeLines().map((l) => ({ ingredientId: l.ingredientId, quantity: l.quantity }));
+        this.productService.setRecipe(saved.id, lines).subscribe({
+          next: () => this.finishSubmit(),
+          error: () => {
+            this.finishSubmit();
+            this.errorMessage.set('Plato guardado, pero la receta no se pudo guardar. Ábrelo y reintenta.');
+          },
+        });
       },
       error: (err) => {
         this.saving.set(false);
         this.errorMessage.set(err.error?.message ?? 'No se pudo guardar el producto');
       },
     });
+  }
+
+  private finishSubmit(): void {
+    this.saving.set(false);
+    this.cancelEdit();
+    this.reload();
   }
 
   toggleAvailable(product: Product): void {
@@ -258,74 +294,66 @@ export class ProductsComponent implements OnInit {
   }
 
   // --- Receta del plato (ingredientes que se descuentan al vender) ---
-  readonly recipeProduct = signal<Product | null>(null);
-  readonly recipeLines = signal<RecipeItem[]>([]);
-  readonly recipeIngredients = signal<Ingredient[]>([]);
-  readonly recipeSaving = signal(false);
-  readonly selIngredientId = signal<number | null>(null);
-  readonly selQty = signal<number | null>(null);
+  // Funciona creando o editando: las líneas viven en memoria y se guardan
+  // junto al plato (crear: plato primero, receta después).
+  readonly formRecipeLines = signal<Array<{ ingredientId: number; ingredientName: string; unit: string; unitCost: number; quantity: number }>>([]);
+  readonly formRecipeIngredients = signal<Ingredient[]>([]);
+  readonly formSelIng = signal<number | null>(null);
+  readonly formSelQty = signal<number | null>(null);
 
-  readonly recipeCount = computed(() => this.recipeLines().length);
+  readonly formRecipeCost = computed(() =>
+    this.formRecipeLines().reduce((sum, l) => sum + (l.unitCost || 0) * (l.quantity || 0), 0)
+  );
 
-  openRecipe(product: Product): void {
-    this.recipeProduct.set(product);
-    this.selIngredientId.set(null);
-    this.selQty.set(null);
-    this.errorMessage.set(null);
+  readonly formMarginPreview = computed(() => {
+    const price = Number(this.form.get('price')?.value) || 0;
+    const cost = this.formRecipeCost();
+    if (!price) return null;
+    return { profit: price - cost, pct: Math.round(((price - cost) / price) * 100) };
+  });
+
+  private loadFormIngredients(): void {
     this.inventoryApi.ingredients().subscribe({
-      next: (list) => this.recipeIngredients.set(list ?? []),
-      error: () => this.recipeIngredients.set([]),
+      next: (list) => {
+        this.formRecipeIngredients.set(list ?? []);
+        // Enriquece líneas ya cargadas con costo vigente
+        this.formRecipeLines.update((ls) =>
+          ls.map((l) => {
+            const ing = (list ?? []).find((i) => i.id === l.ingredientId);
+            return ing ? { ...l, ingredientName: ing.name, unit: ing.unit, unitCost: ing.unitCost ?? 0 } : l;
+          })
+        );
+      },
+      error: () => this.formRecipeIngredients.set([]),
     });
-    this.productService.getRecipe(product.id).subscribe({
-      next: (lines) => this.recipeLines.set(lines ?? []),
-      error: () => this.recipeLines.set([]),
-    });
   }
 
-  openRecipeById(id: number): void {
-    const found = this.products().find((p) => p.id === id);
-    if (found) this.openRecipe(found);
-  }
-
-  closeRecipe(): void {
-    this.recipeProduct.set(null);
-    this.recipeLines.set([]);
-  }
-
-  addRecipeLine(): void {
-    const ingredientId = this.selIngredientId();
-    const qty = this.selQty();
+  addFormLine(): void {
+    const ingredientId = this.formSelIng();
+    const qty = this.formSelQty();
     if (ingredientId == null || qty == null || qty <= 0) return;
-    if (this.recipeLines().some((l) => l.ingredientId === ingredientId)) return;
-    const ing = this.recipeIngredients().find((i) => i.id === ingredientId);
-    this.recipeLines.update((lines) => [
+    if (this.formRecipeLines().some((l) => l.ingredientId === ingredientId)) return;
+    const ing = this.formRecipeIngredients().find((i) => i.id === ingredientId);
+    this.formRecipeLines.update((lines) => [
       ...lines,
-      { id: 0, ingredientId, ingredientName: ing?.name ?? '', unit: ing?.unit ?? 'und', quantity: qty },
+      {
+        ingredientId,
+        ingredientName: ing?.name ?? '',
+        unit: ing?.unit ?? 'und',
+        unitCost: ing?.unitCost ?? 0,
+        quantity: qty,
+      },
     ]);
-    this.selIngredientId.set(null);
-    this.selQty.set(null);
+    this.formSelIng.set(null);
+    this.formSelQty.set(null);
   }
 
-  removeRecipeLine(ingredientId: number): void {
-    this.recipeLines.update((lines) => lines.filter((l) => l.ingredientId !== ingredientId));
+  removeFormLine(ingredientId: number): void {
+    this.formRecipeLines.update((lines) => lines.filter((l) => l.ingredientId !== ingredientId));
   }
 
-  saveRecipe(): void {
-    const product = this.recipeProduct();
-    if (!product || this.recipeSaving()) return;
-    this.recipeSaving.set(true);
-    this.errorMessage.set(null);
-    const lines = this.recipeLines().map((l) => ({ ingredientId: l.ingredientId, quantity: l.quantity }));
-    this.productService.setRecipe(product.id, lines).subscribe({
-      next: (saved) => {
-        this.recipeLines.set(saved ?? []);
-        this.recipeSaving.set(false);
-      },
-      error: (err) => {
-        this.recipeSaving.set(false);
-        this.errorMessage.set(err.error?.message ?? 'No se pudo guardar la receta');
-      },
-    });
+  useRecipeCost(): void {
+    this.form.get('costPrice')?.setValue(Math.round(this.formRecipeCost()));
   }
 
   formatCurrency(value: number): string {

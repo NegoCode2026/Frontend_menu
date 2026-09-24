@@ -46,6 +46,7 @@ export class InventoryComponent implements OnInit {
   readonly ingUnit = signal('und');
   readonly ingStock = signal<number | null>(null);
   readonly ingThreshold = signal<number>(5);
+  readonly ingCost = signal<number | null>(null);
 
   readonly trackedProducts = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
@@ -75,6 +76,7 @@ export class InventoryComponent implements OnInit {
     this.ingUnit.set('und');
     this.ingStock.set(null);
     this.ingThreshold.set(5);
+    this.ingCost.set(null);
     this.errorMessage.set(null);
     this.showIngForm.set(true);
   }
@@ -85,6 +87,7 @@ export class InventoryComponent implements OnInit {
     this.ingUnit.set(ing.unit);
     this.ingStock.set(ing.stockQuantity);
     this.ingThreshold.set(ing.lowStockThreshold);
+    this.ingCost.set(ing.unitCost ?? null);
     this.errorMessage.set(null);
     this.showIngForm.set(true);
   }
@@ -104,6 +107,7 @@ export class InventoryComponent implements OnInit {
       unit: this.ingUnit().trim() || 'und',
       stockQuantity: this.ingStock(),
       lowStockThreshold: this.ingThreshold(),
+      unitCost: this.ingCost(),
       trackStock: true,
     };
     const editing = this.editingIng();
