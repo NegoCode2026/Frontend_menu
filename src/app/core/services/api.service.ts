@@ -2,19 +2,28 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { environment } from '../../../environments/environment';
 import { ApiResponse, Page } from '../models/models';
+import { TenantBackendService } from './tenant-backend.service';
 
 /**
  * Cliente HTTP de la API. Con withCredentials las cookies HttpOnly
  * (access_token/refresh_token/XSRF-TOKEN) se envían en cada petición,
  * como hace el navegador con el dominio del backend.
+ *
+ * Multi-docker: la base se resuelve vía TenantBackendService (pin por slug
+ * o backend persistido del login). '/api' = proxy Vercel (default).
  */
 @Injectable({ providedIn: 'root' })
 export class ApiService {
-  readonly baseUrl = environment.apiUrl;
+  constructor(
+    private http: HttpClient,
+    private tenants: TenantBackendService,
+  ) {}
 
-  constructor(private http: HttpClient) {}
+  /** Base dinámica: '/api' o 'https://docker-cliente' según pin */
+  get baseUrl(): string {
+    return this.tenants.apiBase();
+  }
 
   get<T>(path: string): Observable<T> {
     return this.http.get<ApiResponse<T>>(this.url(path), this.options()).pipe(map((r) => r.data));

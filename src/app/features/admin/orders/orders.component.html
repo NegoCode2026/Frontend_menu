@@ -10,8 +10,9 @@
           <p class="text-[11px] font-medium text-stone-400">Panel to</p>
           <p class="flex items-center gap-1 text-[13px] font-extrabold text-stone-900">
             Mi Negocio
-            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 ring-1 ring-emerald-200">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>En Vivo
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold ring-1"
+              [class]="live() ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-amber-50 text-amber-700 ring-amber-200'">
+              <span class="h-1.5 w-1.5 rounded-full animate-pulse" [class]="live() ? 'bg-emerald-500' : 'bg-amber-500'"></span>{{ live() ? 'En Vivo' : 'Sincronizando' }}
             </span>
           </p>
         </div>
@@ -22,6 +23,12 @@
         </button>
         <button (click)="toggleSound()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" [attr.aria-label]="soundEnabled() ? 'Silenciar alertas' : 'Activar alertas'">
           <span class="text-lg">{{ soundEnabled() ? '🔔' : '🔕' }}</span>
+        </button>
+        <button (click)="toggleNotifyPanel($event)" class="relative flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Elegir avisos">
+          <span class="text-lg">🔔</span>
+          @if (staffNotify.prefs().browser) {
+            <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-[#16A34A] ring-2 ring-white"></span>
+          }
         </button>
         <button (click)="logout()" class="flex h-9 w-9 items-center justify-center rounded-full text-stone-800 active:scale-90 transition" aria-label="Cerrar sesión">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"/></svg>
@@ -46,6 +53,12 @@
       <div class="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
         <span class="text-xs font-extrabold text-amber-800">⚠️ Sesión expirada: no se detectan pedidos nuevos.</span>
         <a routerLink="/login" class="shrink-0 rounded-xl bg-amber-600 px-3 py-2 text-[11px] font-bold text-white">Entrar</a>
+      </div>
+    }
+    @if (offline()) {
+      <div class="mt-3 flex items-center gap-3 rounded-2xl border border-red-300 bg-red-50 px-4 py-3">
+        <span class="text-xl">📡</span>
+        <span class="text-xs font-extrabold text-red-800">Sin conexión — ves lo último cargado.{{ pendingIds().length ? ' ' + pendingIds().length + ' cambio(s) se enviarán solos.' : ' Reintentando…' }}</span>
       </div>
     }
 
@@ -114,7 +127,12 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-[15px] font-extrabold text-stone-900">{{ order.orderNumber }}</p>
-                <p class="truncate text-[11px] font-medium text-stone-400">👤 {{ order.customerName }} · 📍 {{ destinationLabel(order) }}</p>
+                <p class="truncate text-[11px] font-medium text-stone-400">
+                   @if (customerNameForDisplay(order); as customerName) {
+                     <span>👤 {{ customerName }} · </span>
+                   }
+                   <span>📍 {{ destinationLabel(order) }}</span>
+                 </p>
               </div>
               @if (order.status === 'PENDING') {
                 <span class="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-1 text-[10px] font-extrabold text-white">NUEVA</span>
@@ -148,6 +166,15 @@
                     <button (click)="updateStatus(order, 'DELIVERED')" class="rounded-full bg-emerald-600 px-4 py-2 text-xs font-extrabold text-white active:scale-95 transition">Servir</button>
                   }
                 }
+                @if (order.status === 'DELIVERED') {
+                  @if (order.paymentMethod) {
+                    <span class="rounded-full bg-stone-900 px-3 py-2 text-xs font-extrabold text-white">{{ paymentLabel(order.paymentMethod) }}</span>
+                  } @else {
+                    <button (click)="payOrder(order, 'CASH')" class="rounded-full bg-amber-500 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">💵</button>
+                    <button (click)="payOrder(order, 'CARD')" class="rounded-full bg-sky-600 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">💳</button>
+                    <button (click)="payOrder(order, 'TRANSFER')" class="rounded-full bg-violet-600 px-3 py-2 text-xs font-extrabold text-white active:scale-95 transition">📲</button>
+                  }
+                }
               </div>
             </div>
           </article>
@@ -160,7 +187,7 @@
 </div>
 
 <!-- DESKTOP · se mantiene intacto -->
-<div class="anim-fade-in-up">
+<div class="anim-fade-in">
 <div class="hidden lg:block space-y-6">
 
   <!-- ========================================================================= -->
@@ -207,6 +234,12 @@
       <button (click)="toggleSound()" [class]="soundEnabled() ? 'border-[#EAC9A8] bg-[#F9DFC2] text-[#B85C32]' : 'border-stone-200 bg-white text-stone-400'" class="flex h-10 w-10 items-center justify-center rounded-full border transition-colors" [title]="soundEnabled() ? 'Silenciar alertas' : 'Activar alertas'">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
       </button>
+      <button (click)="toggleNotifyPanel($event)" [class]="notifyOpen() ? 'border-[#1C1917] bg-[#1C1917] text-white' : 'border-stone-200 bg-white text-stone-600 hover:border-stone-300'" class="relative flex h-10 items-center gap-1.5 rounded-full border px-4 text-[12px] font-bold transition-colors" title="Elegir qué te avisa">
+        🔔 Avisos
+        @if (staffNotify.prefs().browser) {
+          <span class="h-1.5 w-1.5 rounded-full bg-[#16A34A]"></span>
+        }
+      </button>
       <button (click)="viewMode.set(viewMode() === 'KANBAN' ? 'LIST' : 'KANBAN')" class="flex h-10 items-center gap-1.5 rounded-full border border-stone-200 bg-white px-4 text-[12px] font-bold text-stone-600 transition-colors hover:border-stone-300" title="Alternar tablero / lista">
         {{ viewMode() === 'KANBAN' ? 'Ver lista' : 'Tablero cocina' }}
       </button>
@@ -216,9 +249,6 @@
       <button (click)="exportCsv()" class="flex h-10 w-10 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-600 transition-colors hover:border-stone-300 hover:text-[#1C1917]" title="Exportar ventas a CSV" aria-label="Exportar CSV">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-4 w-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
       </button>
-      @if (menuSlug()) {
-        <a [href]="'/menu/' + menuSlug()" target="_blank" class="landing-btn-dark">+ Nuevo pedido</a>
-      }
       <button (click)="openCreateOrderModal()" class="flex h-10 items-center gap-1.5 rounded-full border border-stone-900 bg-stone-900 px-4 text-[12px] font-extrabold text-white transition-colors hover:bg-stone-800" title="Registrar pedido manual (teléfono o presencial)">
         <span class="text-sm">＋</span> Registrar pedido
       </button>
@@ -240,6 +270,14 @@
     <div class="no-print mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-5 py-3 anim-fade-in-scale">
       <p class="text-sm font-bold text-amber-800">Sesión expirada — los pedidos nuevos no se detectan.</p>
       <a routerLink="/login" class="shrink-0 rounded-lg bg-amber-600 px-4 py-2 text-xs font-bold text-white transition-colors hover:bg-amber-700">Iniciar sesión</a>
+    </div>
+  }
+
+  <!-- SIN CONEXION -->
+  @if (offline()) {
+    <div class="no-print mt-4 flex items-center gap-3 rounded-xl border border-red-300 bg-red-50 px-5 py-3 anim-fade-in-scale">
+      <span class="text-xl">📡</span>
+      <p class="text-sm font-bold text-red-800">Sin conexión — ves lo último cargado.{{ pendingIds().length ? ' ' + pendingIds().length + ' cambio(s) se enviarán solos al volver.' : ' Reintentando automáticamente…' }}</p>
     </div>
   }
 
@@ -329,7 +367,7 @@
 
                 <!-- Customer info -->
                 <div class="text-xs text-stone-700 bg-stone-50 p-2.5 rounded-xl border border-stone-100">
-                  <span class="font-bold block text-stone-900">👤 {{ order.customerName }}</span>
+                  <span class="font-bold block text-stone-900">{{ customerNameForDisplay(order) ? '👤 ' + customerNameForDisplay(order) : '📍 ' + destinationLabel(order) }}</span>
                   @if (order.customerPhone) {
                     <span class="text-[11px] text-stone-500 block">📞 {{ order.customerPhone }}</span>
                   }
@@ -411,7 +449,7 @@
                 </div>
 
                 <div class="text-xs text-stone-700 bg-stone-50 p-2.5 rounded-xl border border-stone-100">
-                  <span class="font-bold block text-stone-900">👤 {{ order.customerName }}</span>
+                  <span class="font-bold block text-stone-900">{{ customerNameForDisplay(order) ? '👤 ' + customerNameForDisplay(order) : '📍 ' + destinationLabel(order) }}</span>
                   @if (order.notes) {
                     <span class="text-[11px] text-amber-700 font-medium block mt-0.5">📝 "{{ order.notes }}"</span>
                   }
@@ -522,11 +560,21 @@
                   </span>
                 </div>
 
-                <p class="text-xs font-semibold text-stone-700">👤 {{ order.customerName }} • {{ order.items.length }} platos</p>
+                <p class="text-xs font-semibold text-stone-700">
+                  @if (customerNameForDisplay(order); as customerName) { 👤 {{ customerName }} · }
+                  {{ order.items.length }} platos
+                </p>
 
                 <div class="pt-2 flex items-center justify-between border-t border-stone-100 text-xs">
                   <span class="font-black text-stone-900">{{ formatCurrency(order.totalAmount) }}</span>
                   <div class="flex items-center gap-2">
+                    @if (order.paymentMethod) {
+                      <span class="px-2.5 py-1 rounded-full bg-stone-900 text-white font-bold text-[11px]">{{ paymentLabel(order.paymentMethod) }}</span>
+                    } @else {
+                      <button (click)="payOrder(order, 'CASH')" class="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 hover:bg-amber-200 font-bold text-[11px]" title="Cobrar en efectivo">💵</button>
+                      <button (click)="payOrder(order, 'CARD')" class="px-2.5 py-1 rounded-full bg-sky-100 text-sky-800 hover:bg-sky-200 font-bold text-[11px]" title="Cobrar con tarjeta">💳</button>
+                      <button (click)="payOrder(order, 'TRANSFER')" class="px-2.5 py-1 rounded-full bg-violet-100 text-violet-800 hover:bg-violet-200 font-bold text-[11px]" title="Cobrar por transferencia">📲</button>
+                    }
                     @if (order.customerPhone) {
                       <button
                         (click)="sendWhatsAppReadyNotification(order)"
@@ -604,32 +652,7 @@
                   {{ orderMinutes(order) ?? '—' }}{{ orderMinutes(order) !== null ? ' min' : '' }}
                 </td>
                 <td class="relative px-6 py-4 text-right" (click)="$event.stopPropagation()">
-                  <button (click)="toggleMenu(order.id)" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-black tracking-widest text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700" aria-label="Acciones">···</button>
-                  @if (openMenuId() !== null && openMenuId() === order.id) {
-                    <div class="absolute right-4 top-12 z-20 w-48 rounded-xl border border-stone-200 bg-white py-1.5 text-left shadow-xl anim-fade-in-scale">
-                      <button (click)="openTicketModal(order); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">Ver ticket</button>
-                      @if (order.status !== 'CANCELLED' && order.status !== 'DELIVERED') {
-                        <button (click)="openEditOrderModal(order); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">✏️ Editar pedido</button>
-                      }
-                      @if (order.customerPhone) {
-                        <button (click)="sendWhatsAppReadyNotification(order); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">Notificar WhatsApp</button>
-                      }
-                      @switch (order.status) {
-                        @case ('PENDING') {
-                          <button (click)="updateStatus(order, 'CONFIRMED'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">Confirmar →</button>
-                        }
-                        @case ('CONFIRMED') {
-                          <button (click)="updateStatus(order, 'IN_PREPARATION'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">A cocinar →</button>
-                        }
-                        @case ('IN_PREPARATION') {
-                          <button (click)="updateStatus(order, 'READY'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#16A34A] transition-colors hover:bg-emerald-50">Marcar listo →</button>
-                        }
-                        @case ('READY') {
-                          <button (click)="updateStatus(order, 'DELIVERED'); toggleMenu(null)" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#16A34A] transition-colors hover:bg-emerald-50">Servir →</button>
-                        }
-                      }
-                    </div>
-                  }
+                  <button (click)="openRowMenu($event, order.id)" class="inline-flex h-8 w-8 items-center justify-center rounded-full text-lg font-black tracking-widest text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700" aria-label="Acciones" aria-haspopup="menu" [attr.aria-expanded]="openMenuId() === order.id">···</button>
                 </td>
               </tr>
             }
@@ -640,169 +663,257 @@
     }
   }
 
+  <!-- Menú flotante de fila (posición fija: no lo recorta el scroll de la tabla) -->
+  @if (menuOrder(); as rowOrder) {
+    <div class="no-print fixed inset-0 z-30" (click)="closeRowMenu()"></div>
+    <div
+      role="menu"
+      class="no-print fixed z-40 w-52 rounded-xl border border-stone-200 bg-white py-1.5 text-left shadow-xl anim-fade-in-scale"
+      [style.top.px]="menuPos()?.top ?? 0"
+      [style.left.px]="menuPos()?.left ?? 0"
+      (click)="$event.stopPropagation()"
+    >
+      <p class="px-4 pb-1 pt-2 text-[11px] font-extrabold uppercase tracking-wider text-stone-400">#{{ rowOrder.orderNumber }}</p>
+      <button (click)="openTicketModal(rowOrder); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">🧾 Ver detalle</button>
+      @if (rowOrder.status !== 'CANCELLED' && rowOrder.status !== 'DELIVERED') {
+        <button (click)="openEditOrderModal(rowOrder); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">✏️ Editar pedido</button>
+      }
+      @if (rowOrder.customerPhone) {
+        <button (click)="sendWhatsAppReadyNotification(rowOrder); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-semibold text-stone-700 transition-colors hover:bg-stone-50">📱 Notificar WhatsApp</button>
+      }
+      @switch (rowOrder.status) {
+        @case ('PENDING') {
+          <button (click)="updateStatus(rowOrder, 'CONFIRMED'); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">Confirmar →</button>
+        }
+        @case ('CONFIRMED') {
+          <button (click)="updateStatus(rowOrder, 'IN_PREPARATION'); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">A cocinar →</button>
+        }
+        @case ('IN_PREPARATION') {
+          <button (click)="updateStatus(rowOrder, 'READY'); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#16A34A] transition-colors hover:bg-emerald-50">Marcar listo →</button>
+        }
+        @case ('READY') {
+          <button (click)="updateStatus(rowOrder, 'DELIVERED'); closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#16A34A] transition-colors hover:bg-emerald-50">Servir →</button>
+        }
+        @case ('DELIVERED') {
+          @if (!rowOrder.paymentMethod) {
+            <a routerLink="/admin/cash" (click)="closeRowMenu()" class="flex w-full items-center px-4 py-2 text-[13px] font-bold text-[#B85C32] transition-colors hover:bg-orange-50">💰 Cobrar en caja →</a>
+          }
+        }
+      }
+    </div>
+  }
+
 </div><!-- /DESKTOP -->
+</div><!-- /anim-fade-in-up · los modales viven FUERA: un transform residual aquí haría que position: fixed se pegara a este bloque -->
 
   <!-- ========================================================================= -->
-  <!-- KITCHEN POS TICKET MODAL (compartido móvil + desktop) -->
   <!-- ========================================================================= -->
-  @if (selectedTicketOrder()) {
-    <div class="no-print fixed inset-0 z-50 flex overflow-y-auto p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
-      <div class="m-auto bg-white rounded-3xl shadow-2xl border border-stone-100 max-w-md w-full overflow-hidden max-h-[90vh] flex flex-col anim-fade-in-up">
-        
-        <!-- Modal Top Bar -->
-        <div class="shrink-0 p-4 bg-stone-900 text-white flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">🧾</span>
-            <span class="font-extrabold text-sm">Comanda de Cocina POS</span>
-          </div>
-          <button (click)="closeTicketModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-sm">
-            ✕
-          </button>
+  <!-- Panel Avisos: cada trabajador elige qué le avisa (solo este dispositivo) -->
+  @if (notifyOpen()) {
+    <div class="no-print fixed inset-0 z-40" (click)="closeNotifyPanel()"></div>
+    <div class="no-print anim-fade-in-scale fixed inset-x-4 top-20 z-50 rounded-3xl border border-stone-900/10 bg-white p-5 shadow-2xl sm:left-auto sm:right-6 sm:w-[22rem]" role="dialog" aria-label="Avisos">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="landing-serif text-[20px] font-medium text-[#1C1917]">Avisos</h3>
+          <p class="mt-0.5 text-[12px] font-medium text-stone-500">Elige qué te avisa, solo en este dispositivo.</p>
         </div>
+        <button (click)="closeNotifyPanel()" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-700" aria-label="Cerrar avisos">✕</button>
+      </div>
 
-        <!-- Thermal Receipt Body (Mimics POS Print) -->
-        <div class="p-6 space-y-4 overflow-y-auto flex-1 font-mono text-xs bg-stone-50/50">
-          <div class="text-center pb-3 border-b-2 border-stone-300 border-dashed space-y-1">
-            <h3 class="text-lg font-black tracking-tight text-stone-900 font-sans">COMANDA DE COCINA</h3>
-            <p class="text-stone-500 text-[11px]">{{ formatTime(selectedTicketOrder()!.createdAt) }} • {{ formatDate(selectedTicketOrder()!.createdAt) }}</p>
-            <div class="mt-2 inline-block px-4 py-1 bg-stone-900 text-white font-black text-base rounded-xl font-sans">
-              {{ selectedTicketOrder()!.orderNumber }}
-            </div>
-          </div>
+      <div class="mt-3">
+        <button type="button" (click)="toggleSound()" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="soundEnabled()">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-[#D97745]"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Sonido de cocina</span>
+            <span class="block text-[11px] font-medium text-stone-400">Campana con pedidos nuevos y listos</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="soundEnabled() ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+        <button type="button" (click)="staffNotify.patch({ newOrders: !staffNotify.prefs().newOrders })" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="staffNotify.prefs().newOrders">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-amber-500"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Pedidos nuevos</span>
+            <span class="block text-[11px] font-medium text-stone-400">Entran a cocina</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="staffNotify.prefs().newOrders ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+        <button type="button" (click)="staffNotify.patch({ ready: !staffNotify.prefs().ready })" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="staffNotify.prefs().ready">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-[#16A34A]"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Pedido listo</span>
+            <span class="block text-[11px] font-medium text-stone-400">Cocina lo marca para servir</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="staffNotify.prefs().ready ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+        <button type="button" (click)="staffNotify.patch({ served: !staffNotify.prefs().served })" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="staffNotify.prefs().served">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-sky-500"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Pedido servido</span>
+            <span class="block text-[11px] font-medium text-stone-400">Pasa a caja para cobrar</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="staffNotify.prefs().served ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+        <button type="button" (click)="staffNotify.patch({ paid: !staffNotify.prefs().paid })" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="staffNotify.prefs().paid">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Pedido cobrado</span>
+            <span class="block text-[11px] font-medium text-stone-400">Se registra un pago en caja</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="staffNotify.prefs().paid ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+        <button type="button" (click)="staffNotify.patch({ cancelled: !staffNotify.prefs().cancelled })" class="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-stone-50" role="switch" [attr.aria-checked]="staffNotify.prefs().cancelled">
+          <span class="h-2.5 w-2.5 shrink-0 rounded-full bg-stone-400"></span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Pedido cancelado</span>
+            <span class="block text-[11px] font-medium text-stone-400">Se anula un pedido activo</span>
+          </span>
+          <span class="flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors" [class]="staffNotify.prefs().cancelled ? 'justify-end bg-[#1C1917]' : 'justify-start bg-stone-200'">
+            <span class="h-5 w-5 rounded-full bg-white shadow"></span>
+          </span>
+        </button>
+      </div>
 
-          <div class="space-y-2 border-b-2 border-stone-300 border-dashed pb-3">
-            <div class="flex justify-between font-bold text-sm text-stone-900">
-              <span>{{ selectedTicketOrder()!.orderType === 'DELIVERY' ? 'DIRECCIÓN:' : 'DESTINO:' }}</span>
-              <span class="text-right">{{ destinationLabel(selectedTicketOrder()!) }}</span>
-            </div>
-            <div class="flex justify-between text-stone-500 text-[11px] font-bold">
-              <span>MODALIDAD:</span>
-              <span>{{ orderTypeLabel(selectedTicketOrder()!.orderType) }}</span>
-            </div>
-            <div class="flex justify-between text-stone-700">
-              <span>CLIENTE:</span>
-              <span>{{ selectedTicketOrder()!.customerName }}</span>
-            </div>
-            @if (selectedTicketOrder()!.customerPhone) {
-              <div class="flex justify-between text-stone-500 text-[11px]">
-                <span>TELÉFONO:</span>
-                <span>{{ selectedTicketOrder()!.customerPhone }}</span>
-              </div>
-            }
-            @if (selectedTicketOrder()!.notes) {
-              <div class="bg-amber-100 text-amber-900 p-2 rounded-full font-bold mt-2 text-[11px]">
-                NOTA GENERAL: {{ selectedTicketOrder()!.notes }}
-              </div>
-            }
-          </div>
+      <div class="mt-3 rounded-2xl bg-stone-50 px-3.5 py-3">
+        <div class="flex items-center gap-3">
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-bold text-[#1C1917]">Avisos en fondo</span>
+            <span class="block text-[11px] font-medium text-stone-400">Llegan aunque la pestaña esté oculta</span>
+          </span>
+          @if (staffNotify.browserPermission() === 'granted' && staffNotify.prefs().browser) {
+            <span class="shrink-0 rounded-full bg-[#E7F6EC] px-2.5 py-1 text-[11px] font-extrabold text-[#16A34A]">Activados</span>
+          } @else if (staffNotify.browserPermission() === 'denied' || staffNotify.browserPermission() === 'unsupported') {
+            <span class="shrink-0 rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-extrabold text-stone-400">Bloqueado</span>
+          } @else {
+            <button (click)="enableBrowserPush()" class="shrink-0 rounded-full bg-[#1C1917] px-3.5 py-1.5 text-[11px] font-extrabold text-white transition-colors hover:bg-stone-800">Activar</button>
+          }
+        </div>
+      </div>
+      <p class="mt-3 text-center text-[11px] font-medium text-stone-400">Cada trabajador elige los suyos sin afectar al equipo.</p>
+    </div>
+  }
 
-          <!-- Items Table -->
-          <div class="space-y-2 border-b-2 border-stone-300 border-dashed pb-3">
-            <div class="flex justify-between font-black text-stone-500 text-[10px]">
-              <span>CANT / DESCRIPCIÓN</span>
-              <span>IMPORTE</span>
-            </div>
-            @for (item of selectedTicketOrder()!.items ?? []; track $index) {
-              <div class="space-y-0.5">
-                <div class="flex justify-between font-bold text-stone-900 text-xs">
-                  <span>{{ item.quantity }}x {{ item.productName }}</span>
-                  <span>{{ formatCurrency(item.subtotal) }}</span>
-                </div>
-                @if (item.notes) {
-                  <div class="text-amber-800 font-black text-[10px] pl-4">
-                    *** {{ item.notes }} ***
-                  </div>
-                }
-              </div>
-            }
-          </div>
+  <!-- ORDER DETAIL MODAL (compartido móvil + desktop) -->
+  <!-- ========================================================================= -->
+  @if (selectedTicketOrder(); as ticket) {
+    <div class="no-print fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm anim-fade-in" (click)="closeTicketModal()" role="dialog" aria-modal="true" aria-label="Detalle del pedido">
+      <div class="flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl anim-fade-in-scale" (click)="$event.stopPropagation()">
 
-          <!-- Total -->
-          <div class="flex justify-between font-black text-base text-stone-900 pt-1">
-            <span>TOTAL:</span>
-            <span>{{ formatCurrency(selectedTicketOrder()!.totalAmount) }}</span>
-          </div>
-
-          @if ((selectedTicketOrder()!.timeline ?? []).length > 1) {
-            <div class="border-t-2 border-stone-300 border-dashed pt-2 space-y-0.5">
-              <p class="font-black text-[10px] text-stone-500 tracking-widest">LÍNEA DE TIEMPO</p>
-              @for (ev of selectedTicketOrder()!.timeline ?? []; track ev.id) {
-                <p class="text-[10px] text-stone-500">
-                  <span class="font-bold">{{ formatTime(ev.changedAt) }}</span>
-                  → {{ statusLabel(ev.toStatus) }}
-                </p>
+        <div class="flex shrink-0 items-start justify-between gap-3 border-b border-stone-100 px-5 pb-4 pt-5 sm:px-6">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-xl font-black tracking-tight text-stone-900">#{{ ticket.orderNumber }}</h3>
+              <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 {{ statusMeta(ticket.status).pill }}">
+                <span class="h-1.5 w-1.5 rounded-full {{ statusMeta(ticket.status).dot }}"></span>
+                {{ statusMeta(ticket.status).label }}
+              </span>
+              @if (ticket.paymentMethod) {
+                <span class="inline-flex items-center rounded-full bg-stone-900 px-2.5 py-1 text-[11px] font-bold text-white">{{ paymentLabel(ticket.paymentMethod) }}</span>
               }
             </div>
+            <p class="mt-1.5 text-[13px] font-semibold text-stone-500">📍 {{ destinationLabel(ticket) }} · {{ orderTypeLabel(ticket.orderType) }} · {{ formatTime(ticket.createdAt) }} · {{ formatDate(ticket.createdAt) }}</p>
+            <p class="mt-0.5 text-[13px] text-stone-500">👤 {{ customerNameForDisplay(ticket) ?? 'Sin nombre registrado' }}@if (ticket.customerPhone) { <span class="font-semibold text-stone-700">· 📞 {{ ticket.customerPhone }}</span> }</p>
+          </div>
+          <button (click)="closeTicketModal()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900" aria-label="Cerrar detalle">✕</button>
+        </div>
+
+        <div class="sheet-scroll min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
+          @if (ticket.notes) {
+            <div class="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-[13px] font-semibold text-amber-900">📝 {{ ticket.notes }}</div>
+          }
+
+          <div>
+            <p class="text-[11px] font-extrabold uppercase tracking-wider text-stone-400">{{ (ticket.items ?? []).length }} platos</p>
+            <ul class="mt-2 divide-y divide-stone-100 rounded-2xl border border-stone-100">
+              @for (item of ticket.items ?? []; track $index) {
+                <li class="flex items-start justify-between gap-3 px-3.5 py-3">
+                  <div class="flex min-w-0 items-start gap-2.5">
+                    <span class="mt-0.5 flex h-7 min-w-7 items-center justify-center rounded-full bg-stone-900 px-2 text-[12px] font-black text-white">{{ item.quantity }}×</span>
+                    <div class="min-w-0">
+                      <p class="text-sm font-bold text-stone-900">{{ item.productName }}</p>
+                      @if (item.notes) {
+                        <p class="mt-0.5 rounded-lg bg-amber-50 px-2 py-1 text-[12px] font-semibold text-amber-800">↳ {{ item.notes }}</p>
+                      }
+                    </div>
+                  </div>
+                  <span class="shrink-0 text-sm font-bold tabular-nums text-stone-600">{{ formatCurrency(item.subtotal) }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+
+          <div class="flex items-center justify-between rounded-2xl bg-stone-50 px-4 py-3.5">
+            <span class="text-sm font-extrabold text-stone-500">TOTAL A COBRAR</span>
+            <span class="text-2xl font-black tabular-nums text-stone-900">{{ formatCurrency(ticket.totalAmount) }}</span>
+          </div>
+
+          @if (ticket.status === 'DELIVERED' && !ticket.paymentMethod) {
+            <div class="rounded-2xl border border-[#EAC9A8] bg-[#FFF7EF] p-4">
+              <p class="text-[13px] font-extrabold text-[#9A4B28]">💰 Pendiente de cobro</p>
+              <p class="mt-1 text-xs font-medium text-stone-500">Cobra aquí o en <a routerLink="/admin/cash" (click)="closeTicketModal()" class="font-bold text-[#B85C32] underline">Caja → Pendientes de cobro</a>.</p>
+              <div class="mt-3 grid grid-cols-3 gap-2">
+                <button (click)="payOrder(ticket, 'CASH')" class="rounded-xl bg-amber-500 px-2 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-amber-600">💵 Efectivo</button>
+                <button (click)="payOrder(ticket, 'CARD')" class="rounded-xl bg-sky-600 px-2 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-sky-700">💳 Tarjeta</button>
+                <button (click)="payOrder(ticket, 'TRANSFER')" class="rounded-xl bg-violet-600 px-2 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-violet-700">📲 Transf.</button>
+              </div>
+            </div>
+          }
+
+          @if ((ticket.timeline ?? []).length > 1) {
+            <div class="rounded-2xl border border-stone-100 px-4 py-3">
+              <p class="text-[11px] font-extrabold uppercase tracking-wider text-stone-400">Historial</p>
+              <div class="mt-1.5 space-y-1">
+                @for (ev of ticket.timeline ?? []; track ev.id) {
+                  <p class="text-xs font-medium text-stone-500"><span class="font-bold tabular-nums text-stone-700">{{ formatTime(ev.changedAt) }}</span> → {{ statusLabel(ev.toStatus) }}</p>
+                }
+              </div>
+            </div>
           }
         </div>
 
-        <!-- Footer Actions -->
-        <div class="p-4 bg-stone-100 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <button
-            (click)="openEditOrderModal(selectedTicketOrder()!); closeTicketModal()"
-            class="w-full sm:w-auto py-3 px-4 bg-stone-800 hover:bg-stone-700 text-white rounded-2xl font-extrabold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-            [class.!hidden]="selectedTicketOrder()!.status === 'CANCELLED' || selectedTicketOrder()!.status === 'DELIVERED'"
-            title="Editar pedido"
-          >
-            <span>✏️ Editar</span>
-          </button>
-
-          <button
-            (click)="printTicket()"
-            class="w-full sm:w-auto flex-1 py-3 bg-stone-900 text-white rounded-2xl font-bold text-xs hover:bg-stone-800 transition-colors flex items-center justify-center gap-2 shadow-xs"
-          >
-            <span>🖨️ Imprimir Ticket</span>
-          </button>
-
-          @if (selectedTicketOrder()!.customerPhone) {
-            <button
-              (click)="sendWhatsAppReadyNotification(selectedTicketOrder()!)"
-              class="w-full sm:w-auto py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-2xl font-extrabold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
-            >
-              <span>📱 Notificar WhatsApp ("¡Listo!")</span>
-            </button>
-          }
-
-          @switch (selectedTicketOrder()!.status) {
+        <div class="shrink-0 space-y-2.5 border-t border-stone-100 bg-white px-5 py-4 sm:px-6 safe-bottom-bar">
+          @switch (ticket.status) {
             @case ('PENDING') {
-              <button
-                (click)="updateStatus(selectedTicketOrder()!, 'CONFIRMED')"
-                class="w-full sm:w-auto px-4 py-3 bg-blue-600 text-white rounded-2xl font-extrabold text-xs hover:bg-blue-700 transition-colors"
-              >
-                Confirmar
-              </button>
+              <button (click)="updateStatus(ticket, 'CONFIRMED')" class="w-full rounded-xl bg-blue-600 px-4 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-blue-700">🍳 Confirmar y pasar a cocina</button>
             }
             @case ('CONFIRMED') {
-              <button
-                (click)="updateStatus(selectedTicketOrder()!, 'IN_PREPARATION')"
-                class="w-full sm:w-auto px-4 py-3 bg-violet-600 text-white rounded-2xl font-extrabold text-xs hover:bg-violet-700 transition-colors"
-              >
-                A cocinar
-              </button>
+              <button (click)="updateStatus(ticket, 'IN_PREPARATION')" class="w-full rounded-xl bg-violet-600 px-4 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-violet-700">🍳 A cocinar</button>
             }
             @case ('IN_PREPARATION') {
-              <button
-                (click)="updateStatus(selectedTicketOrder()!, 'READY')"
-                class="w-full sm:w-auto px-4 py-3 bg-emerald-500 text-white rounded-2xl font-extrabold text-xs hover:bg-emerald-600 transition-colors"
-              >
-                Marcar listo
-              </button>
+              <button (click)="updateStatus(ticket, 'READY')" class="w-full rounded-xl bg-emerald-500 px-4 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-600">✅ Marcar listo</button>
             }
             @case ('READY') {
-              <button
-                (click)="updateStatus(selectedTicketOrder()!, 'DELIVERED')"
-                class="w-full sm:w-auto px-4 py-3 bg-emerald-600 text-white rounded-2xl font-extrabold text-xs hover:bg-emerald-700 transition-colors"
-              >
-                Servir
-              </button>
+              <button (click)="updateStatus(ticket, 'DELIVERED')" class="w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-700">🍽️ Servir (pasa a caja)</button>
+            }
+            @case ('DELIVERED') {
+              @if (!ticket.paymentMethod) {
+                <a routerLink="/admin/cash" (click)="closeTicketModal()" class="flex w-full items-center justify-center rounded-xl bg-stone-900 px-4 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-stone-700">💰 Ir a cobrar en caja →</a>
+              }
             }
           }
+          <div class="flex flex-wrap gap-2">
+            @if (ticket.status !== 'CANCELLED' && ticket.status !== 'DELIVERED') {
+              <button (click)="openEditOrderModal(ticket); closeTicketModal()" class="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-bold text-stone-700 transition-colors hover:bg-stone-50">✏️ Editar</button>
+            }
+            <button (click)="printTicket()" class="flex-1 rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-xs font-bold text-stone-700 transition-colors hover:bg-stone-50">🖨️ Imprimir cocina</button>
+            @if (ticket.customerPhone) {
+              <button (click)="sendWhatsAppReadyNotification(ticket)" class="flex-1 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-extrabold text-white transition-colors hover:bg-emerald-600">📱 Avisar “¡Listo!”</button>
+            }
+          </div>
         </div>
       </div>
     </div>
   }
 
-  <!-- ========================================================================= -->
   <!-- PRINT-ONLY TICKET (For thermal kitchen receipt printers) -->
   <!-- ========================================================================= -->
   @if (selectedTicketOrder()) {
@@ -818,7 +929,7 @@
         @if (selectedTicketOrder()!.orderType === 'DELIVERY' && selectedTicketOrder()!.deliveryAddress) {
           <p>{{ selectedTicketOrder()!.deliveryAddress }}</p>
         }
-        <p>Cliente: {{ selectedTicketOrder()!.customerName }}</p>
+        <p>Cliente: {{ customerNameForDisplay(selectedTicketOrder()!) ?? '—' }}</p>
         @if (selectedTicketOrder()!.notes) {
           <p class="font-bold">NOTAS: {{ selectedTicketOrder()!.notes }}</p>
         }
@@ -845,104 +956,284 @@
   <!-- MANUAL ORDER MODAL (crear / editar pedido) -->
   <!-- ========================================================================= -->
   @if (manualModal()) {
-    <div class="no-print fixed inset-0 z-50 flex overflow-y-auto p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
-      <div class="m-auto bg-white rounded-3xl shadow-2xl border border-stone-100 max-w-lg w-full overflow-hidden max-h-[92vh] flex flex-col anim-fade-in-up">
-        <div class="p-4 bg-stone-900 text-white flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="text-lg">{{ manualModal() === 'EDIT' ? '✏️' : '➕' }}</span>
-            <span class="font-extrabold text-sm">{{ manualModal() === 'EDIT' ? 'Editar pedido' : 'Nuevo pedido manual' }}</span>
-          </div>
-          <button (click)="closeManualModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center font-bold text-sm">✕</button>
-        </div>
-
-        <div class="p-5 space-y-4 overflow-y-auto">
-          @if (manualError()) {
-            <div class="rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs font-bold text-red-700">{{ manualError() }}</div>
-          }
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label class="block">
-              <span class="text-[11px] font-extrabold text-stone-500 uppercase">Cliente *</span>
-              <input [value]="formCustomerName()" (input)="formCustomerName.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none input-glow" placeholder="Nombre del cliente" />
-            </label>
-            <label class="block">
-              <span class="text-[11px] font-extrabold text-stone-500 uppercase">Teléfono</span>
-              <input [value]="formCustomerPhone()" (input)="formCustomerPhone.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none input-glow" placeholder="Ej. 3001234567" />
-            </label>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label class="block">
-              <span class="text-[11px] font-extrabold text-stone-500 uppercase">Modalidad</span>
-              <select [value]="formOrderType()" (change)="formOrderType.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2 text-sm focus:outline-none input-glow">
-                <option value="DINE_IN">Mesa</option>
-                <option value="DELIVERY">Domicilio</option>
-                <option value="TAKEAWAY">Para llevar</option>
-              </select>
-            </label>
-            @if (formOrderType() === 'DELIVERY') {
-              <label class="block">
-                <span class="text-[11px] font-extrabold text-stone-500 uppercase">Dirección</span>
-                <input [value]="formDeliveryAddress()" (input)="formDeliveryAddress.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none input-glow" placeholder="Dirección del domicilio" />
-              </label>
-            } @else {
-              <label class="block">
-                <span class="text-[11px] font-extrabold text-stone-500 uppercase">Mesa</span>
-                <input [value]="formTable()" (input)="formTable.set($any($event.target).value)" class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none input-glow" placeholder="Ej. Mesa 4" />
-              </label>
-            }
-          </div>
-          <label class="block">
-            <span class="text-[11px] font-extrabold text-stone-500 uppercase">Notas</span>
-            <textarea [value]="formNotes()" (input)="formNotes.set($any($event.target).value)" rows="2" class="mt-1 w-full rounded-xl border border-stone-200 px-3 py-2 text-sm focus:outline-none input-glow" placeholder="Notas generales del pedido"></textarea>
-          </label>
-
-          <div>
-            <span class="text-[11px] font-extrabold text-stone-500 uppercase">Productos *</span>
-            <div class="mt-1 max-h-40 overflow-y-auto rounded-xl border border-stone-200 divide-y divide-stone-100">
-              @for (product of availableProducts(); track product.id) {
-                @if (product.available) {
-                  <button type="button" (click)="addManualProduct(product.id)" class="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-stone-50 transition-colors">
-                    <span class="text-sm font-bold text-stone-800">{{ product.name }}</span>
-                    <span class="shrink-0 flex items-center gap-2">
-                      <span class="text-xs font-black text-stone-500 tabular-nums">{{ formatCurrency(product.price) }}</span>
-                      <span class="flex h-6 w-6 items-center justify-center rounded-full text-xs font-black" [class]="isManualItemSelected(product.id) ? 'bg-emerald-500 text-white' : 'bg-stone-100 text-stone-500'">＋</span>
-                    </span>
-                  </button>
-                }
+    <div
+      class="no-print fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#FAFAF9] anim-fade-in"
+      role="dialog"
+      aria-modal="true"
+      [attr.aria-labelledby]="manualModal() === 'EDIT' ? 'manual-order-title-edit' : 'manual-order-title-create'"
+      (click)="closeManualModalFromBackdrop($event)"
+    >
+      <div class="flex min-h-0 w-full flex-1 flex-col overflow-hidden">
+        <header class="flex shrink-0 items-center justify-between gap-4 border-b border-stone-200 bg-white px-4 py-3.5 sm:px-8 sm:py-4">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#1C1917] text-[#FDBA74]">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 3h12v18l-2.3-1.5-2.3 1.5-2.4-1.5-2.4 1.5L6 19.5V3Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 8h6M9 12h6" />
+              </svg>
+            </span>
+            <div class="min-w-0">
+              <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#B85C32]">Pedido manual</p>
+              @if (manualModal() === 'EDIT') {
+                <h2 id="manual-order-title-edit" class="truncate text-xl font-black tracking-tight text-stone-900">Editar pedido</h2>
+              } @else {
+                <h2 id="manual-order-title-create" class="truncate text-xl font-black tracking-tight text-stone-900">Registrar pedido</h2>
               }
-              @if (availableProducts().length === 0) {
-                <p class="px-3 py-3 text-xs text-stone-400">No hay productos disponibles. Créalos en el módulo de productos.</p>
-              }
+              <p class="truncate text-xs text-stone-500">Elige la modalidad (mesa, domicilio o para llevar) y añade los platos.</p>
             </div>
           </div>
+          <button
+            type="button"
+            (click)="closeManualModal()"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-500 transition-colors hover:bg-stone-200 hover:text-stone-900"
+            aria-label="Cerrar formulario de pedido"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 6 12 12M18 6 6 18" /></svg>
+          </button>
+        </header>
 
-          @if (formItems().length > 0) {
-            <div>
-              <span class="text-[11px] font-extrabold text-stone-500 uppercase">En el pedido</span>
-              <div class="mt-1 space-y-1.5">
-                @for (item of formItems(); track item.productId) {
-                  <div class="flex items-center justify-between gap-2 rounded-xl bg-stone-50 border border-stone-100 px-3 py-2">
-                    <span class="text-sm font-bold text-stone-800 flex-1 truncate">{{ manualItemProduct(item.productId)?.name ?? 'Producto #' + item.productId }}</span>
-                    <div class="flex items-center gap-1.5">
-                      <button type="button" (click)="changeManualQuantity(item.productId, -1)" class="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-stone-200 text-sm font-black text-stone-600 hover:bg-stone-100">−</button>
-                      <span class="w-6 text-center text-sm font-black tabular-nums">{{ item.quantity }}</span>
-                      <button type="button" (click)="changeManualQuantity(item.productId, 1)" class="flex h-7 w-7 items-center justify-center rounded-full bg-white border border-stone-200 text-sm font-black text-stone-600 hover:bg-stone-100">＋</button>
-                      <button type="button" (click)="removeManualProduct(item.productId)" class="ml-1 flex h-7 w-7 items-center justify-center rounded-full text-xs text-red-500 hover:bg-red-50">✕</button>
-                    </div>
+        <div class="sheet-scroll min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8 sm:py-7">
+          <div class="mx-auto w-full max-w-6xl">
+          @if (manualError(); as error) {
+            <div class="mb-5 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-3.5 py-3 text-xs font-bold text-red-700" role="alert">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true"><path fill-rule="evenodd" d="M10 1.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17ZM10 5a.75.75 0 0 1 .75.75v4.5a.75.75 0 0 1-1.5 0v-4.5A.75.75 0 0 1 10 5Zm0 9.25a.9.9 0 1 0 0 1.8.9.9 0 0 0 0-1.8Z" clip-rule="evenodd" /></svg>
+              <span>{{ error }}</span>
+            </div>
+          }
+
+          <div class="grid gap-6 lg:grid-cols-[minmax(0,0.86fr)_minmax(0,1.14fr)]">
+            <section class="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-stone-400">1 · Destino</p>
+                  <h3 class="mt-1 text-lg font-black text-stone-900">¿Dónde se entrega?</h3>
+                  <p class="mt-1 text-xs leading-relaxed text-stone-500">Identifica el pedido con una mesa, una dirección o para llevar.</p>
+                </div>
+                <span class="shrink-0 rounded-full bg-[#F9DFC2] px-2.5 py-1 text-[10px] font-extrabold text-[#9A4B28]">{{ orderTypeLabel(formOrderType()) }}</span>
+              </div>
+
+              <div class="mt-5 grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1" role="group" aria-label="Modalidad del pedido">
+                @for (type of manualOrderTypes; track type.value) {
+                  <button
+                    type="button"
+                    (click)="formOrderType.set(type.value)"
+                    [attr.aria-pressed]="formOrderType() === type.value"
+                    class="rounded-lg px-2 py-2.5 text-xs font-extrabold transition-colors"
+                    [class]="formOrderType() === type.value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800'"
+                  >
+                    {{ type.label }}
+                  </button>
+                }
+              </div>
+
+              <div class="mt-5">
+                @if (formOrderType() === 'DELIVERY') {
+                  <label class="block">
+                    <span class="text-xs font-bold text-stone-700">Dirección de entrega</span>
+                    <input
+                      [value]="formDeliveryAddress()"
+                      (input)="formDeliveryAddress.set($any($event.target).value)"
+                      autocomplete="street-address"
+                      class="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-base font-semibold text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                      placeholder="Calle, número y barrio"
+                    />
+                  </label>
+                } @else if (formOrderType() === 'DINE_IN') {
+                  <label class="block">
+                    <span class="text-xs font-bold text-stone-700">Número de mesa</span>
+                    <input
+                      [value]="formTable()"
+                      (input)="formTable.set($any($event.target).value)"
+                      inputmode="numeric"
+                      class="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-base font-black text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                      placeholder="Ej. 4"
+                    />
+                    <span class="mt-1.5 block text-[11px] text-stone-500">En el pedido aparecerá como {{ manualDestinationLabel() }}.</span>
+                  </label>
+                } @else {
+                  <div class="flex items-center gap-3 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3.5 py-3 text-sm font-bold text-stone-700">
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full bg-white text-[#B85C32]">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 7h14v13H5V7Zm3 0V5h8v2M8 11h8M8 15h5" /></svg>
+                    </span>
+                    Pedido para llevar
                   </div>
                 }
               </div>
+
+              <label class="mt-4 block">
+                <span class="text-xs font-bold text-stone-700">Teléfono <span class="font-normal text-stone-400">(opcional)</span></span>
+                <input
+                  [value]="formCustomerPhone()"
+                  (input)="formCustomerPhone.set($any($event.target).value)"
+                  type="tel"
+                  inputmode="tel"
+                  class="mt-1.5 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                  placeholder="Ej. 300 123 4567"
+                />
+              </label>
+
+              <label class="mt-4 block">
+                <span class="text-xs font-bold text-stone-700">Notas <span class="font-normal text-stone-400">(opcional)</span></span>
+                <textarea
+                  [value]="formNotes()"
+                  (input)="formNotes.set($any($event.target).value)"
+                  rows="3"
+                  class="mt-1.5 w-full resize-none rounded-xl border border-stone-200 bg-white px-3.5 py-3 text-base text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                  placeholder="Ej. sin cebolla, servir despacio…"
+                ></textarea>
+              </label>
+            </section>
+
+            <div class="space-y-6">
+              <section class="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-stone-400">2 · Platos</p>
+                    <h3 class="mt-1 text-lg font-black text-stone-900">Añade al pedido</h3>
+                  </div>
+                  <span class="rounded-full bg-stone-100 px-2.5 py-1 text-[10px] font-extrabold text-stone-500">{{ filteredManualProducts().length }} disponibles</span>
+                </div>
+
+                <div class="relative mt-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path stroke-linecap="round" d="m20 20-4-4" /></svg>
+                  <input
+                    type="search"
+                    [value]="manualProductQuery()"
+                    (input)="manualProductQuery.set($any($event.target).value)"
+                    class="w-full rounded-xl border border-stone-200 bg-stone-50 py-2.5 pl-9 pr-3 text-sm font-semibold text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                    placeholder="Buscar un plato…"
+                    aria-label="Buscar plato"
+                  />
+                </div>
+
+                <div class="mt-3 max-h-[22rem] divide-y divide-stone-100 overflow-y-auto rounded-xl border border-stone-200">
+                  @if (manualProductsLoading()) {
+                    @for (i of [1, 2, 3, 4]; track $index) {
+                      <div class="flex items-center gap-3 px-3.5 py-3">
+                        <span class="h-4 w-32 animate-pulse rounded bg-stone-100"></span>
+                        <span class="ml-auto h-7 w-16 animate-pulse rounded bg-stone-100"></span>
+                      </div>
+                    }
+                  } @else {
+                    @for (product of filteredManualProducts(); track product.id) {
+                    <button
+                      type="button"
+                      (click)="addManualProduct(product.id)"
+                      class="flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition-colors hover:bg-stone-50"
+                    >
+                      <span class="min-w-0 flex-1">
+                        <span class="block truncate text-sm font-bold text-stone-800">{{ product.name }}</span>
+                        @if (product.description) {
+                          <span class="mt-0.5 block truncate text-[11px] text-stone-400">{{ product.description }}</span>
+                        }
+                      </span>
+                      <span class="flex shrink-0 items-center gap-2">
+                        <span class="text-xs font-black tabular-nums text-stone-500">{{ formatCurrency(product.price) }}</span>
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full text-base font-black transition-colors" [class]="isManualItemSelected(product.id) ? 'bg-[#1C1917] text-white' : 'bg-stone-100 text-stone-500'">+</span>
+                      </span>
+                    </button>
+                  } @empty {
+                    <div class="px-4 py-8 text-center">
+                      <p class="text-sm font-bold text-stone-700">No encontramos platos</p>
+                      <p class="mt-1 text-xs text-stone-400">Prueba con otro nombre o crea productos en el menú.</p>
+                    </div>
+                  }
+                  }
+                </div>
+              </section>
+
+              <section class="rounded-2xl border border-stone-200 bg-white p-5 sm:p-6">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-stone-400">3 · Revisión</p>
+                    <h3 class="mt-1 text-lg font-black text-stone-900">En este pedido</h3>
+                  </div>
+                  <span class="rounded-full bg-[#1C1917] px-2.5 py-1 text-[10px] font-extrabold text-white">{{ manualItemCount() }} platos</span>
+                </div>
+
+                @if (formItems().length > 0) {
+                  <div class="mt-4 space-y-2">
+                    @for (item of formItems(); track item.productId) {
+                      <div class="flex items-center gap-3 rounded-xl border border-stone-100 bg-stone-50 px-3 py-2.5">
+                        <div class="min-w-0 flex-1">
+                          <p class="truncate text-sm font-bold text-stone-800">{{ manualItemProduct(item.productId)?.name ?? 'Producto #' + item.productId }}</p>
+                          <p class="mt-0.5 text-[11px] font-semibold tabular-nums text-stone-400">{{ formatCurrency(manualItemProduct(item.productId)?.price ?? 0) }} c/u</p>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-1">
+                          <button type="button" (click)="changeManualQuantity(item.productId, -1)" class="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-sm font-black text-stone-600 transition-colors hover:bg-stone-100" aria-label="Quitar uno">−</button>
+                          <span class="w-6 text-center text-sm font-black tabular-nums text-stone-900">{{ item.quantity }}</span>
+                          <button type="button" (click)="changeManualQuantity(item.productId, 1)" class="flex h-8 w-8 items-center justify-center rounded-full border border-stone-200 bg-white text-sm font-black text-stone-600 transition-colors hover:bg-stone-100" aria-label="Añadir uno">+</button>
+                          <button type="button" (click)="removeManualProduct(item.productId)" class="ml-1 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black text-stone-400 transition-colors hover:bg-red-50 hover:text-red-500" aria-label="Eliminar plato">×</button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="mt-5 grid grid-cols-2 gap-3 border-t border-stone-100 pt-4">
+                    <label class="block">
+                      <span class="text-[11px] font-extrabold uppercase tracking-[0.08em] text-stone-500">Descuento</span>
+                      <span class="relative mt-1.5 block">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-400">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          [value]="formDiscount() ?? ''"
+                          (input)="setManualDiscount($any($event.target).value)"
+                          class="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-7 pr-3 text-sm font-black tabular-nums text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                          placeholder="0"
+                          aria-label="Descuento"
+                        />
+                      </span>
+                    </label>
+                    <label class="block">
+                      <span class="text-[11px] font-extrabold uppercase tracking-[0.08em] text-stone-500">Propina</span>
+                      <span class="relative mt-1.5 block">
+                        <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-stone-400">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="any"
+                          [value]="formTip() ?? ''"
+                          (input)="setManualTip($any($event.target).value)"
+                          class="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-7 pr-3 text-sm font-black tabular-nums text-stone-900 placeholder:text-stone-400 focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+                          placeholder="0"
+                          aria-label="Propina"
+                        />
+                      </span>
+                    </label>
+                  </div>
+                } @else {
+                  <div class="mt-4 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-7 text-center">
+                    <span class="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-white text-stone-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 7h14v13H5V7Zm3 0V5h8v2M8 11h8M8 15h5" /></svg>
+                    </span>
+                    <p class="mt-2 text-sm font-bold text-stone-700">El pedido está vacío</p>
+                    <p class="mt-1 text-xs text-stone-500">Toca un plato para añadirlo.</p>
+                  </div>
+                }
+              </section>
             </div>
-          }
+          </div>
+          </div>
         </div>
 
-        <div class="p-4 bg-stone-100 border-t border-stone-200 flex items-center justify-between gap-3">
-          <p class="text-sm font-black text-stone-900">Total: <span class="tabular-nums">{{ formatCurrency(formTotal()) }}</span></p>
-          <button (click)="saveManualOrder()" [disabled]="manualSaving()" class="flex items-center gap-1.5 rounded-2xl bg-stone-900 px-5 py-3 text-xs font-extrabold text-white hover:bg-stone-800 disabled:opacity-50 transition-colors">
+        <footer class="safe-bottom-bar flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-stone-200 bg-white px-4 py-4 sm:px-8">
+          <div>
+            <p class="text-[10px] font-extrabold uppercase tracking-[0.14em] text-stone-400">Total del pedido</p>
+            <p class="mt-0.5 text-xl font-black tabular-nums text-stone-900">{{ formatCurrency(formTotal()) }}</p>
+            <p class="text-[11px] text-stone-500">{{ manualDestinationLabel() }} · {{ manualItemCount() }} platos</p>
+          </div>
+          <button
+            type="button"
+            (click)="saveManualOrder()"
+            [disabled]="manualSaving() || formItems().length === 0"
+            class="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1C1917] px-5 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-stone-700 disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[190px] sm:flex-none"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg>
             {{ manualSaving() ? 'Guardando…' : (manualModal() === 'EDIT' ? 'Guardar cambios' : 'Registrar pedido') }}
           </button>
-        </div>
+        </footer>
       </div>
     </div>
   }
-
-</div>

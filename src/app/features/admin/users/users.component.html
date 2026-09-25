@@ -24,6 +24,164 @@
     <h1 class="mt-4 text-[30px] leading-[1.05] font-black tracking-tight text-stone-900">
       Equipo? <span class="text-stone-400 font-extrabold">Invita y gestiona.</span>
     </h1>
+    <button
+      (click)="togglePermissions()"
+      class="mt-3 flex w-full items-center justify-between rounded-2xl bg-stone-900 px-4 py-3 text-left text-white active:scale-[0.99] transition"
+      [attr.aria-expanded]="showPermissions()"
+      aria-controls="mobile-permissions-panel"
+    >
+      <span class="flex items-center gap-2 text-[13px] font-extrabold">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4 text-[#FDBA74]" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.5 7.5a4.5 4.5 0 1 0-3.9 4.48L7 16.58V20h3.42l4.6-4.6A4.5 4.5 0 0 0 15.5 7.5Z" />
+        </svg>
+        Permisos
+      </span>
+      <span class="flex items-center gap-2 text-xs font-bold text-stone-300">
+        <span>{{ selectedPermissionCount() }}/{{ availablePermissions().length }}</span>
+        <span class="text-lg leading-none">{{ showPermissions() ? '−' : '+' }}</span>
+      </span>
+    </button>
+    @if (showPermissions()) {
+      <div id="mobile-permissions-panel" class="mt-2 overflow-hidden rounded-2xl bg-white p-4 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p class="text-sm font-extrabold text-stone-900">Acceso de {{ targetLabel() }}</p>
+            <p class="mt-0.5 text-[11px] text-stone-500">
+              {{ permScope() === 'user' ? 'Permisos propios de esta persona.' : 'Elige qué puede hacer este rol.' }}
+            </p>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <button
+              type="button"
+              (click)="setAllPermissions(true)"
+              [disabled]="permSaving() || hasAllPermissions()"
+              class="rounded-full bg-[#F9DFC2] px-3 py-1.5 text-[10px] font-extrabold text-[#9A4B28] transition-colors hover:bg-[#F4C89F] disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Dar todos
+            </button>
+            <button
+              type="button"
+              (click)="setAllPermissions(false)"
+              [disabled]="permSaving() || selectedPermissionCount() === 0"
+              class="rounded-full bg-stone-100 px-3 py-1.5 text-[10px] font-extrabold text-stone-600 transition-colors hover:bg-stone-200 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1" role="tablist" aria-label="Alcance de permisos">
+          <button
+            type="button"
+            role="tab"
+            (click)="selectPermScope('role')"
+            [attr.aria-selected]="permScope() === 'role'"
+            [disabled]="permSaving()"
+            class="rounded-lg px-2 py-2 text-[11px] font-extrabold transition-colors"
+            [class]="permScope() === 'role' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+          >
+            Por rol
+          </button>
+          <button
+            type="button"
+            role="tab"
+            (click)="selectPermScope('user')"
+            [attr.aria-selected]="permScope() === 'user'"
+            [disabled]="permSaving()"
+            class="rounded-lg px-2 py-2 text-[11px] font-extrabold transition-colors"
+            [class]="permScope() === 'user' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+          >
+            Por persona
+          </button>
+        </div>
+
+        @if (permScope() === 'role') {
+          <div class="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1" role="tablist" aria-label="Rol del equipo">
+            @for (r of permRoles; track r.value) {
+              <button
+                type="button"
+                role="tab"
+                (click)="selectPermissionRole(r.value)"
+                [attr.aria-selected]="permRole() === r.value"
+                [disabled]="permSaving()"
+                class="rounded-lg px-2 py-2 text-[11px] font-extrabold transition-colors"
+                [class]="permRole() === r.value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+              >
+                {{ r.label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="mt-3">
+            <label class="sr-only" for="perm-user-mobile">Persona</label>
+            <select
+              id="perm-user-mobile"
+              (change)="selectPermissionUser($any($event.target).value)"
+              [disabled]="permSaving() || permableUsers().length === 0"
+              class="w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-[13px] font-bold text-stone-900 focus:border-[#D97745] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+            >
+              @if (permableUsers().length === 0) {
+                <option value="">Sin personas disponibles</option>
+              } @else {
+                @for (u of permableUsers(); track u.id) {
+                  <option [value]="u.id" [selected]="permUserId() === u.id">{{ u.name }} · {{ roleLabel(u.role) }}</option>
+                }
+              }
+            </select>
+            @if (userPermInherited()) {
+              <p class="mt-2 text-[11px] font-bold text-stone-400">Hereda los permisos de su rol.</p>
+            } @else {
+              <div class="mt-2 flex items-center gap-2">
+                <span class="rounded-full bg-[#F9DFC2] px-2.5 py-1 text-[10px] font-extrabold text-[#9A4B28]">Permisos personalizados</span>
+                <button
+                  type="button"
+                  (click)="resetUserToRole()"
+                  [disabled]="permSaving()"
+                  class="rounded-full border border-stone-200 px-2.5 py-1 text-[10px] font-extrabold text-stone-600 transition-colors hover:bg-stone-50 disabled:opacity-45"
+                >
+                  Volver al rol
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        @if (permSaving()) {
+          <p class="mt-3 text-center text-[11px] font-bold text-stone-400" role="status">Guardando permisos…</p>
+        } @else if (permStatus() === 'saved') {
+          <p class="mt-3 text-center text-[11px] font-bold text-emerald-600" role="status">Cambios guardados</p>
+        }
+
+        <div class="mt-3 space-y-1" [attr.aria-busy]="permLoading() || userPermLoading()">
+          @if (permLoading() || (permScope() === 'user' && userPermLoading())) {
+            @for (i of [1, 2, 3, 4]; track $index) {
+              <div class="flex items-center gap-3 px-2 py-2">
+                <span class="h-5 w-5 animate-pulse rounded bg-stone-100"></span>
+                <span class="h-3 w-32 animate-pulse rounded bg-stone-100"></span>
+              </div>
+            }
+          } @else {
+            @for (p of availablePermissions(); track p) {
+              <label class="flex items-center gap-3 rounded-xl px-2 py-2 transition-colors hover:bg-stone-50">
+                <input
+                  type="checkbox"
+                  [checked]="hasPerm(p)"
+                  (change)="togglePerm(p)"
+                  [disabled]="permSaving()"
+                  class="h-5 w-5 accent-[#D97745]"
+                />
+                <span class="text-[13px] font-bold text-stone-700">{{ permissionLabel(p) }}</span>
+              </label>
+            } @empty {
+              <p class="py-3 text-center text-xs text-stone-400">No hay permisos configurables.</p>
+            }
+          }
+        </div>
+        <p class="mt-3 border-t border-stone-100 pt-3 text-[11px] leading-relaxed text-stone-500">
+          El administrador siempre tiene todos los permisos. Los cambios se guardan automáticamente.
+        </p>
+      </div>
+    }
   </div>
 
   <div class="rounded-t-[2.2rem] bg-[#ededf0] px-4 pt-5 min-h-[60vh]">
@@ -77,7 +235,7 @@
             <div class="mt-3 flex items-center justify-between">
               <span class="rounded-lg px-2 py-1 text-[11px] font-extrabold"
                 [class]="member.role === 'RESTAURANT_ADMIN' ? 'bg-primary-50 text-primary-600 ring-1 ring-primary-100' : 'bg-stone-100 text-stone-500'">
-                {{ member.role === 'RESTAURANT_ADMIN' ? '⭐ Admin' : '👤 Operativo' }}
+                {{ roleLabel(member.role) === 'Administrador' ? '⭐ Admin' : roleLabel(member.role) === 'Mesero' ? '🧾 Mesero' : roleLabel(member.role) === 'Cajero' ? '💵 Cajero' : '👤 Operativo' }}
               </span>
               @if (member.id !== currentUserId()) {
                 <div class="flex items-center gap-1.5">
@@ -165,9 +323,175 @@
     }
   </div>
 
+  <!-- Permisos: por rol o por persona -->
+  <section class="mt-6 overflow-hidden rounded-2xl border border-stone-900/10 bg-white" aria-labelledby="permissions-title">
+    <div class="flex flex-wrap items-start justify-between gap-4 bg-[#1C1917] px-6 py-5 text-white sm:px-7">
+      <div class="flex items-start gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-[#FDBA74]">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-5 w-5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.5 7.5a4.5 4.5 0 1 0-3.9 4.48L7 16.58V20h3.42l4.6-4.6A4.5 4.5 0 0 0 15.5 7.5Z" />
+          </svg>
+        </span>
+        <div>
+          <h2 id="permissions-title" class="landing-serif text-[24px] font-medium text-white">Permisos</h2>
+          <p class="mt-1 max-w-2xl text-[13px] leading-relaxed text-stone-300">Define qué puede hacer cada rol o cada persona de tu equipo. Puedes otorgar acceso completo o ajustar una función a la vez.</p>
+        </div>
+      </div>
+      <div class="rounded-xl bg-white/10 px-3.5 py-2 text-right">
+        <p class="text-[10px] font-bold uppercase tracking-[0.14em] text-stone-400">Acceso de {{ targetLabel() }}</p>
+        <p class="mt-0.5 text-lg font-black tabular-nums text-white">{{ selectedPermissionCount() }}<span class="text-sm font-semibold text-stone-400"> / {{ availablePermissions().length }}</span></p>
+      </div>
+    </div>
+
+    <div class="px-6 py-5 sm:px-7">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="grid w-full max-w-xs grid-cols-2 gap-1 rounded-xl bg-stone-100 p-1" role="tablist" aria-label="Alcance de permisos">
+          <button
+            type="button"
+            role="tab"
+            (click)="selectPermScope('role')"
+            [attr.aria-selected]="permScope() === 'role'"
+            [disabled]="permSaving()"
+            class="rounded-lg px-3 py-2.5 text-xs font-extrabold transition-colors"
+            [class]="permScope() === 'role' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+          >
+            Por rol
+          </button>
+          <button
+            type="button"
+            role="tab"
+            (click)="selectPermScope('user')"
+            [attr.aria-selected]="permScope() === 'user'"
+            [disabled]="permSaving()"
+            class="rounded-lg px-3 py-2.5 text-xs font-extrabold transition-colors"
+            [class]="permScope() === 'user' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+          >
+            Por persona
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <button
+            type="button"
+            (click)="setAllPermissions(true)"
+            [disabled]="permSaving() || hasAllPermissions()"
+            class="inline-flex items-center gap-1.5 rounded-full bg-[#F9DFC2] px-3.5 py-2 text-[11px] font-extrabold text-[#9A4B28] transition-colors hover:bg-[#F4C89F] disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="h-3.5 w-3.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg>
+            Dar todos
+          </button>
+          <button
+            type="button"
+            (click)="setAllPermissions(false)"
+            [disabled]="permSaving() || selectedPermissionCount() === 0"
+            class="inline-flex items-center gap-1.5 rounded-full border border-stone-200 px-3.5 py-2 text-[11px] font-extrabold text-stone-600 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Limpiar
+          </button>
+        </div>
+      </div>
+
+      <!-- A quién se le aplican estos permisos: un rol o una persona -->
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        @if (permScope() === 'role') {
+          <div class="grid min-w-[260px] flex-1 grid-cols-3 gap-1 rounded-xl bg-stone-100 p-1 sm:max-w-md" role="tablist" aria-label="Rol del equipo">
+            @for (r of permRoles; track r.value) {
+              <button
+                type="button"
+                role="tab"
+                (click)="selectPermissionRole(r.value)"
+                [attr.aria-selected]="permRole() === r.value"
+                [disabled]="permSaving()"
+                class="rounded-lg px-3 py-2.5 text-xs font-extrabold transition-colors"
+                [class]="permRole() === r.value ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-500 hover:text-stone-800 disabled:opacity-50'"
+              >
+                {{ r.label }}
+              </button>
+            }
+          </div>
+        } @else {
+          <div class="w-full sm:max-w-md">
+            <label class="sr-only" for="perm-user-desktop">Persona</label>
+            <select
+              id="perm-user-desktop"
+              (change)="selectPermissionUser($any($event.target).value)"
+              [disabled]="permSaving() || permableUsers().length === 0"
+              class="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm font-bold text-[#1C1917] transition-colors focus:border-[#D97745] focus:outline-none focus:ring-2 focus:ring-[#F9DFC2]"
+            >
+              @if (permableUsers().length === 0) {
+                <option value="">Sin personas disponibles</option>
+              } @else {
+                @for (u of permableUsers(); track u.id) {
+                  <option [value]="u.id" [selected]="permUserId() === u.id">{{ u.name }} · {{ roleLabel(u.role) }}</option>
+                }
+              }
+            </select>
+          </div>
+          @if (userPermInherited()) {
+            <span class="rounded-full bg-stone-100 px-3 py-1.5 text-[11px] font-extrabold text-stone-500">Hereda los permisos de su rol</span>
+          } @else {
+            <span class="rounded-full bg-[#F9DFC2] px-3 py-1.5 text-[11px] font-extrabold text-[#9A4B28]">Permisos personalizados</span>
+            <button
+              type="button"
+              (click)="resetUserToRole()"
+              [disabled]="permSaving()"
+              class="rounded-full border border-stone-200 px-3 py-1.5 text-[11px] font-extrabold text-stone-600 transition-colors hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              Volver al rol
+            </button>
+          }
+        }
+      </div>
+
+      <div class="mt-4 flex min-h-5 items-center justify-between gap-3 text-[11px] font-semibold text-stone-500" aria-live="polite">
+        <span>
+          @if (permScope() === 'user' && userPermInherited()) {
+            {{ targetLabel() }} aún no tiene permisos propios: vale lo de su rol.
+          } @else if (permStatus() === 'saved') {
+            Cambios guardados automáticamente.
+          } @else {
+            Los cambios se guardan al instante.
+          }
+        </span>
+        @if (permSaving()) {
+          <span class="font-extrabold text-stone-400" role="status">Guardando…</span>
+        }
+      </div>
+
+      <div class="mt-3 grid grid-cols-1 gap-x-8 gap-y-1 sm:grid-cols-2" [attr.aria-busy]="permLoading() || userPermLoading()">
+        @if (permLoading() || (permScope() === 'user' && userPermLoading())) {
+          @for (i of [1, 2, 3, 4, 5, 6]; track $index) {
+            <div class="flex items-center gap-3 px-3 py-2.5">
+              <span class="h-5 w-5 animate-pulse rounded bg-stone-100"></span>
+              <span class="h-3 w-32 animate-pulse rounded bg-stone-100"></span>
+            </div>
+          }
+        } @else {
+          @for (p of availablePermissions(); track p) {
+            <label class="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-stone-50">
+              <input
+                type="checkbox"
+                [checked]="hasPerm(p)"
+                (change)="togglePerm(p)"
+                [disabled]="permSaving()"
+                class="h-5 w-5 accent-[#D97745]"
+              />
+              <span class="text-sm font-bold text-stone-700">{{ permissionLabel(p) }}</span>
+            </label>
+          } @empty {
+            <p class="col-span-full py-4 text-center text-sm text-stone-400">No hay permisos configurables.</p>
+          }
+        }
+      </div>
+
+      <div class="mt-5 flex items-start gap-2 border-t border-stone-100 pt-4 text-[12px] leading-relaxed text-stone-500">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mt-0.5 h-4 w-4 shrink-0 text-stone-400" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3 5 6v5c0 4.6 3 8.2 7 10 4-1.8 7-5.4 7-10V6l-7-3Z" /><path stroke-linecap="round" stroke-linejoin="round" d="m9 12 2 2 4-4" /></svg>
+        <span>El administrador del restaurante siempre tiene todos los permisos.</span>
+      </div>
+    </div>
+  </section>
+
   @if (errorMessage()) {
-    <div class="mt-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0 mt-0.5 text-red-500">
+    <div class="mt-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 px-5 py-4 text-sm flex items-start gap-3 anim-fade-in-scale">      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0 mt-0.5 text-red-500">
         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
       </svg>
       <span>{{ errorMessage() }}</span>
@@ -202,6 +526,8 @@
         <label class="field-label" for="user-role">Rol</label>
         <select id="user-role" formControlName="role" class="w-full rounded-xl border border-stone-200 bg-white px-4 py-3 focus:outline-none input-glow transition-all duration-200">
           <option value="RESTAURANT_USER">Equipo (opera el día a día)</option>
+          <option value="WAITER">Mesero (pedidos y mesas)</option>
+          <option value="CASHIER">Cajero (cobra y cierra)</option>
           <option value="RESTAURANT_ADMIN">Administrador (gestiona todo)</option>
         </select>
       </div>

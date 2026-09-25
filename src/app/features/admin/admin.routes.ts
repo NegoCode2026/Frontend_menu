@@ -9,7 +9,7 @@ import { roleGuard } from '../../core/guards/role.guard';
  * manda a /admin/super-admin/dashboard. La gestión global vive bajo
  * /admin/super-admin (solo SUPER_ADMIN).
  */
-const tenantGuard = roleGuard('RESTAURANT_ADMIN', 'RESTAURANT_USER');
+const tenantGuard = roleGuard('RESTAURANT_ADMIN', 'RESTAURANT_USER', 'WAITER', 'CASHIER');
 
 export const adminRoutes: Routes = [
   {
@@ -28,24 +28,30 @@ export const adminRoutes: Routes = [
         loadComponent: () => import('./orders/orders.component').then((m) => m.OrdersComponent),
       },
       {
+        path: 'inventory',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
+        loadComponent: () => import('./inventory/inventory.component').then((m) => m.InventoryComponent),
+      },
+      {
+        path: 'profits',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
+        loadComponent: () =>
+          import('./profits/profits.component').then((m) => m.ProfitsComponent),
+      },
+      {
+        path: 'cash',
+        canActivate: [roleGuard('RESTAURANT_ADMIN', 'CASHIER')],
+        loadComponent: () => import('./cash/cash.component').then((m) => m.CashComponent),
+      },
+      {
         path: 'tables',
         canActivate: [tenantGuard],
         loadComponent: () => import('./tables/tables.component').then((m) => m.TablesComponent),
       },
       {
-        path: 'stats',
-        canActivate: [roleGuard('RESTAURANT_ADMIN')],
-        loadComponent: () => import('./stats/stats.component').then((m) => m.StatsComponent),
-      },
-      {
         path: 'restaurant',
         canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./restaurant/restaurant.component').then((m) => m.RestaurantComponent),
-      },
-      {
-        path: 'categories',
-        canActivate: [tenantGuard],
-        loadComponent: () => import('./categories/categories.component').then((m) => m.CategoriesComponent),
       },
       {
         path: 'products',

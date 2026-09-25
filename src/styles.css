@@ -16,6 +16,7 @@ body, p, .body-text { font-family: 'Inter', sans-serif; }
   --bg-page: #FAFAFA;
   --bg-card: #FFFFFF;
   --text-muted: #78716C;
+  color-scheme: light;
 }
 
 html,
@@ -290,6 +291,23 @@ a,
 input, textarea, select {
   caret-color: #ea580c;
 }
+/* Todos los inputs y barras de búsqueda siempre en clarito,
+   aunque el navegador o el SO estén en modo oscuro.
+   :where() mantiene especificidad 0 para no pisar los bg-* de Tailwind. */
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select) {
+  background-color: #ffffff;
+  color: #1c1917;
+}
+:where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]))::placeholder,
+:where(textarea)::placeholder {
+  color: #a8a29e;
+}
+:where(input[type="search"]) {
+  color: #1c1917;
+}
+input[type="search"]::-webkit-search-cancel-button {
+  cursor: pointer;
+}
 .sheet-scroll::-webkit-scrollbar,
 .carousel-x::-webkit-scrollbar {
   height: 6px;
@@ -316,7 +334,11 @@ input, textarea, select {
    KEYFRAME ANIMATIONS
    ============================================================ */
 
-/* Fade In + Slide Up */
+/* Fade In + Slide Up
+   El 100% usa `transform: none` (no translateY(0)): con `fill-mode: both`
+   el valor final queda aplicado para siempre y un transform residual haría
+   que todo `position: fixed` dentro (modales, nav, dropdowns) se posicionara
+   contra este elemento en vez de contra la ventana. */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
@@ -324,7 +346,7 @@ input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -336,7 +358,7 @@ input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -348,7 +370,7 @@ input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -370,7 +392,7 @@ input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 
@@ -382,7 +404,7 @@ input, textarea, select {
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 

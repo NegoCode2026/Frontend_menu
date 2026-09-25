@@ -1,9 +1,10 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
+import { TenantBackendService } from './tenant-backend.service';
 import { environment } from '../../../environments/environment';
-import { CreateOrderRequest, Order, OrderStats, OrderStatus, UpdateOrderRequest } from '../models/models';
+import { CreateManualOrderRequest, CreateOrderRequest, Order, OrderStats, OrderStatus, PaymentMethod, UpdateOrderRequest } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
@@ -17,13 +18,16 @@ export class OrderService {
   readonly onNewOrder$ = this.newOrderTrigger$.asObservable();
 
   /**
-   * El fallback local (localStorage + pedidos de demostración) solo se usa en
-   * desarrollo: en producción un pedido que no llega al backend NO debe ser
+   * El fallback local (localStorage + pedidos de demostraci├│n) solo se usa en
+   * desarrollo: en producci├│n un pedido que no llega al backend NO debe ser
    * fabricado localmente, para no "sonar" en el tablero sin existir.
    */
   private readonly demoMode = !environment.production;
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private tenants: TenantBackendService,
+  ) {}
 
   private getStoredOrders(): Order[] {
     try {
@@ -45,8 +49,8 @@ export class OrderService {
     }
   }
 
-  /** Guarda el pedido colocado en ESTA sesión/navegador para poder rastrearlo
-   *  desde el menú público sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
+  /** Guarda el pedido colocado en ESTA sesi├│n/navegador para poder rastrearlo
+   *  desde el men├║ p├║blico sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
   saveTrackedOrder(slug: string, order: Order): void {
     try {
       const map = this.readTracked();
@@ -78,7 +82,7 @@ export class OrderService {
     }
   }
 
-  /** Consulta en tiempo real el estado de un pedido por su código de seguimiento (sin autenticación). */
+  /** Consulta en tiempo real el estado de un pedido por su c├│digo de seguimiento (sin autenticaci├│n). */
   trackOrder(trackingCode: string): Observable<Order> {
     return this.api.get<Order>(`/public/orders/track/${encodeURIComponent(trackingCode)}`).pipe(
       catchError((err) => {
@@ -96,7 +100,13 @@ export class OrderService {
   }
 
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
-    return this.api.post<Order>(`/public/orders/${slug}`, payload).pipe(
+    // Multi-docker: espera el registry remoto y fija el docker del slug
+    // para que pedido e imágenes vayan a la misma máquina.
+    return this.tenants.ensureLoaded().pipe(
+      switchMap(() => {
+        this.tenants.pinFor(slug);
+        return this.api.post<Order>(`/public/orders/${slug}`, payload);
+      }),
       tap((order) => {
         const stored = this.getStoredOrders();
         this.saveStoredOrders([order, ...stored]);
@@ -186,7 +196,7 @@ export class OrderService {
     return this.api.get<OrderStats>('/orders/stats');
   }
 
-  createMine(payload: CreateOrderRequest): Observable<Order> {
+  createMine(payload: CreateManualOrderRequest): Observable<Order> {
     return this.api.post<Order>('/orders', payload);
   }
 
@@ -207,7 +217,7 @@ export class OrderService {
     );
   }
 
-  updateStatusMine(id: number, status: OrderStatus): Observable<Order> {
+    updateStatusMine(id: number, status: OrderStatus): Observable<Order> {
     return this.api.patch<Order>(`/orders/${id}/status`, { status }).pipe(
       catchError((err) => {
         if (!this.demoMode) {
@@ -230,8 +240,13 @@ export class OrderService {
     );
   }
 
+  /** Cobra un pedido entregado (método de pago). */
+  payOrder(id: number, paymentMethod: PaymentMethod): Observable<Order> {
+    return this.api.post<Order>(`/orders/${id}/pay`, { paymentMethod });
+  }
+
   simulateNewOrder(): Order {
-    const sampleNames = ['Laura Martínez', 'Diego Morales', 'Felipe Castro', 'Camila Osorio', 'Juan Pablo Rincón'];
+    const sampleNames = ['Laura Mart├¡nez', 'Diego Morales', 'Felipe Castro', 'Camila Osorio', 'Juan Pablo Rinc├│n'];
     const randomName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
     const randomTable = `Mesa ${Math.floor(1 + Math.random() * 12)}`;
     
@@ -265,7 +280,7 @@ export class OrderService {
           unitPrice: p1.price,
           quantity: 1,
           subtotal: sub1,
-          notes: 'Término medio',
+          notes: 'T├®rmino medio',
         },
         {
           id: Date.now() + 2,

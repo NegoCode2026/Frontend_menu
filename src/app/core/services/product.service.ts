@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { ApiService } from './api.service';
-import { Page, Product, ProductRequest } from '../models/models';
+import { Page, Product, ProductRequest, RecipeItem, RecipeLineRequest } from '../models/models';
 import { DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const PRODUCTS_KEY = 'tavita_products_cache';
@@ -29,6 +29,11 @@ export class ProductService {
           imageUrl: prod.imageUrl,
           available: prod.available,
           position: 0,
+          costPrice: 0,
+          stockQuantity: 0,
+          lowStockThreshold: 5,
+          trackStock: false,
+          lowStock: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
@@ -74,13 +79,18 @@ export class ProductService {
         const newProduct: Product = {
           id: Date.now(),
           restaurantId: 1,
-          categoryId: request.categoryId,
+          categoryId: request.categoryId ?? null,
           name: request.name,
           description: request.description ?? null,
           price: request.price,
           imageUrl: request.imageUrl ?? null,
           available: request.available ?? true,
           position: request.position ?? 0,
+          costPrice: request.costPrice ?? 0,
+          stockQuantity: request.stockQuantity ?? 0,
+          lowStockThreshold: request.lowStockThreshold ?? 5,
+          trackStock: request.trackStock ?? false,
+          lowStock: false,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
@@ -99,13 +109,17 @@ export class ProductService {
         if (idx !== -1) {
           const updated: Product = {
             ...list[idx],
-            categoryId: request.categoryId,
+            categoryId: request.categoryId ?? list[idx].categoryId,
             name: request.name,
             description: request.description ?? null,
             price: request.price,
             imageUrl: request.imageUrl ?? null,
             available: request.available ?? list[idx].available,
             position: request.position ?? list[idx].position,
+            costPrice: request.costPrice ?? list[idx].costPrice,
+            stockQuantity: request.stockQuantity ?? list[idx].stockQuantity,
+            lowStockThreshold: request.lowStockThreshold ?? list[idx].lowStockThreshold,
+            trackStock: request.trackStock ?? list[idx].trackStock,
             updatedAt: new Date().toISOString(),
           };
           list[idx] = updated;
@@ -125,5 +139,14 @@ export class ProductService {
         return of(undefined);
       })
     );
+  }
+
+  /** Receta del plato (qué ingredientes lleva cada unidad). */
+  getRecipe(id: number): Observable<RecipeItem[]> {
+    return this.api.get<RecipeItem[]>(`/products/${id}/recipe`).pipe(catchError(() => of([])));
+  }
+
+  setRecipe(id: number, lines: RecipeLineRequest[]): Observable<RecipeItem[]> {
+    return this.api.put<RecipeItem[]>(`/products/${id}/recipe`, lines);
   }
 }

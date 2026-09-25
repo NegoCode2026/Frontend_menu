@@ -332,9 +332,9 @@
 
   <!-- Create Modal (fuera del wrapper desktop: visible también en móvil) -->
   @if (showModal()) {
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-sm anim-fade-in" (click)="closeModal()">
-      <div class="max-h-[90vh] w-full max-w-lg space-y-0 overflow-y-auto rounded-3xl border border-stone-100 bg-white shadow-2xl anim-fade-in-scale" (click)="$event.stopPropagation()">
-        <div class="relative overflow-hidden border-b border-stone-100 bg-gradient-to-br from-stone-900 to-stone-800 px-6 py-5">
+    <div class="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/60 p-0 backdrop-blur-sm anim-fade-in sm:items-center sm:p-4" (click)="closeModal()">
+      <div class="flex max-h-[92dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl anim-fade-in-scale sm:rounded-3xl" (click)="$event.stopPropagation()">
+        <div class="relative shrink-0 overflow-hidden border-b border-stone-100 bg-gradient-to-br from-stone-900 to-stone-800 px-6 py-5">
           <div class="pointer-events-none absolute -right-6 -top-8 select-none text-7xl opacity-10">🏪</div>
           <div class="relative flex items-start justify-between gap-4">
             <div class="flex items-center gap-3">
@@ -348,15 +348,14 @@
           </div>
         </div>
 
-        <div class="space-y-4 p-6">
+        <form [formGroup]="form" (ngSubmit)="submitCreate()" class="flex min-h-0 flex-1 flex-col">
+          <div class="sheet-scroll min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
           @if (errorMessage()) {
             <div class="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-3.5">
               <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-red-100">⚠️</span>
               <p class="text-xs font-bold leading-relaxed text-red-700">{{ errorMessage() }}</p>
             </div>
           }
-
-          <form [formGroup]="form" (ngSubmit)="submitCreate()" class="space-y-4">
             <div>
               <label class="mb-1.5 block text-xs font-extrabold text-stone-700">Nombre del restaurante <span class="text-primary-500">*</span></label>
               <input type="text" formControlName="restaurantName" (blur)="suggestSlug()" placeholder="Ej: Tacos El Rey"
@@ -404,7 +403,9 @@
               </select>
             </div>
 
-            <div class="flex items-center justify-end gap-3 border-t border-stone-100 pt-4">
+          </div>
+          <div class="shrink-0 border-t border-stone-100 px-6 py-4 safe-bottom-bar">
+            <div class="flex items-center justify-end gap-3">
               <button type="button" (click)="closeModal()" class="rounded-2xl border border-stone-200 px-4 py-2.5 text-sm font-bold text-stone-600 transition-colors hover:bg-stone-50">Cancelar</button>
               <button type="submit" [disabled]="form.invalid || submitting()"
                 class="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-primary-500/25 transition-all hover:shadow-lg disabled:opacity-50">
@@ -413,8 +414,8 @@
                 } @else { Crear cuenta }
               </button>
             </div>
-          </form>
-        </div>
+          </div>
+        </form>
       </div>
     </div>
   }
