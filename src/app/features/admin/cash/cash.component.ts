@@ -24,6 +24,10 @@ export class CashComponent implements OnInit {
   readonly saving = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly okMessage = signal<string | null>(null);
+  /** La sesión murió (401): hay que volver a entrar, no reintentar. */
+  readonly sessionExpired = signal(false);
+  /** Fallo de red o respuesta inesperada: reintentar suele resolverlo. */
+  readonly connectionError = signal(false);
 
   // --- Cobro de pedidos entregados sin pagar ---
   readonly payingOrder = signal<Order | null>(null);
@@ -43,8 +47,18 @@ export class CashComponent implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
+    this.connectionError.set(false);
     this.cashApi.today().subscribe({
       next: (t) => {
+        if (!t || typeof t !== 'object') {
+          // Respuesta con forma inesperada (p. ej. página del proxy tras un
+          // despliegue o un corte a mitad de camino): no reventar, avisar.
+          this.loading.set(false);
+          this.connectionError.set(true);
+          this.errorMessage.set('El servidor respondió algo inesperado. Reintenta en un momento.');
+          return;
+        }
+        this.sessionExpired.set(false);
         this.today.set(t);
         if (t.closing) {
           this.counted.set(t.closing.countedCash);
@@ -52,11 +66,25 @@ export class CashComponent implements OnInit {
         }
         this.loading.set(false);
       },
-      error: () => {
+      error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set('No se pudo cargar la caja');
+        if (err?.status === 401) {
+          this.sessionExpired.set(true);
+          this.errorMessage.set(null);
+          return;
+        }
+        if (!err || err.status === 0) {
+          this.connectionError.set(true);
+          this.errorMessage.set('No se pudo conectar con el servidor. Revisa tu internet o espera a que despierte e inténtalo de nuevo.');
+          return;
+        }
+        this.errorMessage.set(err?.error?.message ?? 'No se pudo cargar la caja');
       },
     });
+  }
+
+  goLogin(): void {
+    this.auth.redirectToLogin();
   }
 
   difference(): number {
@@ -151,6 +179,10 @@ export class CashComponent implements OnInit {
       },
       error: (err) => {
         this.paySaving.set(false);
+        if (err?.status === 401) {
+          this.sessionExpired.set(true);
+          return;
+        }
         this.errorMessage.set(err.error?.message ?? 'No se pudo registrar el pago');
       },
     });
@@ -169,6 +201,10 @@ export class CashComponent implements OnInit {
       },
       error: (err) => {
         this.saving.set(false);
+        if (err?.status === 401) {
+          this.sessionExpired.set(true);
+          return;
+        }
         this.errorMessage.set(err.error?.message ?? 'No se pudo cerrar la caja');
       },
     });
