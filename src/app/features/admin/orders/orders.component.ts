@@ -2,10 +2,11 @@ import { Component, inject, signal, OnInit, computed, OnDestroy } from '@angular
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
+import { RealtimeService } from '../../../core/services/realtime.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { ProductService } from '../../../core/services/product.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { CreateOrderItemRequest, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, Order, OrderStatus, OrderType, Product, UpdateOrderRequest } from '../../../core/models/models';
+import { CreateOrderItemRequest, ORDER_STATUS_LABELS, ORDER_TYPE_LABELS, Order, OrderStatus, OrderType, PaymentMethod, Product, UpdateOrderRequest } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
@@ -15,11 +16,16 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 })
 export class OrdersComponent implements OnInit, OnDestroy {
   private readonly orderService = inject(OrderService);
-  private readonly restaurantService = inject(RestaurantService);
+  private readonly realtime = inject(RealtimeService);
   private readonly productService = inject(ProductService);
+  private readonly restaurantService = inject(RestaurantService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
+  /** WebSocket staff: true cuando el canal en vivo está conectado. */
+  readonly live = this.realtime.connected;
   private orderSub?: Subscription;
+  private wsSub?: Subscription;
+  private readonly seenIds = new Set<number>();
   private pollingTimer?: ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>;
   private pollCount = 0;
   private pollCountdownTimer?: ReturnType<typeof setInterval>;
@@ -51,6 +57,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   // Session expired warning
   readonly sessionExpired = signal(false);
+
+  // Sin conexión: la cocina sigue viendo lo cargado y las acciones se encolan
+  readonly offline = signal(!this.isBrowserOnline());
+  /** Ids con cambio de estado pendiente de envío. */
+  readonly pendingIds = signal<number[]>([]);
+  private outbox: Array<{ orderId: number; status: OrderStatus }> = [];
 
   // Live filtered orders
   readonly filteredOrders = computed(() => {
@@ -89,6 +101,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
   readonly formDeliveryAddress = signal('');
   readonly formOrderType = signal<OrderType>('DINE_IN');
   readonly formNotes = signal('');
+  readonly formDiscount = signal<number | null>(null);
+  readonly formTip = signal<number | null>(null);
   readonly formItems = signal<CreateOrderItemRequest[]>([]);
   readonly availableProducts = signal<Product[]>([]);
   readonly manualSaving = signal(false);
@@ -96,10 +110,12 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   readonly formTotal = computed(() => {
     const products = this.availableProducts();
-    return this.formItems().reduce((sum, item) => {
+    const subtotal = this.formItems().reduce((sum, item) => {
       const product = products.find((p) => p.id === item.productId);
       return sum + (product?.price ?? 0) * item.quantity;
     }, 0);
+    const discount = Math.min(Math.max(this.formDiscount() ?? 0, 0), subtotal);
+    return subtotal - discount + Math.max(this.formTip() ?? 0, 0);
   });
 
   openCreateOrderModal(): void {
@@ -110,6 +126,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formDeliveryAddress.set('');
     this.formOrderType.set('DINE_IN');
     this.formNotes.set('');
+    this.formDiscount.set(null);
+    this.formTip.set(null);
     this.formItems.set([]);
     this.manualError.set(null);
     this.loadManualProducts();
@@ -124,6 +142,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.formDeliveryAddress.set(order.deliveryAddress ?? '');
     this.formOrderType.set(order.orderType ?? 'DINE_IN');
     this.formNotes.set(order.notes ?? '');
+    this.formDiscount.set(order.discountAmount ?? null);
+    this.formTip.set(order.tipAmount ?? null);
     this.formItems.set(
       (order.items ?? []).map((i) => ({ productId: i.productId, quantity: i.quantity, notes: i.notes ?? '' }))
     );
@@ -210,6 +230,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
       customerPhone: this.formCustomerPhone().trim() || undefined,
       orderType: this.formOrderType(),
       notes: this.formNotes().trim() || undefined,
+      discountAmount: this.formDiscount() ?? null,
+      tipAmount: this.formTip() ?? null,
       items,
     };
 
@@ -396,14 +418,56 @@ export class OrdersComponent implements OnInit, OnDestroy {
     });
 
     // Polling: starts fast (3s) then slows down (12s) after 60s
+    // (respaldo por si el WebSocket se cae; el canal en vivo avisa al instante)
     this.startPolling();
     document.addEventListener('visibilitychange', this.onVisibilityChange);
+    window.addEventListener('online', this.onOnline);
+    window.addEventListener('offline', this.onOffline);
+
+    // Canal en vivo: el pedido del cliente entra sin esperar el polling
+    try {
+      this.wsSub = this.realtime.connect().subscribe({
+        next: (event) => this.applyLiveOrder(event.order),
+        error: () => undefined,
+      });
+    } catch {
+      // Sin restaurante en sesión: el guard ya redirige al login
+    }
   }
 
   ngOnDestroy(): void {
     this.orderSub?.unsubscribe();
+    this.wsSub?.unsubscribe();
+    this.realtime.disconnect();
     this.stopPolling();
     document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    window.removeEventListener('online', this.onOnline);
+    window.removeEventListener('offline', this.onOffline);
+  }
+
+  private isBrowserOnline(): boolean {
+    try {
+      return typeof navigator === 'undefined' || navigator.onLine !== false;
+    } catch {
+      return true;
+    }
+  }
+
+  private readonly onOnline = (): void => {
+    this.offline.set(false);
+    this.fetchOrders();
+    this.flushOutbox();
+    this.pollCount = 0;
+    this.stopPolling();
+    this.startPolling();
+  };
+
+  private readonly onOffline = (): void => {
+    this.offline.set(true);
+  };
+
+  isPending(orderId: number | null | undefined): boolean {
+    return orderId != null && this.pendingIds().includes(orderId);
   }
 
   fetchOrders(): void {
@@ -412,13 +476,41 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.lastSyncIso = null;
     this.orderService.listMine().subscribe({
       next: (data) => {
-        this.orders.set(Array.isArray(data) ? data : []);
+        const arr = Array.isArray(data) ? data : [];
+        this.orders.set(arr);
+        arr.forEach((o) => {
+          if (o?.id != null) this.seenIds.add(o.id);
+        });
         this.loading.set(false);
       },
       error: () => {
         this.loading.set(false);
       },
     });
+  }
+
+  /** Evento del canal en vivo: inserta/actualiza y alerta si es pedido nuevo. */
+  private applyLiveOrder(order: Order): void {
+    if (order?.id == null) return;
+    const isNew = !this.seenIds.has(order.id);
+    this.seenIds.add(order.id);
+    this.orders.update((list) => {
+      const idx = list.findIndex((o) => o && o.id === order.id);
+      if (idx !== -1) {
+        const copy = [...list];
+        copy[idx] = order;
+        return copy;
+      }
+      return [order, ...list];
+    });
+    if (isNew && order.status === 'PENDING') {
+      this.alertCount.set(1);
+      this.showAlert.set(true);
+      setTimeout(() => this.showAlert.set(false), 6_000);
+      if (this.soundEnabled()) {
+        this.playKitchenNotificationSound();
+      }
+    }
   }
 
   // --- Polling: detect new orders from other devices & fire alarm ---
@@ -500,6 +592,8 @@ export class OrdersComponent implements OnInit, OnDestroy {
     this.orderService.listMine(undefined, true, since).subscribe({
       next: (latest) => {
         this.sessionExpired.set(false);
+        const wasOffline = this.offline();
+        this.offline.set(false);
         this.lastSyncIso = new Date().toISOString();
 
         const current = this.orders();
@@ -520,6 +614,9 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
         this.orders.set(updatedList);
 
+        // Si volvió la conexión, reenvía lo encolado
+        if (wasOffline) this.flushOutbox();
+
         if (newOrders.length > 0) {
           this.alertCount.set(newOrders.length);
           this.showAlert.set(true);
@@ -534,9 +631,46 @@ export class OrdersComponent implements OnInit, OnDestroy {
         if (err?.status === 401) {
           this.sessionExpired.set(true);
           this.stopPolling(); // Stop polling until user re-logs in
+        } else if (err?.status === 0 || err?.status == null) {
+          // Backend inalcanzable (túnel/Supabase caídos): se conserva lo
+          // cargado, se avisa y el propio polling reintenta solo.
+          this.offline.set(true);
         }
       }
     });
+  }
+
+  /** Reenvía cambios de estado encolados sin conexión, en orden. */
+  private flushOutbox(): void {
+    if (this.outbox.length === 0 || this.offline()) return;
+    const batch = [...this.outbox];
+    this.outbox = [];
+    const sendNext = (): void => {
+      const item = batch.shift();
+      if (!item) return;
+      this.orderService.updateStatusMine(item.orderId, item.status).subscribe({
+        next: (updated) => {
+          this.orders.update((list) => list.map((o) => (o && o.id === item.orderId ? updated : o)));
+          this.pendingIds.update((ids) => ids.filter((id) => id !== item.orderId));
+          sendNext();
+        },
+        error: (err) => {
+          if (err?.status === 0 || err?.status == null) {
+            this.outbox.unshift(item, ...batch);
+            this.offline.set(true);
+          } else {
+            this.pendingIds.update((ids) => ids.filter((id) => id !== item.orderId));
+            this.fetchOrders();
+            sendNext();
+          }
+        },
+      });
+    };
+    sendNext();
+  }
+
+  private markPending(orderId: number): void {
+    this.pendingIds.update((ids) => (ids.includes(orderId) ? ids : [...ids, orderId]));
   }
 
   updateStatus(order: Order, newStatus: OrderStatus): void {
@@ -552,6 +686,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
     this.orderService.updateStatusMine(order.id, newStatus).subscribe({
       next: (updated) => {
+        this.offline.set(false);
         this.orders.update((list) =>
           list.map((o) => (o && o.id === order.id ? updated : o))
         );
@@ -560,10 +695,51 @@ export class OrdersComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
+        if (err?.status === 401) {
+          this.sessionExpired.set(true);
+          this.stopPolling();
+          return;
+        }
+        if (err?.status === 0 || err?.status == null) {
+          // Sin conexión: se conserva el cambio optimista, se marca
+          // pendiente y se reenvía solo al volver.
+          this.offline.set(true);
+          this.outbox = this.outbox.filter((q) => q.orderId !== order.id);
+          this.outbox.push({ orderId: order.id, status: newStatus });
+          this.markPending(order.id);
+          return;
+        }
         console.error('Error updating order status:', err);
         this.fetchOrders();
       },
     });
+  }
+
+  /** Cobra un pedido entregado. Solo cajero/admin (el guard de ruta lo limita). */
+  payOrder(order: Order, method: PaymentMethod): void {
+    if (order.id == null) return;
+    this.orderService.payOrder(order.id, method).subscribe({
+      next: (updated) => {
+        this.orders.update((list) => list.map((o) => (o && o.id === order.id ? updated : o)));
+        if (this.selectedTicketOrder()?.id === order.id) {
+          this.selectedTicketOrder.set(updated);
+        }
+      },
+      error: (err) => console.error('Error cobrando pedido:', err),
+    });
+  }
+
+  paymentLabel(method: PaymentMethod | null | undefined): string {
+    switch (method) {
+      case 'CASH':
+        return '💵 Efectivo';
+      case 'CARD':
+        return '💳 Tarjeta';
+      case 'TRANSFER':
+        return '📲 Transferencia';
+      default:
+        return 'Sin cobrar';
+    }
   }
 
   sendWhatsAppReadyNotification(order: Order, openDirectly = false): void {

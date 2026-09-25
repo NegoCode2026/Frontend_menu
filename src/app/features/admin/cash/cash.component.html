@@ -1,0 +1,74 @@
+<div class="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+  <div class="flex flex-wrap items-end justify-between gap-3">
+    <div>
+      <p class="text-xs font-extrabold uppercase tracking-widest text-stone-400">Caja</p>
+      <h1 class="landing-serif mt-1 text-[30px] font-medium text-[#1C1917]">Cierre del día</h1>
+    </div>
+    <button (click)="reload()" class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 active:scale-[0.98]">
+      Recargar
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <p class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+  }
+  @if (okMessage()) {
+    <p class="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ okMessage() }}</p>
+  }
+
+  @if (loading()) {
+    <div class="mt-6 grid animate-pulse grid-cols-2 gap-3 lg:grid-cols-4">
+      @for (i of [1,2,3,4]; track $index) {
+        <div class="h-28 rounded-2xl bg-stone-100"></div>
+      }
+    </div>
+  } @else if (today(); as t) {
+    <p class="mt-4 text-sm font-semibold text-stone-500">{{ t.deliveredOrders }} entregados hoy · {{ t.unpaidDelivered }} sin cobrar</p>
+    @if (t.unpaidDelivered > 0) {
+      <p class="mt-2 rounded-xl bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">⚠️ Hay {{ t.unpaidDelivered }} pedido(s) entregados sin método de pago. Cóbralos en Pedidos antes de cerrar.</p>
+    }
+
+    <div class="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-5">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-stone-400">💵 Efectivo esperado</p>
+        <p class="mt-1 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(t.expectedCash) }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-5">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-stone-400">💳 Tarjeta</p>
+        <p class="mt-1 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(t.expectedCard) }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-5">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-stone-400">📲 Transferencia</p>
+        <p class="mt-1 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(t.expectedTransfer) }}</p>
+      </div>
+      <div class="rounded-2xl border border-stone-900/10 bg-white p-5">
+        <p class="text-xs font-extrabold uppercase tracking-wider text-stone-400">Total día</p>
+        <p class="mt-1 text-[22px] font-black text-[#1C1917]">{{ formatCurrency(t.expectedTotal) }}</p>
+      </div>
+    </div>
+
+    <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-5 sm:p-6">
+      <h2 class="landing-serif text-[22px] font-medium text-[#1C1917]">Arqueo de efectivo</h2>
+      @if (t.closing) {
+        <p class="mt-1 text-[13px] font-bold text-emerald-700">✅ Cerrada hoy (puedes corregir y volver a guardar).</p>
+      }
+      <label class="field-label mt-4" for="cash-counted">Efectivo contado en caja</label>
+      <input id="cash-counted" type="number" min="0" step="100" [ngModel]="counted()" (ngModelChange)="counted.set($event)"
+        class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-lg font-extrabold focus:outline-none input-glow" placeholder="0" />
+      <div class="mt-3 flex items-center justify-between rounded-xl bg-stone-50 px-4 py-3">
+        <span class="text-sm font-bold text-stone-500">Diferencia (contado − esperado)</span>
+        <span class="text-lg font-black" [class]="difference() < 0 ? 'text-red-600' : difference() > 0 ? 'text-amber-600' : 'text-emerald-600'">
+          {{ formatCurrency(difference()) }}
+        </span>
+      </div>
+      <label class="field-label mt-4" for="cash-notes">Notas (opcional)</label>
+      <textarea id="cash-notes" rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)"
+        class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="Ej. faltante por domicilio..."></textarea>
+      <button (click)="close()" [disabled]="counted() == null || saving()" class="landing-btn-dark mt-4 w-full disabled:opacity-50">
+        {{ saving() ? 'Guardando…' : t.closing ? 'Actualizar cierre' : 'Cerrar caja' }}
+      </button>
+    </div>
+  }
+</div>
+
+<app-business-mobile-nav active="none"></app-business-mobile-nav>

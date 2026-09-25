@@ -147,25 +147,34 @@ export interface CategoryRequest {
 export interface Product {
   id: number;
   restaurantId: number;
-  categoryId: number;
+  categoryId: number | null;
   name: string;
   description: string | null;
   price: number;
   imageUrl: string | null;
   available: boolean;
   position: number;
+  costPrice: number;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  trackStock: boolean;
+  lowStock: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ProductRequest {
-  categoryId: number;
+  categoryId?: number | null;
   name: string;
   description?: string | null;
   price: number;
   imageUrl?: string | null;
   available?: boolean | null;
   position?: number | null;
+  costPrice?: number | null;
+  stockQuantity?: number | null;
+  lowStockThreshold?: number | null;
+  trackStock?: boolean | null;
 }
 
 export interface PublicMenu {
@@ -285,6 +294,7 @@ export interface AdminUser {
 
 export type OrderStatus = 'PENDING' | 'CONFIRMED' | 'IN_PREPARATION' | 'READY' | 'DELIVERED' | 'CANCELLED';
 export type OrderType = 'DINE_IN' | 'DELIVERY' | 'TAKEAWAY';
+export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER';
 
 export interface OrderItem {
   id: number;
@@ -316,6 +326,10 @@ export interface Order {
   notes: string | null;
   status: OrderStatus;
   totalAmount: number;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
+  paymentMethod?: PaymentMethod | null;
+  paidAt?: string | null;
   estimatedPrepTime?: string | null;
   readyAt?: string | null;
   deliveredAt?: string | null;
@@ -344,6 +358,8 @@ export interface UpdateOrderRequest {
   deliveryAddress?: string;
   notes?: string;
   orderType?: OrderType;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
   items?: CreateOrderItemRequest[];
 }
 
@@ -370,6 +386,8 @@ export interface CreateOrderRequest {
   orderType?: OrderType;
   deliveryAddress?: string;
   notes?: string;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
   items: CreateOrderItemRequest[];
 }
 
@@ -382,8 +400,7 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   CANCELLED: 'Cancelado',
 };
 
-export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; border: string }> = {
-  PENDING: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
+export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string; border: string }> = {  PENDING: { bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200' },
   CONFIRMED: { bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200' },
   IN_PREPARATION: { bg: 'bg-violet-50', text: 'text-violet-800', border: 'border-violet-200' },
   READY: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
@@ -391,6 +408,94 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string
   CANCELLED: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
 };
 
+/** Roles operativos del restaurante (además de RESTAURANT_ADMIN/USER). */export type StaffRole = 'WAITER' | 'CASHIER';
+
+export const STAFF_ROLE_LABELS: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin',
+  RESTAURANT_ADMIN: 'Administrador',
+  RESTAURANT_USER: 'Equipo',
+  WAITER: 'Mesero',
+  CASHIER: 'Cajero',
+};
+
+export type MovementReason = 'ORDER' | 'CANCEL_RESTORE' | 'RESTOCK' | 'ADJUST';
+
+export interface StockMovement {
+  id: number;
+  productId: number | null;
+  ingredientId: number | null;
+  quantity: number;
+  reason: MovementReason;
+  orderId: number | null;
+  createdAt: string;
+}
+
+export interface AdjustStockRequest {
+  productId: number;
+  quantity: number;
+  reason?: MovementReason | null;
+}
+
+export interface DailyProfit {
+  date: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  orders: number;
+}
+
+export interface ProfitsResponse {
+  period: string;
+  from: string;
+  to: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+  orders: number;
+  days: DailyProfit[];
+}
+
+/** Evento WebSocket del staff (/topic/r/{rid}/orders). */
+export interface OrderEvent {
+  type: 'CREATED' | 'STATUS_CHANGED';
+  restaurantId: number;
+  order: Order;
+}
+
+export interface Ingredient {
+  id: number;
+  name: string;
+  unit: string;
+  stockQuantity: number;
+  lowStockThreshold: number;
+  unitCost: number;
+  trackStock: boolean;
+  lowStock: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IngredientRequest {
+  name: string;
+  unit?: string | null;
+  stockQuantity?: number | null;
+  lowStockThreshold?: number | null;
+  unitCost?: number | null;
+  trackStock?: boolean | null;
+}
+
+export interface RecipeItem {
+  id: number;
+  ingredientId: number;
+  ingredientName: string;
+  unit: string;
+  quantity: number;
+}
+
+export interface RecipeLineRequest {
+  ingredientId: number;
+  quantity: number;
+}
 export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
   DINE_IN: 'Mesa',
   DELIVERY: 'Domicilio',

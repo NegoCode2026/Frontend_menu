@@ -93,6 +93,15 @@ export class PublicMenuComponent implements OnDestroy {
     this.cart().reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
   );
 
+  /** Propina voluntaria del cliente (% del subtotal). */
+  readonly tipPercent = signal<0 | 5 | 10>(0);
+  readonly tipAmount = computed(() => Math.round(this.cartTotalAmount() * (this.tipPercent() / 100)));
+  readonly cartTotalWithTip = computed(() => this.cartTotalAmount() + this.tipAmount());
+
+  setTip(pct: 0 | 5 | 10): void {
+    this.tipPercent.set(pct);
+  }
+
   /** El dueño puede cerrar el restaurante: se bloquea todo pedido. */
   readonly isClosed = computed(() => this.menu()?.restaurant.open === false);
 
@@ -320,6 +329,7 @@ export class PublicMenuComponent implements OnDestroy {
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,
       notes: this.orderForm.value.notes,
+      tipAmount: this.tipAmount() || null,
       items: this.cart().map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
@@ -339,6 +349,7 @@ export class PublicMenuComponent implements OnDestroy {
         this.submittingOrder.set(false);
         this.showCartModal.set(false);
         this.cart.set([]);
+        this.tipPercent.set(0);
         this.orderSuccess.set(order);
         this.orderService.saveTrackedOrder(targetSlug, order);
         this.trackedOrders.set(this.orderService.listTrackedOrders(targetSlug));
@@ -380,7 +391,7 @@ export class PublicMenuComponent implements OnDestroy {
       }
     });
 
-    message += `\n💰 *Total a Pagar:* *${this.formatCurrency(this.cartTotalAmount())}*\n\n`;
+    message += `\n💰 *Total a Pagar:* *${this.formatCurrency(this.cartTotalWithTip())}*\n\n`;
     message += `_Enviado desde el Menú Digital Tavita_ 🚀`;
 
     const cleanPhone = phone.replace(/\D/g, '');
@@ -402,6 +413,7 @@ export class PublicMenuComponent implements OnDestroy {
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,
       notes: this.orderForm.value.notes,
+      tipAmount: this.tipAmount() || null,
       items: this.cart().map((item) => ({
         productId: item.productId,
         quantity: item.quantity,

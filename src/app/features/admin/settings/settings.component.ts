@@ -56,6 +56,7 @@ export class SettingsComponent implements OnInit {
   readonly loading = signal(true);
   readonly subscribing = signal(false);
   readonly message = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly togglingOpen = signal(false);
 
   ngOnInit(): void {
     this.subscriptionService.listPlans().subscribe({
@@ -118,8 +119,29 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  subscribe(code: string): void {
-    if (this.subscribing()) return;
+  /** Abre/cierra el restaurante (cerrado = no recibe pedidos). */
+  toggleOpen(): void {
+    if (this.togglingOpen()) return;
+    this.togglingOpen.set(true);
+    this.generalMessage.set(null);
+    this.restaurantService.setOpen(!this.isOpen()).subscribe({
+      next: (r) => {
+        this.togglingOpen.set(false);
+        this.isOpen.set(r.open);
+        this.restaurant.set(r);
+        this.generalMessage.set({
+          type: 'success',
+          text: r.open ? 'Restaurante abierto: ya recibe pedidos' : 'Restaurante cerrado: no recibe pedidos',
+        });
+      },
+      error: (err) => {
+        this.togglingOpen.set(false);
+        this.generalMessage.set({ type: 'error', text: err.error?.message ?? 'No se pudo cambiar el estado' });
+      },
+    });
+  }
+
+  subscribe(code: string): void {    if (this.subscribing()) return;
     this.subscribing.set(true);
     this.message.set(null);
 

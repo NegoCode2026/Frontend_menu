@@ -153,8 +153,24 @@
           </div>
         }
 
-        <form [formGroup]="generalForm" (ngSubmit)="saveGeneral()" class="mt-6 space-y-5">
+        <div class="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-5"
+          [class]="isOpen() ? 'border-emerald-200 bg-emerald-50' : 'border-red-200 bg-red-50'">
           <div>
+            <p class="text-[14px] font-bold text-[#1C1917]">
+              {{ isOpen() ? 'Restaurante abierto' : 'Restaurante cerrado' }}
+            </p>
+            <p class="mt-0.5 text-[13px] font-normal text-stone-500">
+              {{ isOpen() ? 'Recibiendo pedidos del menú.' : 'El menú avisa que está cerrado y no recibe pedidos.' }}
+            </p>
+          </div>
+          <button (click)="toggleOpen()" [disabled]="togglingOpen()"
+            [class]="isOpen() ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'"
+            class="rounded-full px-5 py-2.5 text-[13px] font-extrabold text-white disabled:opacity-50">
+            {{ togglingOpen() ? 'Cambiando…' : (isOpen() ? 'Cerrar' : 'Abrir') }}
+          </button>
+        </div>
+
+        <form [formGroup]="generalForm" (ngSubmit)="saveGeneral()" class="mt-6 space-y-5">          <div>
             <label class="field-label" for="set-name">Nombre del restaurante</label>
             <input id="set-name" type="text" formControlName="name" class="mt-1.5 w-full rounded border border-stone-200 bg-white px-4 py-3 text-sm text-stone-900 placeholder-stone-400 focus:outline-none input-glow" />
           </div>

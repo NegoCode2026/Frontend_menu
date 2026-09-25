@@ -1,8 +1,9 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../../core/services/user.service';
+import { PermissionService, PERMISSION_LABELS } from '../../../core/services/permission.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
-import { User } from '../../../core/models/models';
+import { STAFF_ROLE_LABELS, User } from '../../../core/models/models';
 import { AuthService } from '../../../core/services/auth.service';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
@@ -14,6 +15,7 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 export class UsersComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
+  private readonly permissionApi = inject(PermissionService);
   private readonly restaurantService = inject(RestaurantService);
   private readonly auth = inject(AuthService);
 
@@ -39,7 +41,7 @@ export class UsersComponent implements OnInit {
   roleLabel(role: string | null | undefined): string {
     const raw = role ?? '';
     const clean = raw.startsWith('ROLE_') ? raw.substring(5) : raw;
-    return clean === 'RESTAURANT_ADMIN' || clean === 'SUPER_ADMIN' ? 'Administrador' : 'Equipo';
+    return STAFF_ROLE_LABELS[clean] ?? 'Equipo';
   }
 
   memberSince(isoString: string | null | undefined): string {
@@ -73,6 +75,7 @@ export class UsersComponent implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.loadPerms();
     this.restaurantService.getMine().subscribe({
       next: (r) => {
         this.menuSlug.set(r.slug);
@@ -133,6 +136,68 @@ export class UsersComponent implements OnInit {
     this.userService.delete(user.id).subscribe({
       next: () => this.reload(),
       error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo eliminar'),
+    });
+  }
+
+  // --- Matriz de permisos por rol (solo admin) ---
+  readonly showPermissions = signal(false);
+  readonly permCatalog = signal<string[]>([]);
+  readonly permMatrix = signal<Record<string, string[]>>({});
+  readonly permRole = signal('RESTAURANT_USER');
+  readonly permSaving = signal(false);
+
+  readonly permRoles = [
+    { value: 'RESTAURANT_USER', label: 'Equipo' },
+    { value: 'WAITER', label: 'Mesero' },
+    { value: 'CASHIER', label: 'Cajero' },
+  ];
+
+  permissionLabel(p: string): string {
+    return PERMISSION_LABELS[p] ?? p;
+  }
+
+  rolePerms(): string[] {
+    return this.permMatrix()[this.permRole()] ?? [];
+  }
+
+  togglePermissions(): void {
+    this.showPermissions.update((s) => !s);
+    this.loadPerms();
+  }
+
+  togglePermissionsOpen(): void {
+    this.loadPerms();
+  }
+
+  defaultPerms(): string[] {
+    return this.permCatalog().length ? this.permCatalog() : Object.keys(PERMISSION_LABELS);
+  }
+
+  private loadPerms(): void {
+    if (this.permCatalog().length === 0) {
+      this.permissionApi.catalog().subscribe({ next: (c) => this.permCatalog.set(c ?? []), error: () => undefined });
+    }
+    this.permissionApi.matrix().subscribe({ next: (m) => this.permMatrix.set(m ?? {}), error: () => undefined });
+  }
+
+  hasPerm(p: string): boolean {
+    return this.rolePerms().includes(p);
+  }
+
+  togglePerm(p: string): void {
+    const current = new Set(this.rolePerms());
+    if (current.has(p)) current.delete(p);
+    else current.add(p);
+    this.permSaving.set(true);
+    this.permissionApi.setRole(this.permRole(), [...current]).subscribe({
+      next: (saved) => {
+        this.permMatrix.update((m) => ({ ...m, [this.permRole()]: saved ?? [] }));
+        this.permSaving.set(false);
+      },
+      error: (err) => {
+        this.permSaving.set(false);
+        this.errorMessage.set(err.error?.message ?? 'No se pudo guardar permisos');
+      },
     });
   }
 }
