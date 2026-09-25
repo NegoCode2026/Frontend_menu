@@ -16,6 +16,14 @@ export const PERMISSION_LABELS: Record<string, string> = {
   SETTINGS_EDIT: 'Configuración',
 };
 
+/** Permisos efectivos de una persona: personalización propia o los del rol. */
+export interface UserPermissions {
+  userId: number;
+  role: string;
+  inherited: boolean;
+  permissions: string[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class PermissionService {
   constructor(private api: ApiService) {}
@@ -30,5 +38,20 @@ export class PermissionService {
 
   setRole(role: string, permissions: string[]): Observable<string[]> {
     return this.api.put<string[]>('/permissions', { role, permissions });
+  }
+
+  /** Permisos de una persona concreta (si hereda del rol lo indica `inherited`). */
+  user(userId: number): Observable<UserPermissions> {
+    return this.api.get<UserPermissions>(`/permissions/user/${userId}`);
+  }
+
+  /** Guarda los permisos de una persona (reemplaza el set completo). */
+  setUser(userId: number, permissions: string[]): Observable<UserPermissions> {
+    return this.api.put<UserPermissions>(`/permissions/user/${userId}`, { permissions });
+  }
+
+  /** Quita la personalización: la persona vuelve a los permisos de su rol. */
+  clearUser(userId: number): Observable<UserPermissions> {
+    return this.api.delete<UserPermissions>(`/permissions/user/${userId}`);
   }
 }

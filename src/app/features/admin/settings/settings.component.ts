@@ -5,6 +5,7 @@ import { Router } from '@angular/router';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmService } from '../../../shared/ui/confirm.service';
 import { Plan, Restaurant, Subscription } from '../../../core/models/models';
 import { environment } from '../../../../environments/environment';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
@@ -23,14 +24,20 @@ export class SettingsComponent implements OnInit {
   private readonly platformId = inject(PLATFORM_ID);
   private readonly router = inject(Router);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
   readonly user = this.auth.user;
 
   logout(): void {
     this.auth.forceLogout();
   }
 
-  logoutAll(): void {
-    if (!confirm('¿Cerrar tu sesión en todos los dispositivos?')) return;
+  async logoutAll(): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: '¿Cerrar sesión en todos los dispositivos?',
+      message: 'Tendrás que volver a entrar en cada uno.',
+      confirmLabel: 'Cerrar todo',
+    });
+    if (!ok) return;
     this.auth.logoutAll().subscribe({
       next: () => this.router.navigate(['/login']),
       error: () => this.router.navigate(['/login']),

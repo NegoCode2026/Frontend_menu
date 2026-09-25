@@ -7,6 +7,8 @@ import { Category, Ingredient, Product, RecipeItem } from '../../../core/models/
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { FileService, UploadResult } from '../../../core/services/file.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmService } from '../../../shared/ui/confirm.service';
+import { ToastService } from '../../../shared/ui/toast.service';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 @Component({
@@ -22,6 +24,8 @@ export class ProductsComponent implements OnInit {
   private readonly restaurantService = inject(RestaurantService);
   private readonly fileService = inject(FileService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly toast = inject(ToastService);
   readonly user = this.auth.user;
 
   readonly categories = signal<Category[]>([]);
@@ -280,10 +284,19 @@ export class ProductsComponent implements OnInit {
       .subscribe({ next: () => this.reload() });
   }
 
-  remove(product: Product): void {
-    if (!confirm(`¿Eliminar "${product.name}"?`)) return;
+  async remove(product: Product): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: `¿Eliminar "${product.name}"?`,
+      message: 'Se quitará del menú público. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      danger: true,
+    });
+    if (!ok) return;
     this.productService.delete(product.id).subscribe({
-      next: () => this.reload(),
+      next: () => {
+        this.toast.success('Plato eliminado', product.name);
+        this.reload();
+      },
       error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo eliminar'),
     });
   }

@@ -7,10 +7,12 @@ import { OrderService } from '../../../core/services/order.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { PwaBannerComponent } from '../../../shared/pwa-banner/pwa-banner.component';
+import { ToastCenterComponent } from '../../../shared/ui/toast-center.component';
+import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog.component';
 
 @Component({
   selector: 'app-admin-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, PwaBannerComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PwaBannerComponent, ToastCenterComponent, ConfirmDialogComponent],
   templateUrl: './admin-layout.component.html',
 })
 export class AdminLayoutComponent implements OnInit, OnDestroy {

@@ -4,7 +4,7 @@ import { catchError, switchMap, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { TenantBackendService } from './tenant-backend.service';
 import { environment } from '../../../environments/environment';
-import { CreateOrderRequest, Order, OrderStats, OrderStatus, PaymentMethod, UpdateOrderRequest } from '../models/models';
+import { CreateManualOrderRequest, CreateOrderRequest, Order, OrderStats, OrderStatus, PaymentMethod, UpdateOrderRequest } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
@@ -196,7 +196,7 @@ export class OrderService {
     return this.api.get<OrderStats>('/orders/stats');
   }
 
-  createMine(payload: CreateOrderRequest): Observable<Order> {
+  createMine(payload: CreateManualOrderRequest): Observable<Order> {
     return this.api.post<Order>('/orders', payload);
   }
 

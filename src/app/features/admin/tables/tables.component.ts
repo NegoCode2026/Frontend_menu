@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, HostListener, inject, signal, OnInit } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
 import { RestaurantService } from '../../../core/services/restaurant.service';
@@ -143,6 +143,15 @@ export class TablesComponent implements OnInit {
   closeQr(): void {
     this.qrTable.set(null);
     this.qrDataUrl.set(null);
+  }
+
+  @HostListener('document:keydown.escape')
+  closeTopModalOnEscape(): void {
+    if (this.qrTable()) {
+      this.closeQr();
+      return;
+    }
+    if (this.showAdd()) this.showAdd.set(false);
   }
 
   async copyMenuLink(): Promise<void> {

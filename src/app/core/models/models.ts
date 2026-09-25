@@ -391,6 +391,19 @@ export interface CreateOrderRequest {
   items: CreateOrderItemRequest[];
 }
 
+/** El pedido manual se identifica por mesa/destino; el nombre es opcional. */
+export interface CreateManualOrderRequest {
+  customerName?: string;
+  customerPhone?: string;
+  tableNumber?: string;
+  orderType?: OrderType;
+  deliveryAddress?: string;
+  notes?: string;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
+  items: CreateOrderItemRequest[];
+}
+
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   PENDING: 'Pendiente',
   CONFIRMED: 'Confirmado',
