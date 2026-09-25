@@ -16,11 +16,11 @@ const KIND_STYLE: Record<ToastKind, { dot: string; ring: string; icon: string }>
   selector: 'app-toast-center',
   template: `
     <div class="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-4 pb-24 sm:items-end sm:px-6 sm:pb-6" aria-live="polite">
-      @for (toast of toasts().toasts(); track toast.id) {
+      @for (toast of toasts.toasts(); track toast.id) {
         <div
           class="anim-fade-in-up pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-stone-900/10 bg-white py-3 pl-3.5 pr-2.5 shadow-xl"
           role="status"
-          (click)="toasts().dismiss(toast.id)"
+          (click)="toasts.dismiss(toast.id)"
         >
           <span
             class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-black text-white ring-4 {{ meta(toast.kind).dot }} {{ meta(toast.kind).ring }}"
@@ -33,7 +33,7 @@ const KIND_STYLE: Record<ToastKind, { dot: string; ring: string; icon: string }>
           </span>
           <button
             type="button"
-            (click)="toasts().dismiss(toast.id); $event.stopPropagation()"
+            (click)="toasts.dismiss(toast.id); $event.stopPropagation()"
             class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-stone-300 transition-colors hover:bg-stone-100 hover:text-stone-600"
             aria-label="Descartar aviso"
           >✕</button>
