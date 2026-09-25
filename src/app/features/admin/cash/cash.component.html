@@ -9,8 +9,26 @@
     </button>
   </div>
 
+  @if (sessionExpired()) {
+    <div class="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3.5">
+      <div class="min-w-0">
+        <p class="text-sm font-extrabold text-amber-800">Sesión expirada</p>
+        <p class="mt-0.5 text-xs font-medium text-amber-700">Vuelve a entrar para seguir cobrando.</p>
+      </div>
+      <button type="button" (click)="goLogin()" class="shrink-0 rounded-full bg-amber-600 px-4 py-2 text-xs font-extrabold text-white transition-colors hover:bg-amber-700 active:scale-95">
+        Entrar
+      </button>
+    </div>
+  }
   @if (errorMessage()) {
-    <p class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+    <div class="mt-4 flex items-center justify-between gap-3 rounded-2xl bg-red-50 px-4 py-3.5">
+      <p class="min-w-0 flex-1 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+      @if (connectionError()) {
+        <button type="button" (click)="reload()" class="shrink-0 rounded-full bg-stone-900 px-4 py-2 text-xs font-extrabold text-white transition-colors hover:bg-stone-800 active:scale-95">
+          Reintentar
+        </button>
+      }
+    </div>
   }
   @if (okMessage()) {
     <p class="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{{ okMessage() }}</p>
