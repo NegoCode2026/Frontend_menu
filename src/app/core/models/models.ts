@@ -296,21 +296,55 @@ export interface OrderItem {
   notes: string | null;
 }
 
+export interface OrderStatusEvent {
+  id: number;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+  changedAt: string;
+}
+
 export interface Order {
   id: number;
   restaurantId: number;
   orderNumber: string;
+  trackingCode?: string | null;
   customerName: string;
   customerPhone: string | null;
   tableNumber: string | null;
-  orderType?: OrderType;
+  deliveryAddress?: string | null;
+  orderType: OrderType;
   notes: string | null;
   status: OrderStatus;
   totalAmount: number;
   estimatedPrepTime?: string | null;
+  readyAt?: string | null;
+  deliveredAt?: string | null;
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  timeline?: OrderStatusEvent[];
+}
+
+export interface OrderStats {
+  total: number;
+  pending: number;
+  confirmed: number;
+  inPreparation: number;
+  ready: number;
+  delivered: number;
+  cancelled: number;
+  todayCount: number;
+  todayRevenue: number;
+}
+
+export interface UpdateOrderRequest {
+  customerName?: string;
+  customerPhone?: string;
+  tableNumber?: string;
+  deliveryAddress?: string;
+  notes?: string;
+  orderType?: OrderType;
+  items?: CreateOrderItemRequest[];
 }
 
 export interface CartItem {
@@ -355,4 +389,10 @@ export const ORDER_STATUS_COLORS: Record<OrderStatus, { bg: string; text: string
   READY: { bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200' },
   DELIVERED: { bg: 'bg-stone-100', text: 'text-stone-700', border: 'border-stone-200' },
   CANCELLED: { bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200' },
+};
+
+export const ORDER_TYPE_LABELS: Record<OrderType, string> = {
+  DINE_IN: 'Mesa',
+  DELIVERY: 'Domicilio',
+  TAKEAWAY: 'Para llevar',
 };

@@ -1,16 +1,27 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, Subject } from 'rxjs';
+import { Observable, of, Subject, throwError } from 'rxjs';
 import { catchError, tap } from 'rxjs/operators';
 import { ApiService } from './api.service';
-import { CreateOrderRequest, Order, OrderStatus } from '../models/models';
+import { environment } from '../../../environments/environment';
+import { CreateOrderRequest, Order, OrderStats, OrderStatus, UpdateOrderRequest } from '../models/models';
 import { INITIAL_SAMPLE_ORDERS, DEMO_PUBLIC_MENU } from '../data/demo-menu.data';
 
 const ORDERS_STORAGE_KEY = 'tavita_orders_cache';
+const TRACKED_ORDERS_KEY = 'tavita_tracked_orders';
+
+type TrackedOrdersMap = { [slug: string]: Order[] };
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
   private newOrderTrigger$ = new Subject<Order>();
   readonly onNewOrder$ = this.newOrderTrigger$.asObservable();
+
+  /**
+   * El fallback local (localStorage + pedidos de demostración) solo se usa en
+   * desarrollo: en producción un pedido que no llega al backend NO debe ser
+   * fabricado localmente, para no "sonar" en el tablero sin existir.
+   */
+  private readonly demoMode = !environment.production;
 
   constructor(private api: ApiService) {}
 
@@ -34,6 +45,56 @@ export class OrderService {
     }
   }
 
+  /** Guarda el pedido colocado en ESTA sesión/navegador para poder rastrearlo
+   *  desde el menú público sin volver a buscarlo. Se conservan hasta 5 por restaurante. */
+  saveTrackedOrder(slug: string, order: Order): void {
+    try {
+      const map = this.readTracked();
+      map[slug] = [order, ...(map[slug] ?? [])];
+      const seen = new Set<number>();
+      map[slug] = map[slug]
+        .filter((o) => (o?.id != null && !seen.has(o.id) ? (seen.add(o.id), true) : false))
+        .slice(0, 5);
+      localStorage.setItem(TRACKED_ORDERS_KEY, JSON.stringify(map));
+    } catch {
+      // Ignore localStorage write errors
+    }
+  }
+
+  listTrackedOrders(slug: string): Order[] {
+    try {
+      return this.readTracked()[slug] ?? [];
+    } catch {
+      return [];
+    }
+  }
+
+  private readTracked(): TrackedOrdersMap {
+    try {
+      const raw = localStorage.getItem(TRACKED_ORDERS_KEY);
+      return raw ? (JSON.parse(raw) as TrackedOrdersMap) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  /** Consulta en tiempo real el estado de un pedido por su código de seguimiento (sin autenticación). */
+  trackOrder(trackingCode: string): Observable<Order> {
+    return this.api.get<Order>(`/public/orders/track/${encodeURIComponent(trackingCode)}`).pipe(
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
+        const map = this.readTracked();
+        for (const slug of Object.keys(map)) {
+          const found = map[slug].find((o) => o.trackingCode === trackingCode);
+          if (found) return of(found);
+        }
+        return throwError(() => err);
+      })
+    );
+  }
+
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
     return this.api.post<Order>(`/public/orders/${slug}`, payload).pipe(
       tap((order) => {
@@ -41,7 +102,10 @@ export class OrderService {
         this.saveStoredOrders([order, ...stored]);
         this.newOrderTrigger$.next(order);
       }),
-      catchError(() => {
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
         // Find product names and calculate total
         let total = 0;
         const items = payload.items.map((item, idx) => {
@@ -72,9 +136,11 @@ export class OrderService {
           id: Date.now(),
           restaurantId: 1,
           orderNumber: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
+          trackingCode: typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `demo-${Date.now()}`,
           customerName: payload.customerName,
           customerPhone: payload.customerPhone ?? null,
           tableNumber: payload.tableNumber ?? (payload.orderType === 'DELIVERY' ? 'Domicilio' : 'Mesa'),
+          deliveryAddress: payload.deliveryAddress ?? null,
           orderType: payload.orderType ?? 'DINE_IN',
           notes: payload.notes ?? null,
           status: 'PENDING',
@@ -95,12 +161,18 @@ export class OrderService {
     );
   }
 
-  listMine(status?: OrderStatus, raw = false): Observable<Order[]> {
-    const path = status ? `/orders?status=${status}` : '/orders';
+  listMine(status?: OrderStatus, raw = false, since?: string): Observable<Order[]> {
+    const params: string[] = [];
+    if (status) params.push(`status=${status}`);
+    if (since) params.push(`since=${encodeURIComponent(since)}`);
+    const path = params.length > 0 ? `/orders?${params.join('&')}` : '/orders';
     const req = this.api.get<Order[]>(path);
     if (raw) return req;
     return req.pipe(
-      catchError(() => {
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
         const orders = this.getStoredOrders();
         if (status) {
           return of(orders.filter((o) => o.status === status));
@@ -110,9 +182,24 @@ export class OrderService {
     );
   }
 
+  stats(): Observable<OrderStats> {
+    return this.api.get<OrderStats>('/orders/stats');
+  }
+
+  createMine(payload: CreateOrderRequest): Observable<Order> {
+    return this.api.post<Order>('/orders', payload);
+  }
+
+  updateMine(id: number, payload: UpdateOrderRequest): Observable<Order> {
+    return this.api.patch<Order>(`/orders/${id}`, payload);
+  }
+
   getMine(id: number): Observable<Order> {
     return this.api.get<Order>(`/orders/${id}`).pipe(
-      catchError(() => {
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
         const orders = this.getStoredOrders();
         const found = orders.find((o) => o.id === id) || INITIAL_SAMPLE_ORDERS[0];
         return of(found);
@@ -122,7 +209,10 @@ export class OrderService {
 
   updateStatusMine(id: number, status: OrderStatus): Observable<Order> {
     return this.api.patch<Order>(`/orders/${id}/status`, { status }).pipe(
-      catchError(() => {
+      catchError((err) => {
+        if (!this.demoMode) {
+          return throwError(() => err);
+        }
         const orders = this.getStoredOrders();
         const foundIndex = orders.findIndex((o) => o.id === id);
         if (foundIndex !== -1) {
