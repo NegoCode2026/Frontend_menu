@@ -339,18 +339,6 @@ export interface Order {
   timeline?: OrderStatusEvent[];
 }
 
-export interface OrderStats {
-  total: number;
-  pending: number;
-  confirmed: number;
-  inPreparation: number;
-  ready: number;
-  delivered: number;
-  cancelled: number;
-  todayCount: number;
-  todayRevenue: number;
-}
-
 export interface UpdateOrderRequest {
   customerName?: string;
   customerPhone?: string;
