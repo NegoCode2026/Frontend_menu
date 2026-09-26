@@ -13,6 +13,14 @@
       <p class="text-stone-500 text-sm">Verifica el enlace o escanea el código QR de tu mesa nuevamente.</p>
     </div>
   </div>
+} @else if (invalidTable()) {
+  <div class="min-h-screen flex items-center justify-center px-4 bg-stone-50">
+    <div class="text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-stone-100">
+      <div class="text-6xl mb-6">📱</div>
+      <h1 class="text-2xl font-black text-stone-900 mb-2">Mesa no válida</h1>
+      <p class="text-stone-500 text-sm">La mesa "{{ invalidTable() }}" no existe en {{ menu()?.restaurant.name ?? 'este restaurante' }}. Escanea el código QR de tu mesa para pedir.</p>
+    </div>
+  </div>
 } @else if (menu()) {
   <div class="min-h-[100dvh] bg-stone-50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
     <app-pwa-banner />
@@ -86,21 +94,6 @@
             <p class="font-extrabold text-red-800 text-sm">Estamos cerrados en este momento</p>
             <p class="text-xs text-red-600 mt-1 leading-relaxed">
               El restaurante no está recibiendo pedidos ahora mismo. Puedes ver el menú, pero no enviar pedidos. ¡Vuelve pronto!
-            </p>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- AVISO: MESA DEL QR NO EXISTE -->
-    @if (invalidTable()) {
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 mt-6">
-        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
-          <span class="text-2xl shrink-0">⚠️</span>
-          <div>
-            <p class="font-extrabold text-amber-800 text-sm">La mesa "{{ invalidTable() }}" no existe aquí</p>
-            <p class="text-xs text-amber-700 mt-1 leading-relaxed">
-              Escanea el QR de tu mesa nuevamente. Igual puedes pedir eligiendo abajo.
             </p>
           </div>
         </div>
