@@ -10,6 +10,14 @@
       "destination": "https://back-negocode.onrender.com/uploads/:path*"
     },
     {
+      "source": "/ws/:path*",
+      "destination": "https://back-negocode.onrender.com/ws/:path*"
+    },
+    {
+      "source": "/ws",
+      "destination": "https://back-negocode.onrender.com/ws"
+    },
+    {
       "source": "/((?!api/|uploads/).*)",
       "destination": "/index.html"
     }

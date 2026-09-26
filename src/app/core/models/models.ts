@@ -206,6 +206,8 @@ export interface PublicMenu {
       available: boolean;
     }>;
   }>;
+  /** Números de mesa registrados (para validar el QR y el picker). */
+  tables?: string[];
 }
 
 export interface User {
@@ -337,18 +339,6 @@ export interface Order {
   updatedAt: string;
   items: OrderItem[];
   timeline?: OrderStatusEvent[];
-}
-
-export interface OrderStats {
-  total: number;
-  pending: number;
-  confirmed: number;
-  inPreparation: number;
-  ready: number;
-  delivered: number;
-  cancelled: number;
-  todayCount: number;
-  todayRevenue: number;
 }
 
 export interface UpdateOrderRequest {

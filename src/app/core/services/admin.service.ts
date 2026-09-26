@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { AdminCreateRestaurant, AdminRestaurant, AdminStats, AdminUser, Page } from '../models/models';
 
@@ -31,11 +30,6 @@ export class AdminService {
     return this.api.getPaged<AdminRestaurant>('/admin/restaurants', httpParams);
   }
 
-  /** Compat: listado simple para componentes que aún no paginan. */
-  listAllRestaurants(): Observable<AdminRestaurant[]> {
-    return this.listRestaurants({ page: 0, size: 200 }).pipe(map((p) => p.content));
-  }
-
   createRestaurant(payload: AdminCreateRestaurant): Observable<AdminRestaurant> {
     return this.api.post<AdminRestaurant>('/admin/restaurants', payload);
   }
@@ -52,11 +46,6 @@ export class AdminService {
     if (params?.role) httpParams = httpParams.set('role', params.role);
     if (params?.active != null) httpParams = httpParams.set('active', String(params.active));
     return this.api.getPaged<AdminUser>('/admin/users', httpParams);
-  }
-
-  /** Compat: listado simple para componentes que aún no paginan. */
-  listAllUsers(): Observable<AdminUser[]> {
-    return this.listUsers({ page: 0, size: 200 }).pipe(map((p) => p.content));
   }
 
   toggleUserActive(id: number, active: boolean): Observable<void> {
