@@ -13,6 +13,14 @@
       <p class="text-stone-500 text-sm">Verifica el enlace o escanea el código QR de tu mesa nuevamente.</p>
     </div>
   </div>
+} @else if (invalidTable()) {
+  <div class="min-h-screen flex items-center justify-center px-4 bg-stone-50">
+    <div class="text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-stone-100">
+      <div class="text-6xl mb-6">📱</div>
+      <h1 class="text-2xl font-black text-stone-900 mb-2">Mesa no válida</h1>
+      <p class="text-stone-500 text-sm">La mesa "{{ invalidTable() }}" no existe en {{ menu()?.restaurant.name ?? 'este restaurante' }}. Escanea el código QR de tu mesa para pedir.</p>
+    </div>
+  </div>
 } @else if (menu()) {
   <div class="min-h-[100dvh] bg-stone-50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
     <app-pwa-banner />
@@ -86,21 +94,6 @@
             <p class="font-extrabold text-red-800 text-sm">Estamos cerrados en este momento</p>
             <p class="text-xs text-red-600 mt-1 leading-relaxed">
               El restaurante no está recibiendo pedidos ahora mismo. Puedes ver el menú, pero no enviar pedidos. ¡Vuelve pronto!
-            </p>
-          </div>
-        </div>
-      </div>
-    }
-
-    <!-- AVISO: MESA DEL QR NO EXISTE -->
-    @if (invalidTable()) {
-      <div class="max-w-3xl mx-auto px-4 sm:px-6 mt-6">
-        <div class="bg-amber-50 border-2 border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
-          <span class="text-2xl shrink-0">⚠️</span>
-          <div>
-            <p class="font-extrabold text-amber-800 text-sm">La mesa "{{ invalidTable() }}" no existe aquí</p>
-            <p class="text-xs text-amber-700 mt-1 leading-relaxed">
-              Escanea el QR de tu mesa nuevamente. Igual puedes pedir eligiendo abajo.
             </p>
           </div>
         </div>
@@ -775,15 +768,15 @@
     }
 
     <!-- Floating tracked-order badge: entry point to the order status view -->
-    @if (trackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
+    @if (activeTrackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
       <button
         type="button"
         (click)="openTracking()"
         class="no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white text-stone-900 pl-4 pr-1 py-1 shadow-xl ring-1 ring-stone-200 anim-fade-in-up"
       >
-        <span class="w-2 h-2 rounded-full animate-pulse" [class]="isOrderFinal(trackedOrders()[0]!.status) ? 'bg-stone-500' : 'bg-amber-400'"></span>
+        <span class="w-2 h-2 rounded-full animate-pulse bg-amber-400"></span>
         <span class="text-xs font-extrabold whitespace-nowrap">
-          {{ trackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(trackedOrders()[0]!.status) }}
+          {{ activeTrackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(activeTrackedOrders()[0]!.status) }}
         </span>
         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-sm">➜</span>
       </button>
@@ -888,9 +881,9 @@
           </div>
 
           <div class="p-5 space-y-4 overflow-y-auto max-h-[85vh]">
-            @if (trackedOrders().length > 1) {
+            @if (activeTrackedOrders().length > 1) {
               <div class="flex gap-1.5 overflow-x-auto pb-1">
-                @for (t of trackedOrders(); track t.id) {
+                @for (t of activeTrackedOrders(); track t.id) {
                   <button type="button" (click)="selectTrackedOrder(t)" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-extrabold border transition-colors"
                     [class]="trackingOrder()!.id === t.id ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200'">
                     {{ t.orderNumber }}
