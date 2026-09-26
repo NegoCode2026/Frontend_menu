@@ -206,6 +206,8 @@ export interface PublicMenu {
       available: boolean;
     }>;
   }>;
+  /** Números de mesa registrados (para validar el QR y el picker). */
+  tables?: string[];
 }
 
 export interface User {

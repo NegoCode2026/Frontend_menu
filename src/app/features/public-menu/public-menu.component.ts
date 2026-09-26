@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
+import { TableService } from '../../core/services/table.service';
 import { InvoiceService } from '../../core/services/invoice.service';
 import { CartItem, Order, OrderStatus, OrderType, PublicMenu } from '../../core/models/models';
 import { PwaBannerComponent } from '../../shared/pwa-banner/pwa-banner.component';
@@ -65,6 +66,11 @@ export class PublicMenuComponent implements OnDestroy {
   // Order Type: DINE_IN, DELIVERY, TAKEAWAY
   readonly orderType = signal<OrderType>('DINE_IN');
   readonly selectedTablePreset = signal<string>('1');
+
+  /** ?mesa= crudo del QR: se valida contra las mesas registradas al cargar el menú. */
+  readonly pendingMesa = signal<string | null>(null);
+  /** Mesa del QR que NO existe: se avisa y se sigue con el flujo normal. */
+  readonly invalidTable = signal<string | null>(null);
 
   /** true cuando el QR viene de una mesa específica (?mesa=N): la mesa y el
    *  tipo de pedido quedan bloqueados para el cliente. */
@@ -137,14 +143,12 @@ export class PublicMenuComponent implements OnDestroy {
   });
 
   constructor() {
-    // Check query params for table / mesa preset and search dish
+    // El ?mesa= del QR se valida contra las mesas registradas cuando
+    // llega el menú: si no existe, se avisa y se sigue con el flujo normal.
     this.route.queryParamMap.subscribe((params) => {
       const mesa = params.get('mesa') || params.get('table') || params.get('m');
       if (mesa) {
-        this.tableLocked.set(true);
-        this.orderType.set('DINE_IN');
-        this.selectedTablePreset.set(mesa);
-        this.orderForm.patchValue({ tableNumber: `Mesa ${mesa}` });
+        this.pendingMesa.set(mesa);
       }
 
       const q = params.get('q');
@@ -164,6 +168,7 @@ export class PublicMenuComponent implements OnDestroy {
           if (menuData.categories.length > 0) {
             this.activeCategory.set(menuData.categories[0].id);
           }
+          this.applyPendingMesa();
           const restaurantSlug = menuData.restaurant?.slug || slugVal;
           this.trackedOrders.set(this.orderService.listTrackedOrders(restaurantSlug));
           this.startStatusPolling();
@@ -175,6 +180,23 @@ export class PublicMenuComponent implements OnDestroy {
         },
       });
     });
+  }
+
+  /** Aplica el ?mesa= del QR una vez conocido el menú (valida que exista). */
+  private applyPendingMesa(): void {
+    const mesa = this.pendingMesa();
+    this.pendingMesa.set(null);
+    if (!mesa) return;
+    if (!this.knownTable(mesa)) {
+      this.invalidTable.set(mesa.trim());
+      this.tableLocked.set(false);
+      return;
+    }
+    this.invalidTable.set(null);
+    this.tableLocked.set(true);
+    this.orderType.set('DINE_IN');
+    this.selectedTablePreset.set(mesa);
+    this.orderForm.patchValue({ tableNumber: this.lockedTableLabel() });
   }
 
   setCategory(id: number): void {
@@ -314,7 +336,26 @@ export class PublicMenuComponent implements OnDestroy {
     this.orderForm.patchValue({ tableNumber: `Mesa ${num}` });
   }
 
-  /** Etiqueta de la mesa del QR (?mesa=): evita "Mesa Mesa 4" si el QR ya la trae. */
+  /** Mesas registradas para el picker (o lista base si aún no hay). */
+  availableTables(): string[] {
+    const registered = this.menu()?.tables;
+    if (Array.isArray(registered) && registered.length > 0) return registered;
+    return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '15'];
+  }
+
+  /** ¿La etiqueta es una mesa registrada? Sin registro no se valida. */
+  knownTable(label: string | null | undefined): boolean {
+    const registered = this.menu()?.tables;
+    if (!Array.isArray(registered) || registered.length === 0) return true;
+    const norm = (label ?? '').trim();
+    if (!norm) return false;
+    const num = TableService.normalizeNumber(norm);
+    return registered.some((t) => {
+      if (t.toLowerCase() === norm.toLowerCase()) return true;
+      const tn = TableService.normalizeNumber(t);
+      return num !== null && tn !== null && num === tn;
+    });
+  }
   lockedTableLabel(): string {
     const raw = (this.selectedTablePreset() ?? '').trim();
     if (!raw) return 'Mesa';
@@ -330,6 +371,19 @@ export class PublicMenuComponent implements OnDestroy {
     this.orderErrorMessage.set(null);
 
     const tableLabel = this.lockedTableLabel();
+    if (locked && !this.knownTable(tableLabel)) {
+      this.submittingOrder.set(false);
+      this.orderErrorMessage.set(`La ${tableLabel} no existe en este restaurante. Escanea el QR de tu mesa.`);
+      return;
+    }
+    if (!locked && this.orderType() === 'DINE_IN') {
+      const typed = (this.orderForm.value.tableNumber ?? '').trim();
+      if (typed && !this.knownTable(typed)) {
+        this.submittingOrder.set(false);
+        this.orderErrorMessage.set(`La mesa "${typed}" no existe. Elige una de la lista.`);
+        return;
+      }
+    }
     const payload = locked
       ? {
           // QR de mesa: un toque y listo. Sin preguntas: la mesa identifica el pedido.
@@ -372,6 +426,7 @@ export class PublicMenuComponent implements OnDestroy {
       next: (order) => {
         this.submittingOrder.set(false);
         this.showCartModal.set(false);
+        this.invalidTable.set(null);
         this.cart.set([]);
         this.tipPercent.set(0);
         this.orderSuccess.set(order);
