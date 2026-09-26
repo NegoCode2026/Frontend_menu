@@ -18,6 +18,15 @@ interface LegacyTable {
 
 const LEGACY_PREFIX = 'tavita_tables_';
 
+/** Llaves de cachés locales ya eliminados: no las lee ningún código,
+ *  se barren para no dejar basura en el navegador. */
+const STALE_KEYS = [
+  'tavita_orders_cache',
+  'tavita_categories_cache',
+  'tavita_products_cache',
+  'tavita_restaurant_me',
+];
+
 /**
  * Mesas del salón: viven en el backend (compartidas por todo el equipo).
  * La ocupación se deriva en vivo de los pedidos activos en el componente.
@@ -88,6 +97,15 @@ export class TableService {
         if (key && key.startsWith(LEGACY_PREFIX)) keys.push(key);
       }
       keys.forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // Ignorar errores de limpieza
+    }
+  }
+
+  /** Barre llaves de cachés ya eliminados del código (no se leen en ningún lado). */
+  sweepStaleKeys(): void {
+    try {
+      STALE_KEYS.forEach((k) => localStorage.removeItem(k));
     } catch {
       // Ignorar errores de limpieza
     }

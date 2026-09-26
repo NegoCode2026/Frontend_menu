@@ -71,6 +71,7 @@ export class TablesComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.tableService.sweepStaleKeys();
     this.reloadTables();
     this.restaurantService.getMine().subscribe({
       next: (r) => {
