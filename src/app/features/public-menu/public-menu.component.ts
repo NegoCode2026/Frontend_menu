@@ -76,6 +76,12 @@ export class PublicMenuComponent implements OnDestroy {
       return mineNum !== null && n !== null && n === mineNum;
     });
   });
+
+  /** Pedidos con seguimiento vivo: visibles y no finalizados. Al entregarse
+   *  o cancelarse desaparecen para que la siguiente mesa no vea nada. */
+  readonly activeTrackedOrders = computed(() =>
+    this.visibleTrackedOrders().filter((o) => !this.isOrderFinal(o.status))
+  );
   private trackingTimer: ReturnType<typeof setInterval> | null = null;
   private statusTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -85,7 +91,7 @@ export class PublicMenuComponent implements OnDestroy {
 
   /** ?mesa= crudo del QR: se valida contra las mesas registradas al cargar el menú. */
   readonly pendingMesa = signal<string | null>(null);
-  /** Mesa del QR que NO existe: se avisa y se sigue con el flujo normal. */
+  /** Mesa del QR que NO existe: bloquea el menú hasta escanear un QR válido. */
   readonly invalidTable = signal<string | null>(null);
 
   /** true cuando el QR viene de una mesa específica (?mesa=N): la mesa y el
@@ -538,7 +544,7 @@ export class PublicMenuComponent implements OnDestroy {
     const slug = this.slug().trim() || this.menu()?.restaurant.slug || '';
     const stored = this.orderService.listTrackedOrders(slug);
     this.trackedOrders.set(stored);
-    const visible = this.visibleTrackedOrders();
+    const visible = this.activeTrackedOrders();
     const target = order ?? visible[0] ?? this.orderSuccess();
     this.trackingOrder.set(target ?? null);
     this.trackingOpen.set(true);
@@ -604,7 +610,7 @@ export class PublicMenuComponent implements OnDestroy {
 
   private refreshFirstTracked(): void {
     if (this.trackingOpen() || this.orderSuccess()) return;
-    const first = this.visibleTrackedOrders()[0];
+    const first = this.activeTrackedOrders()[0];
     if (!first?.trackingCode) return;
     this.orderService.trackOrder(first.trackingCode).subscribe({
       next: (fresh) => {
