@@ -231,7 +231,13 @@ export class ProductsComponent implements OnInit {
   }
 
   submit(): void {
-    if (this.form.invalid || this.saving()) return;
+    if (this.form.invalid || this.saving()) {
+      this.form.markAllAsTouched();
+      if (this.form.invalid) {
+        this.toast.warning('Revisa el plato', 'Ponle nombre y precio para guardarlo. La foto y la descripción son opcionales.');
+      }
+      return;
+    }
     this.saving.set(true);
     this.errorMessage.set(null);
 

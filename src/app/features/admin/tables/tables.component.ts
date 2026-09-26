@@ -5,6 +5,7 @@ import { RestaurantService } from '../../../core/services/restaurant.service';
 import { OrderService } from '../../../core/services/order.service';
 import { TableService, RestaurantTable } from '../../../core/services/table.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../shared/ui/toast.service';
 import { Order } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
@@ -26,14 +27,16 @@ export class TablesComponent implements OnInit {
   private readonly orderService = inject(OrderService);
   private readonly tableService = inject(TableService);
   private readonly auth = inject(AuthService);
+  private readonly toast = inject(ToastService);
 
   readonly user = this.auth.user;
-  readonly restaurantId = computed(() => this.user()?.restaurantId ?? null);
   readonly restaurantName = signal<string | null>(null);
   readonly menuSlug = signal<string | null>(null);
   readonly isOpen = signal(true);
 
   readonly tables = signal<RestaurantTable[]>([]);
+  readonly loadingTables = signal(true);
+  readonly savingTable = signal(false);
   readonly allOrders = signal<Order[]>([]);
 
   readonly showAdd = signal(false);
@@ -84,7 +87,43 @@ export class TablesComponent implements OnInit {
   }
 
   reloadTables(): void {
-    this.tables.set(this.tableService.list(this.restaurantId()));
+    this.loadingTables.set(true);
+    this.tableService.list().subscribe({
+      next: (tables) => {
+        const list = Array.isArray(tables) ? tables : [];
+        if (list.length > 0) {
+          this.tables.set(list);
+          this.loadingTables.set(false);
+          return;
+        }
+        // Primera vez con backend vacío: subir las mesas del formato
+        // anterior (localStorage) para no perderlas.
+        this.tableService.migrateLegacy(true).subscribe({
+          next: (migrated) => {
+            if (migrated > 0) {
+              this.tableService.list().subscribe({
+                next: (fresh) => {
+                  this.tables.set(Array.isArray(fresh) ? fresh : []);
+                  this.loadingTables.set(false);
+                },
+                error: () => this.loadingTables.set(false),
+              });
+            } else {
+              this.tables.set([]);
+              this.loadingTables.set(false);
+            }
+          },
+          error: () => {
+            this.tables.set([]);
+            this.loadingTables.set(false);
+          },
+        });
+      },
+      error: (err) => {
+        this.loadingTables.set(false);
+        this.toast.error('No se pudieron cargar las mesas', err?.error?.message ?? 'Revisa tu conexión e inténtalo de nuevo.');
+      },
+    });
   }
 
   suggestedNumber(): string {
@@ -103,16 +142,29 @@ export class TablesComponent implements OnInit {
 
   saveTable(): void {
     const number = this.newNumber().trim();
-    if (!number) return;
-    this.tableService.add(this.restaurantId(), number, this.newSeats());
-    this.reloadTables();
-    this.showAdd.set(false);
+    if (!number || this.savingTable()) return;
+    this.savingTable.set(true);
+    this.tableService.create(number, this.newSeats()).subscribe({
+      next: () => {
+        this.savingTable.set(false);
+        this.showAdd.set(false);
+        this.reloadTables();
+      },
+      error: (err) => {
+        this.savingTable.set(false);
+        this.toast.error('No se pudo guardar la mesa', err?.error?.message ?? 'Reintenta en un momento.');
+      },
+    });
   }
 
-  deleteTable(id: string): void {
-    this.tableService.remove(this.restaurantId(), id);
-    this.reloadTables();
-    if (this.qrTable()?.id === id) this.closeQr();
+  deleteTable(id: number | string): void {
+    this.tableService.remove(id).subscribe({
+      next: () => {
+        this.reloadTables();
+        if (this.qrTable()?.id === id) this.closeQr();
+      },
+      error: (err) => this.toast.error('No se pudo eliminar la mesa', err?.error?.message ?? 'Reintenta en un momento.'),
+    });
   }
 
   menuUrlFor(table: RestaurantTable): string {

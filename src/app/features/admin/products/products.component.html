@@ -341,7 +341,7 @@
       </div>
 
       <div class="flex gap-3 pt-2">
-        <button type="submit" [disabled]="form.invalid || saving() || categories().length === 0" class="landing-btn-dark disabled:opacity-50 disabled:pointer-events-none">
+        <button type="submit" [disabled]="form.invalid || saving()" class="landing-btn-dark disabled:opacity-50 disabled:pointer-events-none">
           {{ saving() ? 'Guardando…' : 'Guardar plato' }}
         </button>
         <button type="button" (click)="cancelEdit()" class="inline-flex items-center justify-center gap-2 rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition-all duration-200 hover:bg-stone-50 active:scale-[0.98]">

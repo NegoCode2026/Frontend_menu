@@ -837,7 +837,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const doFullRefresh = this.lastSyncIso === null || this.pollTicks % this.FULL_REFRESH_TICKS === 0;
     const since = doFullRefresh ? undefined : this.lastSyncIso ?? undefined;
 
-    this.orderService.listMine(undefined, true, since).subscribe({
+    this.orderService.listMine(undefined, since).subscribe({
       next: (latest) => {
         this.sessionExpired.set(false);
         const wasOffline = this.offline();
@@ -1042,11 +1042,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
   printTicket(): void {
     window.print();
-  }
-
-  simulateIncomingOrder(): void {
-    const order = this.orderService.simulateNewOrder();
-    this.openTicketModal(order);
   }
 
   toggleSound(): void {
