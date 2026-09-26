@@ -768,15 +768,15 @@
     }
 
     <!-- Floating tracked-order badge: entry point to the order status view -->
-    @if (trackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
+    @if (visibleTrackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
       <button
         type="button"
         (click)="openTracking()"
         class="no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white text-stone-900 pl-4 pr-1 py-1 shadow-xl ring-1 ring-stone-200 anim-fade-in-up"
       >
-        <span class="w-2 h-2 rounded-full animate-pulse" [class]="isOrderFinal(trackedOrders()[0]!.status) ? 'bg-stone-500' : 'bg-amber-400'"></span>
+        <span class="w-2 h-2 rounded-full animate-pulse" [class]="isOrderFinal(visibleTrackedOrders()[0]!.status) ? 'bg-stone-500' : 'bg-amber-400'"></span>
         <span class="text-xs font-extrabold whitespace-nowrap">
-          {{ trackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(trackedOrders()[0]!.status) }}
+          {{ visibleTrackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(visibleTrackedOrders()[0]!.status) }}
         </span>
         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-sm">➜</span>
       </button>
@@ -881,9 +881,9 @@
           </div>
 
           <div class="p-5 space-y-4 overflow-y-auto max-h-[85vh]">
-            @if (trackedOrders().length > 1) {
+            @if (visibleTrackedOrders().length > 1) {
               <div class="flex gap-1.5 overflow-x-auto pb-1">
-                @for (t of trackedOrders(); track t.id) {
+                @for (t of visibleTrackedOrders(); track t.id) {
                   <button type="button" (click)="selectTrackedOrder(t)" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-extrabold border transition-colors"
                     [class]="trackingOrder()!.id === t.id ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200'">
                     {{ t.orderNumber }}
