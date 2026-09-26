@@ -314,28 +314,52 @@ export class PublicMenuComponent implements OnDestroy {
     this.orderForm.patchValue({ tableNumber: `Mesa ${num}` });
   }
 
+  /** Etiqueta de la mesa del QR (?mesa=): evita "Mesa Mesa 4" si el QR ya la trae. */
+  lockedTableLabel(): string {
+    const raw = (this.selectedTablePreset() ?? '').trim();
+    if (!raw) return 'Mesa';
+    return /^mesa\s*/i.test(raw) ? raw.replace(/^mesa\s*/i, 'Mesa ') : `Mesa ${raw}`;
+  }
+
   submitOrder(): void {
-    if (this.isClosed() || this.orderForm.invalid || this.cart().length === 0 || this.submittingOrder()) return;
+    const locked = this.tableLocked();
+    if (this.isClosed() || this.cart().length === 0 || this.submittingOrder()) return;
+    if (!locked && this.orderForm.invalid) return;
 
     this.submittingOrder.set(true);
     this.orderErrorMessage.set(null);
 
-    const payload = {
-      customerName: this.orderForm.value.customerName,
-      customerPhone: this.orderForm.value.customerPhone,
-      tableNumber: this.tableLocked()
-        ? `Mesa ${this.selectedTablePreset()}`
-        : (this.orderForm.value.tableNumber ?? ''),
-      orderType: this.orderType(),
-      deliveryAddress: this.orderForm.value.deliveryAddress,
-      notes: this.orderForm.value.notes,
-      tipAmount: this.tipAmount() || null,
-      items: this.cart().map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        notes: item.notes,
-      })),
-    };
+    const tableLabel = this.lockedTableLabel();
+    const payload = locked
+      ? {
+          // QR de mesa: un toque y listo. Sin preguntas: la mesa identifica el pedido.
+          customerName: tableLabel,
+          customerPhone: undefined,
+          tableNumber: tableLabel,
+          orderType: 'DINE_IN' as OrderType,
+          deliveryAddress: undefined,
+          notes: undefined,
+          tipAmount: null,
+          items: this.cart().map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
+        }
+      : {
+          customerName: this.orderForm.value.customerName,
+          customerPhone: this.orderForm.value.customerPhone,
+          tableNumber: this.orderForm.value.tableNumber ?? '',
+          orderType: this.orderType(),
+          deliveryAddress: this.orderForm.value.deliveryAddress,
+          notes: this.orderForm.value.notes,
+          tipAmount: this.tipAmount() || null,
+          items: this.cart().map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
+        };
 
     const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || '';
     if (!targetSlug) {
@@ -408,7 +432,7 @@ export class PublicMenuComponent implements OnDestroy {
       customerName: this.orderForm.value.customerName || 'Cliente WhatsApp',
       customerPhone: this.orderForm.value.customerPhone,
       tableNumber: this.tableLocked()
-        ? `Mesa ${this.selectedTablePreset()}`
+        ? this.lockedTableLabel()
         : (this.orderForm.value.tableNumber || 'WhatsApp'),
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,

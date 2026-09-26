@@ -489,7 +489,7 @@
             @if (tableLocked()) {
               <div class="flex items-center justify-between gap-2 bg-primary-50 border border-primary-200/70 rounded-2xl p-3 text-xs text-primary-900 font-bold">
                 <span>🍽️ En Mesa</span>
-                <span class="bg-white text-primary-700 px-2.5 py-1 rounded-lg border border-primary-200">📍 Mesa {{ selectedTablePreset() }}</span>
+                <span class="bg-white text-primary-700 px-2.5 py-1 rounded-lg border border-primary-200">📍 {{ lockedTableLabel() }}</span>
               </div>
             } @else {
               <div class="grid grid-cols-3 gap-2 bg-stone-100 p-1 rounded-2xl">
@@ -615,18 +615,48 @@
             </span>
           </div>
 
-          <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
-            <p class="text-xs font-bold text-stone-500 mb-2">💛 Propina voluntaria</p>
-            <div class="flex gap-2">
-              <button type="button" (click)="setTip(0)" [class]="tipPercent() === 0 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">Sin propina</button>
-              <button type="button" (click)="setTip(5)" [class]="tipPercent() === 5 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">5%</button>
-              <button type="button" (click)="setTip(10)" [class]="tipPercent() === 10 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">10%</button>
+          @if (!tableLocked()) {
+            <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
+              <p class="text-xs font-bold text-stone-500 mb-2">💛 Propina voluntaria</p>
+              <div class="flex gap-2">
+                <button type="button" (click)="setTip(0)" [class]="tipPercent() === 0 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">Sin propina</button>
+                <button type="button" (click)="setTip(5)" [class]="tipPercent() === 5 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">5%</button>
+                <button type="button" (click)="setTip(10)" [class]="tipPercent() === 10 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">10%</button>
+              </div>
             </div>
-          </div>
+          }
 
+          <!-- QR de mesa: un toque y listo, sin preguntas -->
+          @if (tableLocked()) {
+            <div class="space-y-2 pt-1">
+              @if (isClosed()) {
+                <div class="w-full rounded-2xl bg-red-50 text-red-700 font-extrabold py-3.5 text-sm flex items-center justify-center gap-2 border border-red-200">
+                  🔴 El restaurante está cerrado — no puede recibir tu pedido
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  (click)="submitOrder()"
+                  [disabled]="submittingOrder()"
+                  class="w-full rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold py-4 text-base hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
+                >
+                  @if (submittingOrder()) {
+                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Enviando pedido a cocina…</span>
+                  } @else {
+                    <span>🍳 Enviar pedido · {{ lockedTableLabel() }} · {{ formatCurrency(cartTotalAmount()) }}</span>
+                  }
+                </button>
+                <p class="text-center text-[11px] font-medium text-stone-400">Llega directo a cocina como {{ lockedTableLabel() }}</p>
+              }
+            </div>
+          }
+
+          <!-- Sin QR: flujo completo con datos de entrega -->
+          @if (!tableLocked()) {
           <!-- Customer Form -->
           <form [formGroup]="orderForm" (ngSubmit)="submitOrder()" class="space-y-3 pt-1">
             <div>
@@ -724,6 +754,7 @@
               }
             </div>
           </form>
+          }
         </div>
       </div>
     }
