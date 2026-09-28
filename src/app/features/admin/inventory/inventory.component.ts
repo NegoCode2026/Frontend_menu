@@ -1,8 +1,10 @@
-import { Component, computed, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, HostListener, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product.service';
 import { InventoryService } from '../../../core/services/inventory.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmService } from '../../../shared/ui/confirm.service';
+import { ToastService } from '../../../shared/ui/toast.service';
 import { Ingredient, MovementReason, Product, StockMovement } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
@@ -15,6 +17,8 @@ export class InventoryComponent implements OnInit {
   private readonly productsApi = inject(ProductService);
   private readonly inventoryApi = inject(InventoryService);
   private readonly auth = inject(AuthService);
+  private readonly confirm = inject(ConfirmService);
+  private readonly toast = inject(ToastService);
   readonly user = this.auth.user;
 
   readonly products = signal<Product[]>([]);
@@ -97,6 +101,19 @@ export class InventoryComponent implements OnInit {
     this.editingIng.set(null);
   }
 
+  @HostListener('document:keydown.escape')
+  closeTopModalOnEscape(): void {
+    if (this.adjustId() !== null) {
+      this.closeAdjust();
+      return;
+    }
+    if (this.showIngForm()) {
+      this.closeIngForm();
+      return;
+    }
+    if (this.showCreate()) this.closeCreate();
+  }
+
   submitIngForm(): void {
     const name = this.ingName().trim();
     if (!name || this.saving()) return;
@@ -135,10 +152,19 @@ export class InventoryComponent implements OnInit {
     });
   }
 
-  removeIng(ing: Ingredient): void {
-    if (!confirm(`¿Eliminar "${ing.name}"? (los platos que lo usen pierden ese ingrediente)`)) return;
+  async removeIng(ing: Ingredient): Promise<void> {
+    const ok = await this.confirm.ask({
+      title: `¿Eliminar "${ing.name}"?`,
+      message: 'Los platos que lo usen pierden ese ingrediente. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      danger: true,
+    });
+    if (!ok) return;
     this.inventoryApi.deleteIngredient(ing.id).subscribe({
-      next: () => this.reloadIngredients(),
+      next: () => {
+        this.toast.success('Ingrediente eliminado', ing.name);
+        this.reloadIngredients();
+      },
       error: (err) => this.errorMessage.set(err.error?.message ?? 'No se pudo eliminar'),
     });
   }

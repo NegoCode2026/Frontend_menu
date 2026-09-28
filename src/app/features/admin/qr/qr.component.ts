@@ -2,7 +2,6 @@ import { Component, inject, signal, OnInit, computed, effect } from '@angular/co
 import QRCode from 'qrcode';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { QrService } from '../../../core/services/qr.service';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
 
 export type QrDotStyle = 'SQUARE' | 'ROUNDED' | 'DOTS' | 'DIAMOND';
@@ -63,7 +62,6 @@ export const COLOR_PRESETS: ColorPreset[] = [
 })
 export class QrComponent implements OnInit {
   private readonly restaurantService = inject(RestaurantService);
-  private readonly qrService = inject(QrService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 

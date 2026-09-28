@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Page } from '../models/models';
+import { Order } from '../models/models';
 
 export interface CashToday {
   date: string;
@@ -11,6 +11,10 @@ export interface CashToday {
   expectedTotal: number;
   deliveredOrders: number;
   unpaidDelivered: number;
+  /** Pedidos entregados del día sin método de pago registrado. */
+  unpaidOrders: Order[];
+  /** Pedidos del día ya cobrados (qué se cobró y por cuánto). */
+  paidOrders: Order[];
   closing: CashClosing | null;
 }
 
@@ -35,9 +39,5 @@ export class CashService {
 
   close(countedCash: number, notes?: string | null): Observable<CashClosing> {
     return this.api.post<CashClosing>('/cash/close', { countedCash, notes: notes ?? null });
-  }
-
-  history(page = 0, size = 30): Observable<Page<CashClosing>> {
-    return this.api.get<Page<CashClosing>>(`/cash/closings?page=${page}&size=${size}`);
   }
 }

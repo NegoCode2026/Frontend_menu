@@ -334,7 +334,11 @@ input[type="search"]::-webkit-search-cancel-button {
    KEYFRAME ANIMATIONS
    ============================================================ */
 
-/* Fade In + Slide Up */
+/* Fade In + Slide Up
+   El 100% usa `transform: none` (no translateY(0)): con `fill-mode: both`
+   el valor final queda aplicado para siempre y un transform residual haría
+   que todo `position: fixed` dentro (modales, nav, dropdowns) se posicionara
+   contra este elemento en vez de contra la ventana. */
 @keyframes fadeInUp {
   0% {
     opacity: 0;
@@ -342,7 +346,7 @@ input[type="search"]::-webkit-search-cancel-button {
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -354,7 +358,7 @@ input[type="search"]::-webkit-search-cancel-button {
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: none;
   }
 }
 
@@ -366,7 +370,7 @@ input[type="search"]::-webkit-search-cancel-button {
   }
   100% {
     opacity: 1;
-    transform: scale(1);
+    transform: none;
   }
 }
 
@@ -388,7 +392,7 @@ input[type="search"]::-webkit-search-cancel-button {
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 
@@ -400,7 +404,7 @@ input[type="search"]::-webkit-search-cancel-button {
   }
   100% {
     opacity: 1;
-    transform: translateX(0);
+    transform: none;
   }
 }
 

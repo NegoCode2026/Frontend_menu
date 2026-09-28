@@ -206,6 +206,8 @@ export interface PublicMenu {
       available: boolean;
     }>;
   }>;
+  /** Números de mesa registrados (para validar el QR y el picker). */
+  tables?: string[];
 }
 
 export interface User {
@@ -339,18 +341,6 @@ export interface Order {
   timeline?: OrderStatusEvent[];
 }
 
-export interface OrderStats {
-  total: number;
-  pending: number;
-  confirmed: number;
-  inPreparation: number;
-  ready: number;
-  delivered: number;
-  cancelled: number;
-  todayCount: number;
-  todayRevenue: number;
-}
-
 export interface UpdateOrderRequest {
   customerName?: string;
   customerPhone?: string;
@@ -381,6 +371,19 @@ export interface CreateOrderItemRequest {
 
 export interface CreateOrderRequest {
   customerName: string;
+  customerPhone?: string;
+  tableNumber?: string;
+  orderType?: OrderType;
+  deliveryAddress?: string;
+  notes?: string;
+  discountAmount?: number | null;
+  tipAmount?: number | null;
+  items: CreateOrderItemRequest[];
+}
+
+/** El pedido manual se identifica por mesa/destino; el nombre es opcional. */
+export interface CreateManualOrderRequest {
+  customerName?: string;
   customerPhone?: string;
   tableNumber?: string;
   orderType?: OrderType;

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, HostListener, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -129,6 +129,11 @@ export class SuperAdminRestaurantsComponent implements OnInit {
 
   closeModal(): void {
     this.showModal.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  closeModalOnEscape(): void {
+    if (this.showModal() && !this.submitting()) this.closeModal();
   }
 
   logout(): void {

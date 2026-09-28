@@ -13,6 +13,14 @@
       <p class="text-stone-500 text-sm">Verifica el enlace o escanea el código QR de tu mesa nuevamente.</p>
     </div>
   </div>
+} @else if (invalidTable()) {
+  <div class="min-h-screen flex items-center justify-center px-4 bg-stone-50">
+    <div class="text-center bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-stone-100">
+      <div class="text-6xl mb-6">📱</div>
+      <h1 class="text-2xl font-black text-stone-900 mb-2">Mesa no válida</h1>
+      <p class="text-stone-500 text-sm">La mesa "{{ invalidTable() }}" no existe en {{ menu()?.restaurant.name ?? 'este restaurante' }}. Escanea el código QR de tu mesa para pedir.</p>
+    </div>
+  </div>
 } @else if (menu()) {
   <div class="min-h-[100dvh] bg-stone-50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
     <app-pwa-banner />
@@ -42,7 +50,7 @@
       <div class="min-w-0 flex-1">
         <p class="text-[11px] font-medium leading-tight text-stone-400">Tu pedido en</p>
         <p class="truncate text-[14px] font-extrabold leading-tight text-stone-900">
-          @if (selectedTablePreset()) {
+          @if (tableLocked()) {
             Mesa {{ selectedTablePreset() }} · {{ menu()!.restaurant.name }}
           } @else {
             {{ menu()!.restaurant.address || menu()!.restaurant.name }}
@@ -489,7 +497,7 @@
             @if (tableLocked()) {
               <div class="flex items-center justify-between gap-2 bg-primary-50 border border-primary-200/70 rounded-2xl p-3 text-xs text-primary-900 font-bold">
                 <span>🍽️ En Mesa</span>
-                <span class="bg-white text-primary-700 px-2.5 py-1 rounded-lg border border-primary-200">📍 Mesa {{ selectedTablePreset() }}</span>
+                <span class="bg-white text-primary-700 px-2.5 py-1 rounded-lg border border-primary-200">📍 {{ lockedTableLabel() }}</span>
               </div>
             } @else {
               <div class="grid grid-cols-3 gap-2 bg-stone-100 p-1 rounded-2xl">
@@ -526,7 +534,7 @@
             <div class="space-y-1.5">
               <span class="text-xs font-semibold text-stone-600">Número de Mesa:</span>
               <div class="flex items-center gap-1.5 overflow-x-auto pb-1 hide-scrollbar">
-                @for (t of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '15']; track t) {
+                @for (t of availableTables(); track t) {
                   <button
                     type="button"
                     (click)="selectTable(t)"
@@ -615,18 +623,48 @@
             </span>
           </div>
 
-          <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
-            <p class="text-xs font-bold text-stone-500 mb-2">💛 Propina voluntaria</p>
-            <div class="flex gap-2">
-              <button type="button" (click)="setTip(0)" [class]="tipPercent() === 0 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">Sin propina</button>
-              <button type="button" (click)="setTip(5)" [class]="tipPercent() === 5 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">5%</button>
-              <button type="button" (click)="setTip(10)" [class]="tipPercent() === 10 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
-                class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">10%</button>
+          @if (!tableLocked()) {
+            <div class="bg-stone-50 rounded-2xl p-4 border border-stone-100">
+              <p class="text-xs font-bold text-stone-500 mb-2">💛 Propina voluntaria</p>
+              <div class="flex gap-2">
+                <button type="button" (click)="setTip(0)" [class]="tipPercent() === 0 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">Sin propina</button>
+                <button type="button" (click)="setTip(5)" [class]="tipPercent() === 5 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">5%</button>
+                <button type="button" (click)="setTip(10)" [class]="tipPercent() === 10 ? 'bg-stone-900 text-white' : 'bg-white text-stone-600 border border-stone-200'"
+                  class="flex-1 rounded-xl px-3 py-2 text-xs font-extrabold">10%</button>
+              </div>
             </div>
-          </div>
+          }
 
+          <!-- QR de mesa: un toque y listo, sin preguntas -->
+          @if (tableLocked()) {
+            <div class="space-y-2 pt-1">
+              @if (isClosed()) {
+                <div class="w-full rounded-2xl bg-red-50 text-red-700 font-extrabold py-3.5 text-sm flex items-center justify-center gap-2 border border-red-200">
+                  🔴 El restaurante está cerrado — no puede recibir tu pedido
+                </div>
+              } @else {
+                <button
+                  type="button"
+                  (click)="submitOrder()"
+                  [disabled]="submittingOrder()"
+                  class="w-full rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold py-4 text-base hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
+                >
+                  @if (submittingOrder()) {
+                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>Enviando pedido a cocina…</span>
+                  } @else {
+                    <span>🍳 Enviar pedido · {{ lockedTableLabel() }} · {{ formatCurrency(cartTotalAmount()) }}</span>
+                  }
+                </button>
+                <p class="text-center text-[11px] font-medium text-stone-400">Llega directo a cocina como {{ lockedTableLabel() }}</p>
+              }
+            </div>
+          }
+
+          <!-- Sin QR: flujo completo con datos de entrega -->
+          @if (!tableLocked()) {
           <!-- Customer Form -->
           <form [formGroup]="orderForm" (ngSubmit)="submitOrder()" class="space-y-3 pt-1">
             <div>
@@ -724,20 +762,21 @@
               }
             </div>
           </form>
+          }
         </div>
       </div>
     }
 
     <!-- Floating tracked-order badge: entry point to the order status view -->
-    @if (trackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
+    @if (activeTrackedOrders().length > 0 && !trackingOpen() && !orderSuccess()) {
       <button
         type="button"
         (click)="openTracking()"
         class="no-print fixed bottom-5 left-1/2 z-40 -translate-x-1/2 flex items-center gap-2 rounded-full bg-white text-stone-900 pl-4 pr-1 py-1 shadow-xl ring-1 ring-stone-200 anim-fade-in-up"
       >
-        <span class="w-2 h-2 rounded-full animate-pulse" [class]="isOrderFinal(trackedOrders()[0]!.status) ? 'bg-stone-500' : 'bg-amber-400'"></span>
+        <span class="w-2 h-2 rounded-full animate-pulse bg-amber-400"></span>
         <span class="text-xs font-extrabold whitespace-nowrap">
-          {{ trackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(trackedOrders()[0]!.status) }}
+          {{ activeTrackedOrders()[0]!.orderNumber }} · {{ trackingStepLabel(activeTrackedOrders()[0]!.status) }}
         </span>
         <span class="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white text-sm">➜</span>
       </button>
@@ -842,9 +881,9 @@
           </div>
 
           <div class="p-5 space-y-4 overflow-y-auto max-h-[85vh]">
-            @if (trackedOrders().length > 1) {
+            @if (activeTrackedOrders().length > 1) {
               <div class="flex gap-1.5 overflow-x-auto pb-1">
-                @for (t of trackedOrders(); track t.id) {
+                @for (t of activeTrackedOrders(); track t.id) {
                   <button type="button" (click)="selectTrackedOrder(t)" class="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-extrabold border transition-colors"
                     [class]="trackingOrder()!.id === t.id ? 'bg-stone-900 text-white border-stone-900' : 'bg-white text-stone-600 border-stone-200'">
                     {{ t.orderNumber }}

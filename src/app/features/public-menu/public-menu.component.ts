@@ -3,6 +3,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
+import { TableService } from '../../core/services/table.service';
 import { InvoiceService } from '../../core/services/invoice.service';
 import { CartItem, Order, OrderStatus, OrderType, PublicMenu } from '../../core/models/models';
 import { PwaBannerComponent } from '../../shared/pwa-banner/pwa-banner.component';
@@ -59,12 +60,39 @@ export class PublicMenuComponent implements OnDestroy {
   readonly trackingLoading = signal(false);
   readonly trackingOrder = signal<Order | null>(null);
   readonly trackedOrders = signal<Order[]>([]);
+
+  /** Pedidos visibles aquí: con QR de mesa, solo los de ESA mesa. En un
+   *  dispositivo compartido no se muestra lo de otras mesas: cada quien
+   *  ve únicamente el estado de su propio pedido. */
+  readonly visibleTrackedOrders = computed(() => {
+    const all = this.trackedOrders();
+    if (!this.tableLocked()) return all;
+    const mineLabel = this.lockedTableLabel().trim().toLowerCase();
+    const mineNum = TableService.normalizeNumber(this.lockedTableLabel());
+    return all.filter((o) => {
+      const raw = (o.tableNumber ?? '').trim().toLowerCase();
+      if (raw && raw === mineLabel) return true;
+      const n = TableService.normalizeNumber(o.tableNumber);
+      return mineNum !== null && n !== null && n === mineNum;
+    });
+  });
+
+  /** Pedidos con seguimiento vivo: visibles y no finalizados. Al entregarse
+   *  o cancelarse desaparecen para que la siguiente mesa no vea nada. */
+  readonly activeTrackedOrders = computed(() =>
+    this.visibleTrackedOrders().filter((o) => !this.isOrderFinal(o.status))
+  );
   private trackingTimer: ReturnType<typeof setInterval> | null = null;
   private statusTimer: ReturnType<typeof setInterval> | null = null;
 
   // Order Type: DINE_IN, DELIVERY, TAKEAWAY
   readonly orderType = signal<OrderType>('DINE_IN');
   readonly selectedTablePreset = signal<string>('1');
+
+  /** ?mesa= crudo del QR: se valida contra las mesas registradas al cargar el menú. */
+  readonly pendingMesa = signal<string | null>(null);
+  /** Mesa del QR que NO existe: bloquea el menú hasta escanear un QR válido. */
+  readonly invalidTable = signal<string | null>(null);
 
   /** true cuando el QR viene de una mesa específica (?mesa=N): la mesa y el
    *  tipo de pedido quedan bloqueados para el cliente. */
@@ -137,14 +165,12 @@ export class PublicMenuComponent implements OnDestroy {
   });
 
   constructor() {
-    // Check query params for table / mesa preset and search dish
+    // El ?mesa= del QR se valida contra las mesas registradas cuando
+    // llega el menú: si no existe, se avisa y se sigue con el flujo normal.
     this.route.queryParamMap.subscribe((params) => {
       const mesa = params.get('mesa') || params.get('table') || params.get('m');
       if (mesa) {
-        this.tableLocked.set(true);
-        this.orderType.set('DINE_IN');
-        this.selectedTablePreset.set(mesa);
-        this.orderForm.patchValue({ tableNumber: `Mesa ${mesa}` });
+        this.pendingMesa.set(mesa);
       }
 
       const q = params.get('q');
@@ -164,6 +190,7 @@ export class PublicMenuComponent implements OnDestroy {
           if (menuData.categories.length > 0) {
             this.activeCategory.set(menuData.categories[0].id);
           }
+          this.applyPendingMesa();
           const restaurantSlug = menuData.restaurant?.slug || slugVal;
           this.trackedOrders.set(this.orderService.listTrackedOrders(restaurantSlug));
           this.startStatusPolling();
@@ -175,6 +202,23 @@ export class PublicMenuComponent implements OnDestroy {
         },
       });
     });
+  }
+
+  /** Aplica el ?mesa= del QR una vez conocido el menú (valida que exista). */
+  private applyPendingMesa(): void {
+    const mesa = this.pendingMesa();
+    this.pendingMesa.set(null);
+    if (!mesa) return;
+    if (!this.knownTable(mesa)) {
+      this.invalidTable.set(mesa.trim());
+      this.tableLocked.set(false);
+      return;
+    }
+    this.invalidTable.set(null);
+    this.tableLocked.set(true);
+    this.orderType.set('DINE_IN');
+    this.selectedTablePreset.set(mesa);
+    this.orderForm.patchValue({ tableNumber: this.lockedTableLabel() });
   }
 
   setCategory(id: number): void {
@@ -314,28 +358,84 @@ export class PublicMenuComponent implements OnDestroy {
     this.orderForm.patchValue({ tableNumber: `Mesa ${num}` });
   }
 
+  /** Mesas registradas para el picker (o lista base si aún no hay). */
+  availableTables(): string[] {
+    const registered = this.menu()?.tables;
+    if (Array.isArray(registered) && registered.length > 0) return registered;
+    return ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '15'];
+  }
+
+  /** ¿La etiqueta es una mesa registrada? Sin registro no se valida. */
+  knownTable(label: string | null | undefined): boolean {
+    const registered = this.menu()?.tables;
+    if (!Array.isArray(registered) || registered.length === 0) return true;
+    const norm = (label ?? '').trim();
+    if (!norm) return false;
+    const num = TableService.normalizeNumber(norm);
+    return registered.some((t) => {
+      if (t.toLowerCase() === norm.toLowerCase()) return true;
+      const tn = TableService.normalizeNumber(t);
+      return num !== null && tn !== null && num === tn;
+    });
+  }
+  lockedTableLabel(): string {
+    const raw = (this.selectedTablePreset() ?? '').trim();
+    if (!raw) return 'Mesa';
+    return /^mesa\s*/i.test(raw) ? raw.replace(/^mesa\s*/i, 'Mesa ') : `Mesa ${raw}`;
+  }
+
   submitOrder(): void {
-    if (this.isClosed() || this.orderForm.invalid || this.cart().length === 0 || this.submittingOrder()) return;
+    const locked = this.tableLocked();
+    if (this.isClosed() || this.cart().length === 0 || this.submittingOrder()) return;
+    if (!locked && this.orderForm.invalid) return;
 
     this.submittingOrder.set(true);
     this.orderErrorMessage.set(null);
 
-    const payload = {
-      customerName: this.orderForm.value.customerName,
-      customerPhone: this.orderForm.value.customerPhone,
-      tableNumber: this.tableLocked()
-        ? `Mesa ${this.selectedTablePreset()}`
-        : (this.orderForm.value.tableNumber ?? ''),
-      orderType: this.orderType(),
-      deliveryAddress: this.orderForm.value.deliveryAddress,
-      notes: this.orderForm.value.notes,
-      tipAmount: this.tipAmount() || null,
-      items: this.cart().map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        notes: item.notes,
-      })),
-    };
+    const tableLabel = this.lockedTableLabel();
+    if (locked && !this.knownTable(tableLabel)) {
+      this.submittingOrder.set(false);
+      this.orderErrorMessage.set(`La ${tableLabel} no existe en este restaurante. Escanea el QR de tu mesa.`);
+      return;
+    }
+    if (!locked && this.orderType() === 'DINE_IN') {
+      const typed = (this.orderForm.value.tableNumber ?? '').trim();
+      if (typed && !this.knownTable(typed)) {
+        this.submittingOrder.set(false);
+        this.orderErrorMessage.set(`La mesa "${typed}" no existe. Elige una de la lista.`);
+        return;
+      }
+    }
+    const payload = locked
+      ? {
+          // QR de mesa: un toque y listo. Sin preguntas: la mesa identifica el pedido.
+          customerName: tableLabel,
+          customerPhone: undefined,
+          tableNumber: tableLabel,
+          orderType: 'DINE_IN' as OrderType,
+          deliveryAddress: undefined,
+          notes: undefined,
+          tipAmount: null,
+          items: this.cart().map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
+        }
+      : {
+          customerName: this.orderForm.value.customerName,
+          customerPhone: this.orderForm.value.customerPhone,
+          tableNumber: this.orderForm.value.tableNumber ?? '',
+          orderType: this.orderType(),
+          deliveryAddress: this.orderForm.value.deliveryAddress,
+          notes: this.orderForm.value.notes,
+          tipAmount: this.tipAmount() || null,
+          items: this.cart().map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+            notes: item.notes,
+          })),
+        };
 
     const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || '';
     if (!targetSlug) {
@@ -348,6 +448,7 @@ export class PublicMenuComponent implements OnDestroy {
       next: (order) => {
         this.submittingOrder.set(false);
         this.showCartModal.set(false);
+        this.invalidTable.set(null);
         this.cart.set([]);
         this.tipPercent.set(0);
         this.orderSuccess.set(order);
@@ -408,7 +509,7 @@ export class PublicMenuComponent implements OnDestroy {
       customerName: this.orderForm.value.customerName || 'Cliente WhatsApp',
       customerPhone: this.orderForm.value.customerPhone,
       tableNumber: this.tableLocked()
-        ? `Mesa ${this.selectedTablePreset()}`
+        ? this.lockedTableLabel()
         : (this.orderForm.value.tableNumber || 'WhatsApp'),
       orderType: this.orderType(),
       deliveryAddress: this.orderForm.value.deliveryAddress,
@@ -442,8 +543,9 @@ export class PublicMenuComponent implements OnDestroy {
   openTracking(order?: Order): void {
     const slug = this.slug().trim() || this.menu()?.restaurant.slug || '';
     const stored = this.orderService.listTrackedOrders(slug);
-    const target = order ?? stored[0] ?? this.orderSuccess();
     this.trackedOrders.set(stored);
+    const visible = this.activeTrackedOrders();
+    const target = order ?? visible[0] ?? this.orderSuccess();
     this.trackingOrder.set(target ?? null);
     this.trackingOpen.set(true);
     this.stopTrackingPolling();
@@ -508,7 +610,7 @@ export class PublicMenuComponent implements OnDestroy {
 
   private refreshFirstTracked(): void {
     if (this.trackingOpen() || this.orderSuccess()) return;
-    const first = this.trackedOrders()[0];
+    const first = this.activeTrackedOrders()[0];
     if (!first?.trackingCode) return;
     this.orderService.trackOrder(first.trackingCode).subscribe({
       next: (fresh) => {
