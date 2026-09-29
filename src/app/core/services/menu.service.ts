@@ -3,7 +3,7 @@ import { Observable } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { ApiService } from './api.service';
 import { TenantBackendService } from './tenant-backend.service';
-import { PublicMenu } from '../models/models';
+import { DirectoryRestaurant, PublicMenu } from '../models/models';
 
 @Injectable({ providedIn: 'root' })
 export class MenuService {
@@ -21,6 +21,13 @@ export class MenuService {
         this.tenants.pinFor(slug);
         return this.api.get<PublicMenu>(`/public/menu/${encodeURIComponent(slug)}`);
       })
+    );
+  }
+
+  /** Directorio público de restaurantes activos (backend real). */
+  listRestaurants(): Observable<DirectoryRestaurant[]> {
+    return this.tenants.ensureLoaded().pipe(
+      switchMap(() => this.api.get<DirectoryRestaurant[]>(`/public/restaurants`))
     );
   }
 }

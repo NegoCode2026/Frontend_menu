@@ -604,6 +604,47 @@ export class QrComponent implements OnInit {
 
   // 1. Download Stand Card PNG (1200x1600 px)
   async downloadCardPng(): Promise<void> {
+    const canvas = await this.renderCardCanvas();
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `stand-${this.tablePrefix().toLowerCase()}-${this.tableNumber() || 'menu'}-${this.restaurantSlug()}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  // 1b. Download Stand Card as PDF (vía diálogo de impresión, tamaño A4)
+  async downloadCardPdf(): Promise<void> {
+    const canvas = await this.renderCardCanvas();
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL('image/png');
+    const win = window.open('', '_blank');
+    if (!win) return;
+    const title = `${this.restaurantName()} — ${this.tablePrefix()} ${this.tableNumber() || ''}`.trim();
+    win.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+      <style>
+        @page { size: A4 portrait; margin: 0; }
+        html, body { margin: 0; padding: 0; }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        img { width: 100%; max-height: 100vh; object-fit: contain; }
+        @media print { img { width: 100vw; height: auto; } }
+      </style></head><body><img src="${dataUrl}" /></body></html>`);
+    win.document.close();
+    const trigger = () => {
+      win.focus();
+      win.print();
+      win.close();
+    };
+    // Espera a que la imagen cargue antes de imprimir
+    const img = win.document.querySelector('img');
+    if (img && !img.complete) {
+      img.onload = trigger;
+      img.onerror = trigger;
+    } else {
+      setTimeout(trigger, 150);
+    }
+  }
+
+  private async renderCardCanvas(): Promise<HTMLCanvasElement | null> {
     const text = this.currentMenuUrl();
     const freshQrDataUrl = await this.renderCustomQrCanvas(text, 1024);
 
@@ -611,7 +652,7 @@ export class QrComponent implements OnInit {
     canvas.width = 1200;
     canvas.height = 1600;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return null;
 
     const style = this.templateStyle();
     const isGourmet = style === 'GOURMET';
@@ -692,8 +733,9 @@ export class QrComponent implements OnInit {
     // Load and draw QR code
     const img = new Image();
     img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const qrBoxSize = 720;
+    await new Promise<void>((resolve) => {
+      img.onload = () => {
+        const qrBoxSize = 720;
       const qrBoxX = (canvas.width - qrBoxSize) / 2;
       const qrBoxY = 380;
 
@@ -747,14 +789,13 @@ export class QrComponent implements OnInit {
       ctx.fillStyle = isGourmet ? '#64748b' : '#94a3b8';
       ctx.font = 'bold 22px system-ui, -apple-system, sans-serif';
       ctx.fillText('P O W E R E D   B Y   T A V I T A   M E N U', canvas.width / 2, 1510);
+        resolve();
+      };
+      img.onerror = () => resolve();
+      img.src = freshQrDataUrl;
+    });
 
-      // Trigger download
-      const link = document.createElement('a');
-      link.download = `stand-${this.tablePrefix().toLowerCase()}-${this.tableNumber() || 'menu'}-${this.restaurantSlug()}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    };
-    img.src = freshQrDataUrl;
+    return canvas;
   }
 
   // 2. Download Pure QR Code PNG (1024x1024 px)

@@ -33,6 +33,11 @@ export class ApiService {
     return this.http.post<ApiResponse<T>>(this.url(path), body, this.options()).pipe(map((r) => r.data));
   }
 
+  /** POST multipart (subida de archivos). El navegador arma el boundary. */
+  postForm<T>(path: string, formData: FormData): Observable<T> {
+    return this.http.post<ApiResponse<T>>(this.url(path), formData, this.options()).pipe(map((r) => r.data));
+  }
+
   put<T>(path: string, body?: unknown): Observable<T> {
     return this.http.put<ApiResponse<T>>(this.url(path), body, this.options()).pipe(map((r) => r.data));
   }
