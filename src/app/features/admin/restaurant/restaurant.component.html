@@ -156,7 +156,7 @@
               </svg>
               {{ uploading() ? 'Subiendo…' : 'Subir logo' }}
             </span>
-            <input type="file" accept="image/*" class="hidden" (change)="onLogoSelected($event)" [disabled]="uploading()" />
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" (change)="onLogoSelected($event)" [disabled]="uploading()" />
           </label>
           <p class="text-xs text-stone-400 mt-2">JPG, PNG, WEBP o GIF · máx. 5 MB</p>
         </div>
