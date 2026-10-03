@@ -252,6 +252,22 @@
           <label class="field-label" for="prod-cost">Costo (para utilidades)</label>
           <input id="prod-cost" type="number" step="0.01" min="0" formControlName="costPrice" class="text-stone-900 text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200 placeholder-stone-400" placeholder="12000" />
         </div>
+        <div class="space-y-1.5">
+          <label class="field-label" for="prod-category">Categoría</label>
+          <select id="prod-category" formControlName="categoryId" class="text-stone-900 w-full rounded-xl border border-stone-200 px-4 py-3 focus:outline-none input-glow transition-all duration-200">
+            <option [ngValue]="null">Sin categoría</option>
+            @for (c of categories(); track c.id) {
+              <option [ngValue]="c.id">{{ c.name }}</option>
+            }
+          </select>
+          @if (categories().length === 0) {
+            <p class="text-xs pl-1 text-stone-500">
+              Aún no tienes categorías. Créalas en
+              <a routerLink="/admin/categories" class="underline font-semibold">Categorías</a>
+              para que tus platos no queden sin agrupar.
+            </p>
+          }
+        </div>
       </div>
 
       <div class="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-4 py-3.5">

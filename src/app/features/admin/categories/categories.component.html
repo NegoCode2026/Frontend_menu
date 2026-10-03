@@ -1,0 +1,128 @@
+<div class="space-y-6">
+  <header class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-black text-stone-900">Categorías</h1>
+      <p class="mt-1 text-sm text-stone-500">
+        Agrupan tu menú. Sin categoría, los platos no se pueden ordenar en la carta pública.
+      </p>
+    </div>
+    <a
+      routerLink="/admin/products"
+      class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50"
+    >
+      Ver platos
+    </a>
+  </header>
+
+  <form
+    (ngSubmit)="submit()"
+    class="space-y-4 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm"
+  >
+    <h2 class="text-sm font-extrabold text-stone-800">
+      {{ editingId() === null ? 'Nueva categoría' : 'Editando categoría' }}
+    </h2>
+
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div class="space-y-1.5">
+        <label class="block text-xs font-semibold text-stone-700" for="cat-name">Nombre</label>
+        <input
+          id="cat-name"
+          type="text"
+          formControlName="name"
+          placeholder="Entrantes, Platos fuertes, Bebidas…"
+          class="w-full rounded-xl border border-stone-200 px-4 py-3 text-stone-900 placeholder-stone-400 focus:outline-none"
+        />
+        @if (form.get('name')?.invalid && form.get('name')?.touched) {
+          <p class="pl-1 text-xs text-red-600">El nombre es obligatorio</p>
+        }
+      </div>
+
+      <div class="space-y-1.5">
+        <label class="block text-xs font-semibold text-stone-700" for="cat-desc">Descripción</label>
+        <input
+          id="cat-desc"
+          type="text"
+          formControlName="description"
+          placeholder="Opcional"
+          class="w-full rounded-xl border border-stone-200 px-4 py-3 text-stone-900 placeholder-stone-400 focus:outline-none"
+        />
+      </div>
+    </div>
+
+    <div class="flex gap-3">
+      <button
+        type="submit"
+        [disabled]="form.invalid || saving()"
+        class="rounded-full bg-stone-900 px-6 py-2.5 text-sm font-extrabold text-white transition hover:bg-stone-800 disabled:pointer-events-none disabled:opacity-50"
+      >
+        {{ saving() ? 'Guardando…' : (editingId() === null ? 'Crear categoría' : 'Guardar cambios') }}
+      </button>
+      @if (editingId() !== null) {
+        <button
+          type="button"
+          (click)="cancelEdit()"
+          class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 transition hover:bg-stone-50"
+        >
+          Cancelar
+        </button>
+      }
+    </div>
+  </form>
+
+  @if (loading()) {
+    <p class="text-sm text-stone-500">Cargando categorías…</p>
+  } @else if (categories().length === 0) {
+    <div class="rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-5 py-10 text-center">
+      <p class="text-sm font-semibold text-stone-700">Todavía no tienes categorías</p>
+      <p class="mt-1 text-xs text-stone-500">
+        Crea la primera arriba para poder asignarla a tus platos.
+      </p>
+    </div>
+  } @else {
+    <ul class="space-y-2">
+      @for (c of categories(); track c.id) {
+        <li
+          class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-stone-200 bg-white px-5 py-4 shadow-sm"
+        >
+          <div class="min-w-0">
+            <p class="truncate text-sm font-extrabold text-stone-800">
+              {{ c.name }}
+              @if (!c.active) {
+                <span class="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-bold text-stone-500">
+                  oculta
+                </span>
+              }
+            </p>
+            @if (c.description) {
+              <p class="truncate text-xs text-stone-500">{{ c.description }}</p>
+            }
+          </div>
+
+          <div class="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              (click)="toggleActive(c)"
+              class="rounded-full border border-stone-200 px-4 py-1.5 text-xs font-bold text-stone-700 transition hover:bg-stone-50"
+            >
+              {{ c.active ? 'Ocultar' : 'Mostrar' }}
+            </button>
+            <button
+              type="button"
+              (click)="startEdit(c)"
+              class="rounded-full border border-stone-200 px-4 py-1.5 text-xs font-bold text-stone-700 transition hover:bg-stone-50"
+            >
+              Editar
+            </button>
+            <button
+              type="button"
+              (click)="remove(c)"
+              class="rounded-full bg-red-50 px-4 py-1.5 text-xs font-bold text-red-700 transition hover:bg-red-100"
+            >
+              Eliminar
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</div>

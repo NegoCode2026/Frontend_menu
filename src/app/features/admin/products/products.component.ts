@@ -1,5 +1,6 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CategoryService } from '../../../core/services/category.service';
 import { ProductService } from '../../../core/services/product.service';
 import { InventoryService } from '../../../core/services/inventory.service';
@@ -13,7 +14,7 @@ import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobi
 
 @Component({
   selector: 'app-products',
-  imports: [FormsModule, ReactiveFormsModule, BusinessMobileNavComponent],
+  imports: [FormsModule, ReactiveFormsModule, RouterLink, BusinessMobileNavComponent],
   templateUrl: './products.component.html',
 })
 export class ProductsComponent implements OnInit {

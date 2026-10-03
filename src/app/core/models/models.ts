@@ -241,6 +241,8 @@ export interface Subscription {
 export interface SubscribeResult {
   subscription: Subscription;
   checkoutSessionId: string | null;
+  /** Token de la sesión: Smart Checkout v2 lo exige para abrir el cobro. */
+  checkoutToken?: string | null;
 }
 
 export interface MenuSummary {

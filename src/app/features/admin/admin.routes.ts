@@ -59,6 +59,12 @@ export const adminRoutes: Routes = [
         loadComponent: () => import('./products/products.component').then((m) => m.ProductsComponent),
       },
       {
+        path: 'categories',
+        canActivate: [roleGuard('RESTAURANT_ADMIN')],
+        loadComponent: () =>
+          import('./categories/categories.component').then((m) => m.CategoriesComponent),
+      },
+      {
         path: 'qr',
         canActivate: [roleGuard('RESTAURANT_ADMIN')],
         loadComponent: () => import('./qr/qr.component').then((m) => m.QrComponent),

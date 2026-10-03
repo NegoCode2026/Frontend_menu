@@ -156,7 +156,7 @@ export class SettingsComponent implements OnInit {
       next: (result) => {
         this.subscription.set(result.subscription);
         if (result.checkoutSessionId) {
-          this.openEpaycoCheckout(result.checkoutSessionId);
+          this.openEpaycoCheckout(result.checkoutSessionId, result.checkoutToken ?? null);
           return;
         }
         this.subscribing.set(false);
@@ -169,7 +169,7 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  private openEpaycoCheckout(sessionId: string): void {
+  private openEpaycoCheckout(sessionId: string, token: string | null): void {
     if (!isPlatformBrowser(this.platformId) || typeof ePayco === 'undefined') {
       this.subscribing.set(false);
       this.message.set({ type: 'error', text: 'No se pudo cargar el checkout de pagos' });
@@ -178,6 +178,9 @@ export class SettingsComponent implements OnInit {
 
     const checkout = ePayco.checkout.configure({
       sessionId,
+      // Smart Checkout v2 exige el token para inicializar la sesión. Sin él el
+      // SDK no abre el formulario y el pago no se puede completar.
+      token: token ?? undefined,
       type: 'onpage',
       test: environment.epaycoTest,
     });
@@ -189,8 +192,11 @@ export class SettingsComponent implements OnInit {
       onResponse: (_response: any) => {
         this.message.set({ type: 'success', text: 'Pago procesado correctamente' });
       },
-      onErrors: (_error: any) => {
-        this.message.set({ type: 'error', text: 'Error al procesar el pago' });
+      onErrors: (error: any) => {
+        // Sin esto el botón se quedaba bloqueado en "Procesando…" para siempre
+        // tras cualquier fallo del checkout.
+        this.subscribing.set(false);
+        this.message.set({ type: 'error', text: error?.message ?? 'Error al procesar el pago' });
       },
       onClosed: (_errors: any) => {
         this.subscribing.set(false);
