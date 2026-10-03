@@ -1,0 +1,29 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # La imagen usa Node 22: si el build pasa aquí, pasa en producción.
+      - name: Install (npm ci, no npm install)
+        run: npm ci
+
+      # Type-check y build en configuración de producción. ng build ya compila con
+      # plantillas revisadas; lo importante es que esto corría en cada push.
+      - name: Build (producción)
+        run: npm run build
+
+      - name: Tests
+        run: npm test -- --no-watch
