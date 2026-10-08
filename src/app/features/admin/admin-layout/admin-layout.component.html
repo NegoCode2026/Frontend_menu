@@ -126,6 +126,23 @@
   </aside>
 
   <!-- Main Content Area -->
+  @if (subscriptionRequired()) {
+    <div class="border-b border-amber-200 bg-amber-50 px-4 py-3">
+      <div class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
+        <p class="text-sm font-semibold text-amber-900">
+          Tu suscripción está vencida: puedes revisar tu panel, pero no guardar cambios ni operar
+          hasta reactivarla.
+        </p>
+        <a
+          routerLink="/admin/settings"
+          class="rounded-full bg-amber-900 px-4 py-2 text-xs font-extrabold text-white transition hover:bg-amber-800"
+        >
+          Reactivar suscripción
+        </a>
+      </div>
+    </div>
+  }
+
   <main class="flex-1 min-w-0 min-h-screen">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <router-outlet />

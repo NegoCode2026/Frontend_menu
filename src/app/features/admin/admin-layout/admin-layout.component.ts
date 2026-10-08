@@ -1,9 +1,12 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { STAFF_ROLE_LABELS } from '../../../core/models/models';
 import { MobileMenuService } from '../../../core/services/mobile-menu.service';
 import { OrderService } from '../../../core/services/order.service';
+import { subscriptionRequired$ } from '../../../core/interceptors/error.interceptor';
 import { RestaurantService } from '../../../core/services/restaurant.service';
 import { SubscriptionService } from '../../../core/services/subscription.service';
 import { PwaBannerComponent } from '../../../shared/pwa-banner/pwa-banner.component';
@@ -123,6 +126,16 @@ export class AdminLayoutComponent implements OnInit, OnDestroy {
     window.removeEventListener('focus', this.onWindowFocus);
     document.removeEventListener('visibilitychange', this.onWindowFocus);
   }
+
+  /**
+   * El backend responde 402 cuando la suscripción venció y se agotó la gracia.
+   * En vez de un error suelto en cada guardado, se explica una vez y se lleva a
+   * facturación, que es donde ese usuario tiene que ir.
+   */
+  readonly subscriptionRequired = toSignal(
+    subscriptionRequired$.pipe(map(() => true)),
+    { initialValue: false },
+  );
 
   readonly navItems = computed(() => {
     const rawRole = this.user()?.role ?? '';

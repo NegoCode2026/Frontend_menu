@@ -1,6 +1,6 @@
 import { HttpContextToken, HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { Observable, catchError, finalize, map, of, switchMap, throwError } from 'rxjs';
+import { Observable, Subject, catchError, finalize, map, of, switchMap, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 let refreshing$: Observable<boolean> | null = null;
@@ -57,10 +57,25 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
 
+      // Suscripción vencida (402): no es un fallo cualquiera, es un aviso de
+      // pago. Se marca para que la UI pueda llevar a la pantalla de facturación
+      // en vez de mostrar un error suelto cada vez que se intenta guardar.
+      if (error.status === 402 && error.error?.code === 'SUBSCRIPTION_REQUIRED') {
+        subscriptionRequired$.next();
+        return throwError(() => normalized);
+      }
+
       return throwError(() => normalized);
     }),
   );
 };
+
+/**
+ * Emite cuando el backend corta una operación por suscripción vencida
+ * (402 SUBSCRIPTION_REQUIRED). Lo consume el layout del admin para avisar y
+ * ofrecer renovar, en vez de dejar al usuario probando y viendo errores.
+ */
+export const subscriptionRequired$ = new Subject<void>();
 
 function refreshOnce(auth: AuthService): Observable<boolean> {
   if (!refreshing$) {
