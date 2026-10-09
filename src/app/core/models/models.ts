@@ -204,6 +204,8 @@ export interface PublicMenu {
       price: number;
       imageUrl: string | null;
       available: boolean;
+      /** Grupos de opciones ("Tamano", "Termino"). Vacio si el plato no tiene. */
+      modifierGroups?: ModifierGroup[];
     }>;
   }>;
   /** Números de mesa registrados (para validar el QR y el picker). */
@@ -363,12 +365,67 @@ export interface CartItem {
   quantity: number;
   notes?: string;
   categoryName?: string;
+  /** Opciones elegidas. El precio lo recalcula el servidor. */
+  modifiers?: SelectedModifier[];
+  /** Suma de los deltas, solo para mostrar el total estimado al cliente. */
+  modifiersTotal?: number;
+}
+
+/** Grupo de opciones de un plato, tal como lo publica el backend. */
+export interface ModifierGroup {
+  id: number;
+  name: string;
+  minSelections: number;
+  maxSelections: number;
+  required: boolean;
+  options: ModifierOption[];
+}
+
+export interface ModifierOption {
+  id: number;
+  name: string;
+  /** Suma (o resta) sobre el precio del plato. El servidor lo recalcula igual. */
+  priceDelta: number;
+}
+
+export interface SelectedModifier {
+  modifierId: number;
+  quantity: number;
+  /** Nombre y delta resueltos, para pintar el carrito sin otra consulta. */
+  name: string;
+  groupName: string;
+  priceDelta: number;
+}
+
+/** Gestion de grupos de opciones en el panel. */
+export interface AdminModifierGroup {
+  id: number;
+  name: string;
+  description: string | null;
+  minSelections: number;
+  maxSelections: number;
+  required: boolean;
+  position: number;
+  options: AdminModifierOption[];
+}
+
+export interface AdminModifierOption {
+  id: number;
+  groupId: number;
+  name: string;
+  priceDelta: number;
+  active: boolean;
 }
 
 export interface CreateOrderItemRequest {
   productId: number;
   quantity: number;
   notes?: string;
+  /**
+   * Opciones elegidas, en la forma que sale por el cable: solo id y cantidad.
+   * El precio lo recalcula el servidor desde su tabla, así que aquí no viaja.
+   */
+  modifiers?: Array<{ modifierId: number; quantity: number }>;
 }
 
 export interface CreateOrderRequest {

@@ -58,12 +58,29 @@ export class OrderService {
   }
 
   createPublicOrder(slug: string, payload: CreateOrderRequest): Observable<Order> {
+    // Solo se envían ids y cantidad de las opciones. El precio lo recalcula el
+    // servidor desde su tabla: mandarlo desde aquí no cambiaría el cobro, pero
+    // haría creer que el cliente decide lo que paga. Se limpia aquí, en un solo
+    // sitio, para que ningún llamante pueda colar un precio por error.
+    // El tipo del request ya es la forma del cable; aquí se normaliza el
+    // quantity por si llega undefined desde algún llamante.
+    const sanitized: CreateOrderRequest = {
+      ...payload,
+      items: (payload.items ?? []).map((item) => ({
+        ...item,
+        modifiers: (item.modifiers ?? []).map((m) => ({
+          modifierId: m.modifierId,
+          quantity: m.quantity ?? 1,
+        })),
+      })),
+    };
+
     // Multi-docker: espera el registry remoto y fija el docker del slug
     // para que pedido e imágenes vayan a la misma máquina.
     return this.tenants.ensureLoaded().pipe(
       switchMap(() => {
         this.tenants.pinFor(slug);
-        return this.api.post<Order>(`/public/orders/${slug}`, payload);
+        return this.api.post<Order>(`/public/orders/${slug}`, sanitized);
       }),
       tap((order) => {
         this.newOrderTrigger$.next(order);

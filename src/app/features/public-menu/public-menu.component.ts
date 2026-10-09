@@ -5,7 +5,16 @@ import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
 import { TableService } from '../../core/services/table.service';
 import { InvoiceService } from '../../core/services/invoice.service';
-import { CartItem, Order, OrderStatus, OrderType, PublicMenu } from '../../core/models/models';
+import {
+  CartItem,
+  ModifierGroup,
+  ModifierOption,
+  Order,
+  OrderStatus,
+  OrderType,
+  PublicMenu,
+  SelectedModifier,
+} from '../../core/models/models';
 import { PwaBannerComponent } from '../../shared/pwa-banner/pwa-banner.component';
 
 interface DishModalItem {
@@ -15,6 +24,8 @@ interface DishModalItem {
   price: number;
   imageUrl: string | null;
   categoryName?: string;
+  /** Grupos de opciones del plato: vacio si no tiene. */
+  modifierGroups?: ModifierGroup[];
 }
 
 @Component({
@@ -43,6 +54,66 @@ export class PublicMenuComponent implements OnDestroy {
   readonly selectedDish = signal<DishModalItem | null>(null);
   readonly dishDetailQuantity = signal(1);
   readonly dishDetailNotes = signal('');
+  /** Opciones elegidas del plato abierto, por id de opcion. */
+  readonly dishDetailModifiers = signal<Map<number, SelectedModifier>>(new Map());
+
+  /** Grupos del plato abierto, si tiene. */
+  readonly dishDetailGroups = computed<ModifierGroup[]>(
+    () => this.selectedDish()?.modifierGroups ?? [],
+  );
+
+  /** Suma de los deltas: solo para mostrar el precio estimado. */
+  readonly dishDetailModifiersTotal = computed(() => {
+    let total = 0;
+    this.dishDetailModifiers().forEach((m) => (total += m.priceDelta));
+    return total;
+  });
+
+  /** Precio unitario estimado, con las opciones ya sumadas. */
+  readonly dishDetailUnitPrice = computed(
+    () => (this.selectedDish()?.price ?? 0) + this.dishDetailModifiersTotal(),
+  );
+
+  /** Un grupo obligatorio sin elegir impide anadir al carrito. */
+  readonly dishDetailMissingRequired = computed(() =>
+    this.dishDetailGroups()
+      .filter((g) => g.required)
+      .filter((g) => !this.hasSelectionFor(g.id))
+      .map((g) => g.name),
+  );
+
+  private hasSelectionFor(groupId: number): boolean {
+    const group = this.dishDetailGroups().find((g) => g.id === groupId);
+    if (!group) return false;
+    let chosen = 0;
+    this.dishDetailModifiers().forEach((m) => {
+      if (group.options.some((o) => o.id === m.modifierId)) chosen++;
+    });
+    return chosen >= Math.max(1, group.minSelections);
+  }
+
+  /** Alterna una opcion respetando min/max del grupo. */
+  toggleModifier(group: ModifierGroup, option: ModifierOption): void {
+    const next = new Map(this.dishDetailModifiers());
+    if (next.has(option.id)) {
+      next.delete(option.id);
+    } else {
+      const chosenInGroup = group.options.filter((o) => next.has(o.id)).length;
+      if (chosenInGroup >= group.maxSelections) return;
+      next.set(option.id, {
+        modifierId: option.id,
+        quantity: 1,
+        name: option.name,
+        groupName: group.name,
+        priceDelta: option.priceDelta,
+      });
+    }
+    this.dishDetailModifiers.set(next);
+  }
+
+  isModifierSelected(optionId: number): boolean {
+    return this.dishDetailModifiers().has(optionId);
+  }
 
   // Cart & Ordering
   readonly cart = signal<CartItem[]>([]);
@@ -244,17 +315,29 @@ export class PublicMenuComponent implements OnDestroy {
   }
 
   // Dish modal
-  openDishModal(product: { id: number; name: string; description: string | null; price: number; imageUrl: string | null }, categoryName?: string): void {
+  openDishModal(
+    product: {
+      id: number;
+      name: string;
+      description: string | null;
+      price: number;
+      imageUrl: string | null;
+      modifierGroups?: ModifierGroup[];
+    },
+    categoryName?: string,
+  ): void {
     this.selectedDish.set({
       ...product,
       categoryName,
     });
     this.dishDetailQuantity.set(1);
     this.dishDetailNotes.set('');
+    this.dishDetailModifiers.set(new Map());
   }
 
   closeDishModal(): void {
     this.selectedDish.set(null);
+    this.dishDetailModifiers.set(new Map());
   }
 
   increaseDetailQuantity(): void {
@@ -268,20 +351,54 @@ export class PublicMenuComponent implements OnDestroy {
   addDetailToCart(): void {
     const dish = this.selectedDish();
     if (!dish) return;
+    // Si falta un grupo obligatorio, el servidor lo rechazaria con 400. Se avisa
+    // aqui para no tener que vaciar el carrito por un error de validacion.
+    if (this.dishDetailMissingRequired().length > 0) return;
 
-    this.addToCart(dish, this.dishDetailQuantity(), this.dishDetailNotes().trim());
+    const modifiers = [...this.dishDetailModifiers().values()];
+    this.addToCart(dish, this.dishDetailQuantity(), this.dishDetailNotes().trim(), modifiers);
     this.closeDishModal();
   }
 
+  /**
+   * Solo se envían ids y cantidad: el precio lo resuelve el servidor. Mandar el
+   * delta desde aquí permitiríafalse que cualquiera decidiera lo que paga.
+   */
+  private toOrderModifiers(item: CartItem): Array<{ modifierId: number; quantity: number }> {
+    return (item.modifiers ?? []).map((m) => ({ modifierId: m.modifierId, quantity: m.quantity }));
+  }
+
+  /** Total estimado del carrito, con las opciones ya sumadas. */
+  readonly cartEstimatedTotal = computed(() =>
+    this.cart().reduce((acc, item) => {
+      const unit = item.unitPrice + (item.modifiersTotal ?? 0);
+      return acc + unit * item.quantity;
+    }, 0),
+  );
+
   // Cart operations
   addToCart(
-    product: { id: number; name: string; price: number; imageUrl: string | null; categoryName?: string },
+    product: {
+      id: number;
+      name: string;
+      price: number;
+      imageUrl: string | null;
+      categoryName?: string;
+      modifierGroups?: ModifierGroup[];
+    },
     quantity = 1,
-    notes = ''
+    notes = '',
+    modifiers: SelectedModifier[] = []
   ): void {
     if (this.isClosed()) return;
     this.cart.update((items) => {
-      const existingIndex = items.findIndex((i) => i.productId === product.id && i.notes === notes);
+      // Un mismo plato con opciones distintas son dos líneas del carrito.
+      const sameOptions = (a: CartItem) =>
+        (a.modifiers ?? []).map((m) => m.modifierId).sort().join(',') ===
+        modifiers.map((m) => m.modifierId).sort().join(',');
+      const existingIndex = items.findIndex(
+        (i) => i.productId === product.id && i.notes === notes && sameOptions(i),
+      );
       if (existingIndex !== -1) {
         const updated = [...items];
         updated[existingIndex] = {
@@ -290,6 +407,7 @@ export class PublicMenuComponent implements OnDestroy {
         };
         return updated;
       }
+      const modifiersTotal = modifiers.reduce((acc, m) => acc + m.priceDelta, 0);
       return [
         ...items,
         {
@@ -300,24 +418,47 @@ export class PublicMenuComponent implements OnDestroy {
           quantity,
           notes: notes || undefined,
           categoryName: product.categoryName,
+          modifiers: modifiers.length > 0 ? modifiers : undefined,
+          modifiersTotal,
         },
       ];
     });
   }
 
-  removeFromCart(productId: number, notes?: string): void {
+  /**
+   * Localiza la línea exacta. Con el mismo plato y opciones distintas hay varias
+   * líneas, así que productId + notas ya no bastan: sin el id de opción se
+   * habría descontado o borrado la línea equivocada.
+   */
+  private sameLine(i: CartItem, productId: number, notes?: string, modifierIds: number[] = []): boolean {
+    const ids = (i.modifiers ?? []).map((m) => m.modifierId).sort().join(',');
+    return (
+      i.productId === productId &&
+      i.notes === notes &&
+      ids === [...modifierIds].sort().join(',')
+    );
+  }
+
+  removeFromCart(productId: number, notes?: string, modifierIds: number[] = []): void {
     this.cart.update((items) => {
-      const existing = items.find((i) => i.productId === productId && i.notes === notes);
+      const existing = items.find((i) => this.sameLine(i, productId, notes, modifierIds));
       if (!existing) return items;
       if (existing.quantity <= 1) {
-        return items.filter((i) => !(i.productId === productId && i.notes === notes));
+        return items.filter((i) => !this.sameLine(i, productId, notes, modifierIds));
       }
-      return items.map((i) => (i.productId === productId && i.notes === notes ? { ...i, quantity: i.quantity - 1 } : i));
+      return items.map((i) =>
+        this.sameLine(i, productId, notes, modifierIds) ? { ...i, quantity: i.quantity - 1 } : i,
+      );
     });
   }
 
-  deleteCartItem(productId: number, notes?: string): void {
-    this.cart.update((items) => items.filter((i) => !(i.productId === productId && i.notes === notes)));
+  deleteCartItem(productId: number, notes?: string, modifierIds: number[] = []): void {
+    this.cart.update((items) => items.filter((i) => !this.sameLine(i, productId, notes, modifierIds)));
+  }
+
+  /** Ids de las opciones de una línea, para pasarlos al eliminar. */
+  modifierIdsOf(item: CartItem): number[] {
+    return (item.modifiers ?? []).map((m) => m.modifierId);
   }
 
   getItemQuantity(productId: number): number {
@@ -420,6 +561,7 @@ export class PublicMenuComponent implements OnDestroy {
             productId: item.productId,
             quantity: item.quantity,
             notes: item.notes,
+            modifiers: this.toOrderModifiers(item),
           })),
         }
       : {
@@ -434,6 +576,7 @@ export class PublicMenuComponent implements OnDestroy {
             productId: item.productId,
             quantity: item.quantity,
             notes: item.notes,
+            modifiers: this.toOrderModifiers(item),
           })),
         };
 

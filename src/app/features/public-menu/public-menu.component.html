@@ -346,6 +346,56 @@
               </div>
             }
 
+            <!-- Opciones del plato (tamaño, término, extras) -->
+            @if (dishDetailGroups().length > 0) {
+              <div class="space-y-3">
+                @for (group of dishDetailGroups(); track group.id) {
+                  <div class="rounded-2xl border border-stone-200 bg-stone-50/60 p-3.5">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-black text-stone-800">{{ group.name }}</span>
+                      <span class="text-[10px] font-bold text-stone-400">
+                        @if (group.required) {
+                          Obligatorio
+                        } @else if (group.maxSelections > 1) {
+                          Hasta {{ group.maxSelections }}
+                        } @else {
+                          Opcional
+                        }
+                      </span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      @for (option of group.options; track option.id) {
+                        <button
+                          type="button"
+                          (click)="toggleModifier(group, option)"
+                          [class]="isModifierSelected(option.id)
+                            ? 'bg-primary-600 text-white border-primary-600 shadow-xs'
+                            : 'bg-white text-stone-700 border-stone-200 hover:border-stone-300'"
+                          class="px-3.5 py-2 rounded-xl border text-xs font-extrabold transition-all flex items-center gap-1.5"
+                        >
+                          {{ option.name }}
+                          @if (option.priceDelta !== 0) {
+                            <span [class]="isModifierSelected(option.id) ? 'text-white/80' : 'text-stone-400'">
+                              {{ option.priceDelta > 0 ? '+' : '' }}{{ formatCurrency(option.priceDelta) }}
+                            </span>
+                          }
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (dishDetailMissingRequired().length > 0) {
+                  <p class="text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                    Elige:
+                    @for (name of dishDetailMissingRequired(); track name; let last = $last) {
+                      {{ name }}{{ last ? '' : ', ' }}
+                    }
+                  </p>
+                }
+              </div>
+            }
+
             <!-- Notes or special instructions -->
             <div>
               <label class="block text-xs font-bold text-stone-700 mb-1.5" for="dishNotes">
@@ -366,7 +416,7 @@
               <div>
                 <span class="text-xs font-bold text-stone-500 block">Cantidad</span>
                 <span class="text-base font-black text-stone-900">
-                  {{ formatCurrency(selectedDish()!.price * dishDetailQuantity()) }}
+                  {{ formatCurrency(dishDetailUnitPrice() * dishDetailQuantity()) }}
                 </span>
               </div>
 
@@ -397,11 +447,14 @@
             } @else {
               <button
                 (click)="addDetailToCart()"
+                [disabled]="dishDetailMissingRequired().length > 0"
+                [class.opacity-50]="dishDetailMissingRequired().length > 0"
+                [class.pointer-events-none]="dishDetailMissingRequired().length > 0"
                 class="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold text-base hover:from-primary-700 hover:to-primary-600 shadow-lg shadow-primary-500/25 transition-all flex items-center justify-center gap-2 btn-shine"
               >
                 <span>Agregar al Pedido</span>
                 <span>•</span>
-                <span>{{ formatCurrency(selectedDish()!.price * dishDetailQuantity()) }}</span>
+                <span>{{ formatCurrency(dishDetailUnitPrice() * dishDetailQuantity()) }}</span>
               </button>
             }
           </div>
@@ -550,11 +603,20 @@
 
           <!-- Cart Items List -->
           <div class="space-y-3 divide-y divide-stone-100 max-h-48 overflow-y-auto pr-1">
-            @for (item of cart(); track item.productId + (item.notes || '')) {
+            @for (item of cart(); track item.productId + (item.notes || '') + (item.modifiers ?? []).map(m => m.modifierId).join('-')) {
               <div class="pt-3 flex items-start justify-between gap-3">
                 <div class="flex-1 min-w-0">
                   <h4 class="font-bold text-stone-900 text-sm truncate">{{ item.productName }}</h4>
-                  <p class="text-xs text-stone-500 font-medium">{{ formatCurrency(item.unitPrice) }} c/u</p>
+                  <p class="text-xs text-stone-500 font-medium">
+                    {{ formatCurrency(item.unitPrice + (item.modifiersTotal ?? 0)) }} c/u
+                  </p>
+                  @if ((item.modifiers ?? []).length > 0) {
+                    <p class="text-[11px] text-stone-500 mt-0.5">
+                      @for (m of item.modifiers; track m.modifierId; let last = $last) {
+                        {{ m.name }}{{ last ? '' : ' · ' }}
+                      }
+                    </p>
+                  }
                   @if (item.notes) {
                     <p class="text-[11px] text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md inline-block mt-0.5">
                       ✏️ {{ item.notes }}
@@ -565,7 +627,7 @@
                 <!-- Quantity controls -->
                 <div class="flex items-center gap-1.5 bg-stone-100 rounded-xl p-1 border border-stone-200">
                   <button
-                    (click)="removeFromCart(item.productId, item.notes)"
+                    (click)="removeFromCart(item.productId, item.notes, modifierIdsOf(item))"
                     class="w-6 h-6 rounded-lg bg-white text-stone-800 font-bold text-xs flex items-center justify-center hover:bg-red-50 hover:text-red-600 transition-colors"
                   >
                     -
@@ -584,7 +646,7 @@
                     {{ formatCurrency(item.unitPrice * item.quantity) }}
                   </span>
                   <button
-                    (click)="deleteCartItem(item.productId, item.notes)"
+                    (click)="deleteCartItem(item.productId, item.notes, modifierIdsOf(item))"
                     class="text-[10px] text-red-500 hover:underline font-semibold"
                   >
                     Eliminar
