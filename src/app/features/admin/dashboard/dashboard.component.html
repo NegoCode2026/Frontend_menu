@@ -33,6 +33,17 @@
   </div>
 
   <div class="px-5 pt-6">
+    <app-onboarding-checklist
+      class="mb-4 block"
+      [categoryCount]="categoryCount()"
+      [productCount]="productCount()"
+      [availableCount]="availableCount()"
+      [hasSlug]="!!menuSlug()"
+      [isOpen]="isOpen()"
+      [dismissed]="onboardingDismissed()"
+      (dismissedChange)="dismissOnboarding()"
+    />
+
     <p class="landing-eyebrow">{{ todayLine() }}</p>
     <h1 class="landing-serif mt-3 text-[38px] font-medium leading-[1.08] text-[#1C1917]">
       {{ greetingPrefix() }}, @if (firstName()) {<em class="text-[#D97745]">{{ firstName() }}.</em>} @else {<em class="text-[#D97745]">tu casa.</em>}

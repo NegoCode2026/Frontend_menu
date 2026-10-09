@@ -1,0 +1,75 @@
+@if (visible()) {
+  <section class="rounded-2xl border border-[#D97745]/30 bg-[#F9DFC2]/50">
+    <button
+      type="button"
+      (click)="toggle()"
+      class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+    >
+      <span class="min-w-0">
+        <span class="block text-[13px] font-bold text-[#1C1917]">
+          {{ collapsed() ? 'Primeros pasos' : 'Primeros pasos · ' + pending().length + ' por hacer' }}
+        </span>
+        <span class="mt-1 block h-1 w-40 overflow-hidden rounded-full bg-[#D97745]/25">
+          <span
+            class="block h-full rounded-full bg-[#D97745] transition-all duration-500"
+            [style.width.%]="progress()"
+          ></span>
+        </span>
+      </span>
+      <span class="flex shrink-0 items-center gap-2">
+        <span class="text-[11px] font-bold text-stone-500">{{ doneCount() }}/{{ steps().length }}</span>
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          class="h-4 w-4 text-stone-400 transition-transform"
+          [class.rotate-180]="collapsed()"
+        >
+          <path
+            fill-rule="evenodd"
+            d="M5.22 8.22a.75.75 0 011.06 0L10 11.94l3.72-3.72a.75.75 0 111.06 1.06l-4.25 4.25a.75.75 0 01-1.06 0L5.22 9.28a.75.75 0 010-1.06z"
+            clip-rule="evenodd"
+          />
+        </svg>
+      </span>
+    </button>
+
+    @if (!collapsed()) {
+      <ol class="space-y-2 border-t border-[#D97745]/20 px-4 py-3">
+        @for (step of visibleSteps(); track step.id; let last = $last) {
+          <li [class.pb-2]="!last" class="flex items-start gap-3">
+            <span
+              class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-stone-300 text-[10px] font-bold text-stone-400"
+            >
+              {{ steps().indexOf(step) + 1 }}
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-[13px] font-semibold text-[#1C1917]">{{ step.label }}</span>
+              <span class="mt-0.5 block text-[11px] leading-snug text-stone-600">{{ step.detail }}</span>
+              @if (step.link) {
+                <a
+                  [routerLink]="step.link"
+                  class="mt-1.5 inline-flex items-center gap-1 rounded-full bg-[#1C1917] px-3 py-1 text-[11px] font-bold text-white active:scale-95 transition"
+                >
+                  {{ step.cta }}
+                  <span aria-hidden="true">→</span>
+                </a>
+              }
+            </span>
+          </li>
+        }
+      </ol>
+
+      <div class="flex items-center justify-between gap-3 border-t border-[#D97745]/20 px-4 py-2.5">
+        <p class="text-[11px] text-stone-500">Esto desaparece solo cuando tu menú esté listo.</p>
+        <button
+          type="button"
+          (click)="dismiss()"
+          class="shrink-0 text-[11px] font-semibold text-stone-500 underline underline-offset-2 hover:text-stone-700"
+        >
+          Ocultar
+        </button>
+      </div>
+    }
+  </section>
+}

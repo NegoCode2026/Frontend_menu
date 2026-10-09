@@ -9,6 +9,7 @@ import { OrderService } from '../../../core/services/order.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ORDER_STATUS_LABELS, Order } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
+import { OnboardingChecklistComponent } from './onboarding-checklist.component';
 
 const ACTIVE_ORDER_STATUS: Order['status'][] = ['PENDING', 'CONFIRMED', 'IN_PREPARATION', 'READY'];
 
@@ -20,7 +21,7 @@ export interface MesaActiva {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, BusinessMobileNavComponent],
+  imports: [RouterLink, BusinessMobileNavComponent, OnboardingChecklistComponent],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit {
@@ -31,6 +32,11 @@ export class DashboardComponent implements OnInit {
   private readonly orderService = inject(OrderService);
   private readonly auth = inject(AuthService);
 
+  dismissOnboarding(): void {
+    this.onboardingDismissed.set(true);
+    localStorage.setItem('tavita:onboarding-dismissed', '1');
+  }
+
   readonly user = this.auth.user;
   readonly restaurantName = signal<string | null>(null);
   readonly isOpen = signal(true);
@@ -40,6 +46,11 @@ export class DashboardComponent implements OnInit {
   readonly availableCount = signal(0);
   readonly latestProduct = signal<{ name: string; price: number; available: boolean } | null>(null);
   readonly allOrders = signal<Order[]>([]);
+  /** Ocultar la guía, para no volver a importunar en cada carga. */
+  readonly onboardingDismissed = signal<boolean>(
+    localStorage.getItem('tavita:onboarding-dismissed') === '1',
+  );
+
   readonly planName = signal<string | null>(null);
   readonly planStartsAt = signal<string | null>(null);
   readonly planEndsAt = signal<string | null>(null);
