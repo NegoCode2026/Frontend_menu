@@ -370,6 +370,7 @@ export interface CreateOrderItemRequest {
 }
 
 export interface CreateOrderRequest {
+  requestId?: string;
   customerName: string;
   customerPhone?: string;
   tableNumber?: string;
@@ -448,6 +449,8 @@ export interface DailyProfit {
 }
 
 export interface ProfitsResponse {
+  soldItems: number;
+  topProducts: Array<{ name: string; qty: number; revenue: number }>;
   period: string;
   from: string;
   to: string;

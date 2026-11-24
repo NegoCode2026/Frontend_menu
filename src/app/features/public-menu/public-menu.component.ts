@@ -1,6 +1,7 @@
+import { adviseMenu, Choice } from '../../shared/assistants/menu-advisor';
 import { Component, effect, inject, input, signal, computed, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { MenuService } from '../../core/services/menu.service';
 import { OrderService } from '../../core/services/order.service';
 import { TableService } from '../../core/services/table.service';
@@ -19,7 +20,7 @@ interface DishModalItem {
 
 @Component({
   selector: 'app-public-menu',
-  imports: [ReactiveFormsModule, RouterLink, PwaBannerComponent],
+  imports: [ReactiveFormsModule, PwaBannerComponent],
   templateUrl: './public-menu.component.html',
 })
 export class PublicMenuComponent implements OnDestroy {
@@ -37,6 +38,17 @@ export class PublicMenuComponent implements OnDestroy {
   readonly activeCategory = signal<number | null>(null);
 
   // Search signals
+  readonly advisorQuestion = signal('');
+  readonly recommendation = computed(() => {
+    const menu = this.menu();
+    const question = this.advisorQuestion().trim();
+    return menu && question ? adviseMenu(question, menu) : null;
+  });
+
+  addChoice(choice: Choice): void {
+    for (const dish of choice.dishes) this.addToCart(dish, 1, '');
+  }
+
   readonly searchQuery = signal('');
 
   // Dish detail modal
@@ -47,6 +59,8 @@ export class PublicMenuComponent implements OnDestroy {
   // Cart & Ordering
   readonly cart = signal<CartItem[]>([]);
   readonly showCartModal = signal(false);
+  readonly cover = computed(() => this.menu()?.categories.flatMap(c => c.products).find(p => p.imageUrl)?.imageUrl);
+  private attempt: { fingerprint: string; id: string } | null = null;
   readonly submittingOrder = signal(false);
   readonly orderSuccess = signal<Order | null>(null);
   readonly orderErrorMessage = signal<string | null>(null);
@@ -179,12 +193,16 @@ export class PublicMenuComponent implements OnDestroy {
       }
     });
 
-    effect(() => {
+    effect((onCleanup) => {
       const slugVal = this.slug().trim() || 'negobistro-gourmet';
       this.loading.set(true);
       this.errorMessage.set(null);
 
-      this.menuService.getPublicMenu(slugVal).subscribe({
+      this.advisorQuestion.set('');
+      this.cart.set([]);
+      this.orderSuccess.set(null);
+      this.attempt = null;
+      const subscription = this.menuService.getPublicMenu(slugVal).subscribe({
         next: (menuData) => {
           this.menu.set(menuData);
           if (menuData.categories.length > 0) {
@@ -201,6 +219,7 @@ export class PublicMenuComponent implements OnDestroy {
           this.loading.set(false);
         },
       });
+      onCleanup(() => subscription.unsubscribe());
     });
   }
 
@@ -231,6 +250,7 @@ export class PublicMenuComponent implements OnDestroy {
   }
 
   scrollToTop(): void {
+    this.activeCategory.set(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -414,7 +434,7 @@ export class PublicMenuComponent implements OnDestroy {
           tableNumber: tableLabel,
           orderType: 'DINE_IN' as OrderType,
           deliveryAddress: undefined,
-          notes: undefined,
+          notes: this.orderForm.value.notes || undefined,
           tipAmount: null,
           items: this.cart().map((item) => ({
             productId: item.productId,
@@ -444,8 +464,17 @@ export class PublicMenuComponent implements OnDestroy {
       return;
     }
 
-    this.orderService.createPublicOrder(targetSlug, payload).subscribe({
+    const fingerprint = JSON.stringify([targetSlug, payload]);
+    if (this.attempt?.fingerprint !== fingerprint) {
+      const bytes = crypto.getRandomValues(new Uint8Array(16));
+      bytes[6] = (bytes[6] & 15) | 64;
+      bytes[8] = (bytes[8] & 63) | 128;
+      const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+      this.attempt = { fingerprint, id: [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join('-') };
+    }
+    this.orderService.createPublicOrder(targetSlug, { ...payload, requestId: this.attempt.id }).subscribe({
       next: (order) => {
+        this.attempt = null;
         this.submittingOrder.set(false);
         this.showCartModal.set(false);
         this.invalidTable.set(null);
@@ -462,76 +491,9 @@ export class PublicMenuComponent implements OnDestroy {
     });
   }
 
-  sendOrderByWhatsApp(): void {
-    if (this.isClosed() || this.cart().length === 0) return;
-    const restaurant = this.menu()?.restaurant;
-    const phone = restaurant?.whatsapp || restaurant?.phone || '';
-    if (!phone) return;
-    const formVal = this.orderForm.value;
-    const name = formVal.customerName || 'Cliente';
-    const typeLabel = this.orderType() === 'DINE_IN' ? `📍 Mesa: ${formVal.tableNumber}` : this.orderType() === 'DELIVERY' ? `🛵 Domicilio: ${formVal.deliveryAddress || 'Dirección no indicada'}` : '🛍️ Para Llevar';
-    const prepTime = this.estimatedPrepTime();
-
-    let message = `¡Hola *${restaurant?.name || 'Restaurante'}*! 🍽️\n\n`;
-    message += `Deseo realizar el siguiente pedido:\n`;
-    message += `👤 *Cliente:* ${name}\n`;
-    message += `${typeLabel}\n`;
-    message += `⏱️ *Tiempo estimado de preparación:* ${prepTime}\n`;
-    if (formVal.customerPhone) {
-      message += `📞 *Teléfono:* ${formVal.customerPhone}\n`;
-    }
-    if (formVal.notes) {
-      message += `📝 *Observaciones:* ${formVal.notes}\n`;
-    }
-    message += `\n*Detalle del Pedido:*\n`;
-
-    this.cart().forEach((item, index) => {
-      message += `${index + 1}. *${item.quantity}x ${item.productName}* - ${this.formatCurrency(item.unitPrice * item.quantity)}\n`;
-      if (item.notes) {
-        message += `   _Nota: ${item.notes}_\n`;
-      }
-    });
-
-    message += `\n💰 *Total a Pagar:* *${this.formatCurrency(this.cartTotalWithTip())}*\n\n`;
-    message += `_Enviado desde el Menú Digital Tavita_ 🚀`;
-
-    const cleanPhone = phone.replace(/\D/g, '');
-    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-    
-    // Also save to system in background so the kitchen receives it
-    this.submitOrderSilently();
-    
-    window.open(waUrl, '_blank');
-  }
-
-  private submitOrderSilently(): void {
-    const payload = {
-      customerName: this.orderForm.value.customerName || 'Cliente WhatsApp',
-      customerPhone: this.orderForm.value.customerPhone,
-      tableNumber: this.tableLocked()
-        ? this.lockedTableLabel()
-        : (this.orderForm.value.tableNumber || 'WhatsApp'),
-      orderType: this.orderType(),
-      deliveryAddress: this.orderForm.value.deliveryAddress,
-      notes: this.orderForm.value.notes,
-      tipAmount: this.tipAmount() || null,
-      items: this.cart().map((item) => ({
-        productId: item.productId,
-        quantity: item.quantity,
-        notes: item.notes,
-      })),
-    };
-    const targetSlug = this.slug().trim() || this.menu()?.restaurant.slug || '';
-    if (!targetSlug) return;
-    this.orderService.createPublicOrder(targetSlug, payload).subscribe({
-      next: (savedOrder) => {
-        this.orderSuccess.set(savedOrder);
-        this.cart.set([]);
-        this.showCartModal.set(false);
-        this.orderService.saveTrackedOrder(targetSlug, savedOrder);
-        this.trackedOrders.set(this.orderService.listTrackedOrders(targetSlug));
-      },
-    });
+  whatsappReceipt(order: Order): string {
+    const message = `Mi pedido ${order.orderNumber} ya está registrado. Total: ${this.formatCurrency(order.totalAmount)}.`;
+    return `https://wa.me/${this.contactPhone()}?text=${encodeURIComponent(message)}`;
   }
 
   closeSuccessModal(): void {

@@ -1,7 +1,6 @@
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ReportsService, ProfitPeriod } from '../../../core/services/reports.service';
-import { OrderService } from '../../../core/services/order.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfitsResponse } from '../../../core/models/models';
 import { BusinessMobileNavComponent } from '../business-mobile-nav/business-mobile-nav.component';
@@ -19,13 +18,13 @@ interface TopProduct {
 })
 export class ProfitsComponent implements OnInit {
   private readonly reports = inject(ReportsService);
-  private readonly ordersApi = inject(OrderService);
   private readonly auth = inject(AuthService);
   readonly user = this.auth.user;
 
   readonly period = signal<ProfitPeriod>('day');
-  readonly date = signal<string>(new Date().toISOString().slice(0, 10));
+  readonly date = signal<string>(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Bogota', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()));
   readonly data = signal<ProfitsResponse | null>(null);
+  readonly failed = signal(false);
   readonly loading = signal(true);
   readonly soldItems = signal(0);
 
@@ -55,33 +54,17 @@ export class ProfitsComponent implements OnInit {
 
   reload(): void {
     this.loading.set(true);
+    this.failed.set(false);
     this.reports.profits(this.period(), this.date() || undefined).subscribe({
       next: (d) => {
         this.data.set(d);
+        this.soldItems.set(d.soldItems ?? 0);
+        this.topProducts.set(d.topProducts ?? []);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => { this.failed.set(true); this.data.set(null); this.loading.set(false); },
     });
-    // Ticket extraído del backend; top e ítems se agregan de los pedidos.
-    this.ordersApi.listMine().subscribe({
-      next: (orders) => {
-        const valid = (Array.isArray(orders) ? orders : []).filter((o) => !!o && o.status !== 'CANCELLED');
-        this.soldItems.set(valid.reduce((s, o) => s + (o.items ?? []).reduce((a, i) => a + (i.quantity || 0), 0), 0));
-        const map = new Map<string, { qty: number; revenue: number }>();
-        for (const o of valid) {
-          for (const item of o.items ?? []) {
-            const entry = map.get(item.productName || 'Sin nombre') ?? { qty: 0, revenue: 0 };
-            entry.qty += item.quantity || 0;
-            entry.revenue += item.subtotal ?? (item.unitPrice || 0) * (item.quantity || 0);
-            map.set(item.productName || 'Sin nombre', entry);
-          }
-        }
-        this.topProducts.set(
-          [...map.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.qty - a.qty).slice(0, 5)
-        );
-      },
-      error: () => undefined,
-    });
+
   }
 
   formatCurrency(value: number | null | undefined): string {

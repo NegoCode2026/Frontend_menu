@@ -17,6 +17,7 @@
       class="text-stone-900 rounded-xl border border-stone-200 px-4 py-2.5 text-sm font-semibold focus:outline-none input-glow" />
   </div>
 
+  @if (failed()) { <p role="alert" class="mt-4 text-red-700">No se pudo consultar el reporte. <button (click)="reload()">Reintentar</button></p> }
   @if (loading()) {
     <div class="mt-6 grid animate-pulse grid-cols-2 gap-3 lg:grid-cols-4">
       @for (i of [1,2,3,4]; track $index) {

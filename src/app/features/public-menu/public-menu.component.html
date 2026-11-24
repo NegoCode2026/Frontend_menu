@@ -22,69 +22,19 @@
     </div>
   </div>
 } @else if (menu()) {
-  <div class="min-h-[100dvh] bg-stone-50 font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
+  <div class="min-h-[100dvh] bg-[#fbf8f3] font-sans selection:bg-primary-200 selection:text-primary-900 pb-40">
     <app-pwa-banner />
 
-    <!-- Delivery header (referencia): avatar + destino + acciones -->
-    <header class="safe-top mx-auto flex max-w-3xl items-center gap-3 px-5 pt-3 sm:px-6">
-      <div class="relative shrink-0">
-        @if (menu()!.restaurant.logoUrl) {
-          <img
-            [src]="menu()!.restaurant.logoUrl"
-            alt="Logo"
-            decoding="async"
-            (error)="onImageError($event)"
-            class="h-11 w-11 rounded-full bg-white object-cover shadow-sm ring-1 ring-stone-200"
-          />
-        } @else {
-          <div class="flex h-11 w-11 items-center justify-center rounded-full bg-stone-900 text-lg font-black text-white shadow-sm">
-            {{ menu()!.restaurant.name.charAt(0) }}
-          </div>
-        }
-        <span
-          class="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-stone-50"
-          [class]="isClosed() ? 'bg-red-500' : 'bg-emerald-500'"
-          [title]="isClosed() ? 'Cerrado' : 'Abierto'"
-        ></span>
-      </div>
-      <div class="min-w-0 flex-1">
-        <p class="text-[11px] font-medium leading-tight text-stone-400">Tu pedido en</p>
-        <p class="truncate text-[14px] font-extrabold leading-tight text-stone-900">
-          @if (tableLocked()) {
-            Mesa {{ selectedTablePreset() }} · {{ menu()!.restaurant.name }}
-          } @else {
-            {{ menu()!.restaurant.address || menu()!.restaurant.name }}
-          }
-          <span class="ml-0.5 inline-block align-middle text-[10px] text-stone-400">⌄</span>
-        </p>
-      </div>
-      <button
-        (click)="openCart()"
-        [disabled]="cartTotalCount() === 0"
-        aria-label="Ver mi pedido"
-        class="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-stone-900 transition-transform active:scale-90 disabled:opacity-40"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="h-6 w-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
-        </svg>
-        @if (cartTotalCount() > 0) {
-          <span class="absolute right-0.5 top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-stone-950 px-1 text-[10px] font-black text-white">
-            {{ cartTotalCount() }}
-          </span>
-        }
-      </button>
+    <header class="menu-mast safe-top">
+      @if (menu()!.restaurant.logoUrl; as logo) { <img [src]="logo" alt="" (error)="onImageError($event)" /> }
+      <strong>{{ menu()!.restaurant.name }}</strong>
+      @if (tableLocked()) { <span>{{ lockedTableLabel() }}</span> }
     </header>
-
-    <!-- Headline -->
-    <div class="mx-auto max-w-3xl px-5 pt-4 sm:px-6">
-      <h1 class="text-[34px] font-black leading-[1.02] tracking-tight text-stone-950">
-        ¿Antojo? <span class="text-stone-400">Pide &amp; disfruta.</span>
-      </h1>
-      @if (menu()!.restaurant.description) {
-        <p class="mt-1.5 line-clamp-2 max-w-md text-[13px] font-medium leading-relaxed text-stone-500">{{ menu()!.restaurant.description }}</p>
-      }
+    <div class="menu-intro">
+      @if (cover(); as photo) { <img [src]="photo" alt="" fetchpriority="high" (error)="onImageError($event)" /> }
+      <h1>Nuestra carta</h1>
+      @if (menu()!.restaurant.description) { <p>{{ menu()!.restaurant.description }}</p> }
     </div>
-
     <!-- AVISO: RESTAURANTE CERRADO -->
     @if (isClosed()) {
       <div class="max-w-3xl mx-auto px-4 sm:px-6 mt-6">
@@ -100,6 +50,23 @@
       </div>
     }
 
+    <details class="advisor-panel">
+      <summary>Ayúdame a elegir</summary>
+      <form (submit)="$event.preventDefault(); advisorQuestion.set(menuQuestion.value)">
+        <label for="menu-question">¿Qué te gustaría pedir?</label>
+        <div><input id="menu-question" #menuQuestion maxlength="180" placeholder="Un plato con bebida por $35.000" /><button>Consultar</button></div>
+      </form>
+      <button type="button" class="advisor-example" (click)="menuQuestion.value = 'Opciones económicas'; advisorQuestion.set(menuQuestion.value)">Ver opciones económicas</button>
+      @if (recommendation(); as advice) {
+        <section aria-live="polite"><p>{{ advice.text }}</p>
+          @for (choice of advice.choices; track $index) {
+            <article><div>@for (dish of choice.dishes; track dish.id) { <span>{{ dish.name }} </span> }<b>{{ formatCurrency(choice.total) }}</b></div>
+              <button type="button" (click)="addChoice(choice)" [disabled]="isClosed()">Agregar al pedido</button>
+            </article>
+          }
+        </section>
+      }
+    </details>
     <!-- Search -->
     <div class="mx-auto mt-4 max-w-3xl px-5 sm:px-6">
       <div class="relative">
@@ -131,56 +98,13 @@
       </div>
     </div>
 
-    <!-- Arco gris (referencia): categorías + carta respiran dentro -->
-    <div class="mt-5 rounded-t-[2.5rem] bg-stone-200/60 pb-10">
-    <!-- Sticky category rail: círculos blancos como la referencia -->
-    <div class="sticky top-0 z-30 rounded-t-[2.5rem] bg-stone-200/80 pt-2 backdrop-blur-xl">
-      <div class="mx-auto max-w-3xl">
-        <nav class="carousel-x hide-scrollbar flex items-start gap-3 overflow-x-auto px-5 py-4 sm:px-6">
-          <button (click)="scrollToTop()" class="flex w-16 shrink-0 flex-col items-center gap-1.5" aria-label="Ver todo">
-            <span class="flex h-16 w-16 items-center justify-center rounded-full bg-white text-stone-800 shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-transform active:scale-95">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-6 w-6">
-                <path fill-rule="evenodd" d="M4.25 2A2.25 2.25 0 002 4.25v2.5A2.25 2.25 0 004.25 9h2.5A2.25 2.25 0 009 6.75v-2.5A2.25 2.25 0 006.75 2h-2.5zm7.5 0A2.25 2.25 0 009.5 4.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 0014.25 2h-2.5zM4.25 11A2.25 2.25 0 002 13.25v2.5A2.25 2.25 0 004.25 18h2.5a2.25 2.25 0 002.25-2.25v-2.5A2.25 2.25 0 006.75 11h-2.5zm7.5 0a2.25 2.25 0 00-2.25 2.25v2.5a2.25 2.25 0 002.25 2.25h2.5a2.25 2.25 0 002.25-2.25v-2.5a2.25 2.25 0 00-2.25-2.25h-2.5z" clip-rule="evenodd" />
-              </svg>
-            </span>
-            <span class="text-[11px] font-extrabold text-stone-900">Todo</span>
-            <span class="h-0.5 w-6 rounded-full bg-stone-900"></span>
-          </button>
-          @for (category of menu()!.categories; track category.id) {
-            <button (click)="setCategory(category.id)" class="flex w-16 shrink-0 flex-col items-center gap-1.5">
-              <span
-                class="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full bg-white shadow-[0_4px_14px_rgba(0,0,0,0.07)] transition-transform active:scale-95"
-              >
-                @if (category.products[0]?.imageUrl) {
-                  <img
-                    [src]="category.products[0]!.imageUrl"
-                    [alt]="category.name"
-                    loading="lazy"
-                    decoding="async"
-                    (error)="onImageError($event)"
-                    class="h-full w-full object-cover"
-                  />
-                } @else {
-                  <span class="text-2xl">🍽️</span>
-                }
-              </span>
-              <span
-                class="max-w-full truncate text-[11px] text-stone-500"
-                [class]="activeCategory() === category.id ? 'font-extrabold text-stone-900' : 'font-medium'"
-              >
-                {{ category.name }}
-              </span>
-              @if (activeCategory() === category.id) {
-                <span class="h-0.5 w-6 rounded-full bg-stone-900"></span>
-              } @else {
-                <span class="h-0.5 w-6 rounded-full bg-transparent"></span>
-              }
-            </button>
-          }
-        </nav>
-      </div>
-    </div>
-
+    <div class="pb-10">
+      <nav class="menu-tabs" aria-label="Categorías de la carta">
+        <button (click)="scrollToTop()" [attr.aria-pressed]="activeCategory() === null">Todo</button>
+        @for (category of menu()!.categories; track category.id) {
+          <button (click)="setCategory(category.id)" [attr.aria-pressed]="activeCategory() === category.id">{{ category.name }}</button>
+        }
+      </nav>
     <!-- Main Dishes Content -->
     <main class="mx-auto max-w-3xl space-y-10 px-5 pt-6 sm:px-6">
       @if (filteredCategories().length === 0) {
@@ -205,91 +129,22 @@
               <p class="mb-2 px-1 text-xs font-medium text-stone-400">{{ category.description }}</p>
             }
             
-            <!-- Products Grid 2-col como la referencia -->
-            <div class="grid grid-cols-2 gap-x-3 gap-y-11 pt-14 sm:gap-x-4">
+            <div class="menu-dishes">
               @for (product of category.products; track product.id) {
-                <article
-                  class="relative flex flex-col rounded-[1.6rem] bg-white px-3 pb-3.5 pt-0 shadow-[0_10px_30px_rgba(0,0,0,0.07)] active:scale-[0.98]"
-                  [class.opacity-60]="!product.available"
-                >
-                  <!-- Foto circular que sobresale arriba -->
-                  <div (click)="openDishModal(product, category.name)" class="cursor-pointer">
-                    <div class="relative mx-auto -mt-14 h-32 w-32">
-                      <div class="h-full w-full overflow-hidden rounded-full bg-stone-100 shadow-[0_8px_20px_rgba(0,0,0,0.15)] ring-4 ring-white">
-                        @if (product.imageUrl) {
-                          <img
-                            [src]="product.imageUrl"
-                            [alt]="product.name"
-                            loading="lazy"
-                            decoding="async"
-                            (error)="onImageError($event)"
-                            class="h-full w-full object-cover"
-                          />
-                        } @else {
-                          <div class="flex h-full w-full items-center justify-center text-4xl text-stone-300 select-none">🍽️</div>
-                        }
-                      </div>
-                    </div>
-
-                    <!-- Nombre + descripción -->
-                    <div class="mt-2.5 px-0.5 text-center">
-                      <h3 class="truncate text-[15px] font-extrabold leading-snug text-stone-900" [title]="product.name">
-                        {{ product.name }}
-                      </h3>
-                      @if (product.description) {
-                        <p class="mt-0.5 truncate text-[11px] font-medium text-stone-400">
-                          {{ product.description }}
-                        </p>
+                <article class="menu-dish">
+                  <button type="button" (click)="openDishModal(product, category.name)" class="dish-info">
+                    @if (product.imageUrl) { <img [src]="product.imageUrl" alt="" loading="lazy" (error)="onImageError($event)" /> }
+                    <span><strong>{{ product.name }}</strong><small>{{ product.description }}</small><b>{{ formatCurrency(product.price) }}</b></span>
+                  </button>
+                  @if (!product.available || isClosed()) { <small>{{ isClosed() ? 'Cerrado' : 'Agotado' }}</small> }
+                  @else {
+                    <div class="dish-quantity">
+                      @if (getItemQuantity(product.id); as qty) {
+                        <button (click)="removeFromCart(product.id)" [attr.aria-label]="'Quitar ' + product.name">−</button><b>{{ qty }}</b>
                       }
+                      <button (click)="addToCart(product, 1, '')" [attr.aria-label]="'Agregar ' + product.name">+</button>
                     </div>
-                  </div>
-
-                  <!-- Precio + agregar -->
-                  <div class="mt-2 flex items-center justify-between px-0.5">
-                    <span class="text-[17px] font-black tracking-tight text-stone-900">
-                      <span class="mr-0.5 text-[14px] font-black text-primary-500">$</span>{{ formatCurrency(product.price).replace('$', '').trim() }}
-                    </span>
-
-                    @if (!product.available) {
-                      <span class="inline-flex items-center rounded-full bg-stone-100 px-2.5 py-1.5 text-[10px] font-bold text-stone-500">
-                        Agotado
-                      </span>
-                    } @else if (isClosed()) {
-                      <span class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-1.5 text-[10px] font-bold text-red-600 ring-1 ring-red-200">
-                        Cerrado
-                      </span>
-                    } @else {
-                      @if (getItemQuantity(product.id) === 0) {
-                        <button
-                          (click)="addToCart(product, 1, '')"
-                          aria-label="Agregar {{ product.name }}"
-                          class="flex h-9 w-9 items-center justify-center rounded-full bg-stone-100 text-stone-800 transition-all active:scale-90"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="h-4 w-4">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                          </svg>
-                        </button>
-                      } @else {
-                        <div class="flex items-center gap-1 rounded-full bg-stone-100 p-1 shadow-sm ring-1 ring-stone-200">
-                          <button
-                            (click)="removeFromCart(product.id)"
-                            aria-label="Quitar uno"
-                            class="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-black text-stone-800 shadow-sm transition-colors hover:bg-stone-200"
-                          >
-                            −
-                          </button>
-                          <span class="min-w-4 px-0.5 text-center text-xs font-black tabular-nums text-stone-900">{{ getItemQuantity(product.id) }}</span>
-                          <button
-                            (click)="addToCart(product, 1, '')"
-                            aria-label="Agregar uno"
-                            class="flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-sm font-black text-white transition-colors hover:bg-primary-400"
-                          >
-                            +
-                          </button>
-                        </div>
-                      }
-                    }
-                  </div>
+                  }
                 </article>
               }
             </div>
@@ -397,7 +252,7 @@
             } @else {
               <button
                 (click)="addDetailToCart()"
-                class="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold text-base hover:from-primary-700 hover:to-primary-600 shadow-lg shadow-primary-500/25 transition-all flex items-center justify-center gap-2 btn-shine"
+                class="w-full py-4 rounded-2xl bg-[#b44815] text-white font-extrabold text-base hover:from-primary-700 hover:to-primary-600 shadow-lg shadow-primary-500/25 transition-all flex items-center justify-center gap-2 btn-shine"
               >
                 <span>Agregar al Pedido</span>
                 <span>•</span>
@@ -409,66 +264,14 @@
       </div>
     }
 
-    <!-- Floating bottom nav (referencia) with live order state -->
-    <div class="safe-bottom-bar fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-2">
-      <nav class="flex items-center gap-1 rounded-full border border-stone-200 bg-white/95 py-2 pl-2 pr-2 shadow-xl shadow-stone-900/10 backdrop-blur">
-        <button
-          (click)="scrollToTop()"
-          aria-label="Inicio"
-          class="flex h-11 w-11 items-center justify-center rounded-full bg-primary-500 text-white shadow-md transition-transform hover:scale-105 active:scale-95"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="h-5 w-5">
-            <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clip-rule="evenodd" />
-          </svg>
-        </button>
-        <button
-          (click)="focusSearch()"
-          aria-label="Buscar"
-          class="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 active:scale-95"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-        </button>
-        <button
-          (click)="openCart()"
-          [disabled]="cartTotalCount() === 0"
-          aria-label="Ver mi pedido"
-          class="relative flex h-11 w-11 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 active:scale-95 disabled:opacity-50"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007z" />
-          </svg>
-          @if (cartTotalCount() > 0) {
-            <span class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary-500 px-1 text-[10px] font-black text-white ring-2 ring-white">
-              {{ cartTotalCount() }}
-            </span>
-          }
-        </button>
-        @if (contactPhone()) {
-          <a
-            [href]="'https://wa.me/' + contactPhone()"
-            target="_blank"
-            aria-label="Ayuda por WhatsApp"
-          class="flex h-11 w-11 items-center justify-center rounded-full text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900 active:scale-95"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="h-5 w-5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.75 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm3.75 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-          </svg>
-        </a>
-        }
-        @if (cartTotalCount() > 0) {
-          <button
-            (click)="openCart()"
-            class="ml-1 flex items-center gap-2 rounded-full bg-primary-500 py-2.5 pl-4 pr-2.5 text-sm font-extrabold text-white shadow-md transition-transform hover:scale-[1.03] active:scale-95"
-          >
-            <span class="tabular-nums">{{ formatCurrency(cartTotalAmount()) }}</span>
-            <span class="flex h-7 w-7 items-center justify-center rounded-full bg-white/25 text-base leading-none">→</span>
-          </button>
-        }
-      </nav>
-    </div>
-
+    @if (cartTotalCount()) {
+      <div class="menu-checkout safe-bottom-bar">
+        <button class="tavita-primary" (click)="openCart()"><span>Ver pedido · {{ cartTotalCount() }}</span><b>{{ formatCurrency(cartTotalWithTip()) }}</b></button>
+      </div>
+    }
+    @if (contactPhone() && !cartTotalCount()) {
+      <div class="mx-auto max-w-3xl px-5"><a [href]="'https://wa.me/' + contactPhone()" target="_blank" rel="noopener">Contactar al restaurante</a></div>
+    }
     <!-- Shopping Cart & Order Bottom Sheet / Modal -->
     @if (showCartModal()) {
       <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-stone-950/70 backdrop-blur-sm anim-fade-in">
@@ -477,7 +280,7 @@
           <!-- Modal Header -->
           <div class="flex items-center justify-between border-b border-stone-100 pb-3">
             <div>
-              <h2 class="text-xl font-black text-stone-900">Tu Pedido 🛒</h2>
+              <h2 class="text-xl font-black text-stone-900">Tu pedido</h2>
               <p class="text-xs text-stone-400 mt-0.5">{{ menu()!.restaurant.name }}</p>
             </div>
             <button (click)="closeCart()" class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 hover:bg-stone-200 text-sm font-bold flex items-center justify-center">
@@ -552,6 +355,7 @@
           <div class="space-y-3 divide-y divide-stone-100 max-h-48 overflow-y-auto pr-1">
             @for (item of cart(); track item.productId + (item.notes || '')) {
               <div class="pt-3 flex items-start justify-between gap-3">
+                @if (item.imageUrl) { <img class="h-12 w-12 rounded-lg object-cover" [src]="item.imageUrl" alt="" /> }
                 <div class="flex-1 min-w-0">
                   <h4 class="font-bold text-stone-900 text-sm truncate">{{ item.productName }}</h4>
                   <p class="text-xs text-stone-500 font-medium">{{ formatCurrency(item.unitPrice) }} c/u</p>
@@ -637,6 +441,11 @@
             </div>
           }
 
+          @if (tableLocked()) {
+            <label class="block text-sm font-bold">Nota para cocina
+              <textarea class="mt-2 w-full rounded-xl border p-3" rows="2" [formControl]="$any(orderForm.controls['notes'])"></textarea>
+            </label>
+          }
           <!-- QR de mesa: un toque y listo, sin preguntas -->
           @if (tableLocked()) {
             <div class="space-y-2 pt-1">
@@ -649,13 +458,13 @@
                   type="button"
                   (click)="submitOrder()"
                   [disabled]="submittingOrder()"
-                  class="w-full rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold py-4 text-base hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
+                  class="w-full rounded-2xl bg-[#b44815] text-white font-extrabold py-4 text-base hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
                 >
                   @if (submittingOrder()) {
                     <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                     <span>Enviando pedido a cocina…</span>
                   } @else {
-                    <span>🍳 Enviar pedido · {{ lockedTableLabel() }} · {{ formatCurrency(cartTotalAmount()) }}</span>
+                    <span>Confirmar pedido · {{ lockedTableLabel() }} · {{ formatCurrency(cartTotalAmount()) }}</span>
                   }
                 </button>
                 <p class="text-center text-[11px] font-medium text-stone-400">Llega directo a cocina como {{ lockedTableLabel() }}</p>
@@ -742,23 +551,17 @@
                 <button
                   type="submit"
                   [disabled]="orderForm.invalid || submittingOrder()"
-                  class="w-full rounded-2xl bg-gradient-to-r from-primary-600 to-primary-500 text-white font-extrabold py-3.5 text-sm hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
+                  class="w-full rounded-2xl bg-[#b44815] text-white font-extrabold py-3.5 text-sm hover:from-primary-700 hover:to-primary-600 disabled:opacity-50 transition-all shadow-lg shadow-primary-500/25 btn-shine flex items-center justify-center gap-2"
                 >
                   @if (submittingOrder()) {
                     <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
                     <span>Enviando pedido a cocina…</span>
                   } @else {
-                    <span>🍳 Enviar Pedido a Cocina ({{ formatCurrency(cartTotalWithTip()) }})</span>
+                    <span>Confirmar pedido ({{ formatCurrency(cartTotalWithTip()) }})</span>
                   }
                 </button>
 
-                <button
-                  type="button"
-                  (click)="sendOrderByWhatsApp()"
-                  class="w-full rounded-2xl bg-[#25D366] text-white font-extrabold py-3 text-sm hover:bg-[#1EBE5D] transition-colors shadow-md shadow-[#25D366]/20 flex items-center justify-center gap-2"
-                >
-                  <span>💬 Pedir por WhatsApp Directo</span>
-                </button>
+
               }
             </div>
           </form>
@@ -804,6 +607,9 @@
             </div>
           </div>
 
+          @if (contactPhone()) {
+            <a class="block rounded-xl border p-3 font-semibold" [href]="whatsappReceipt(orderSuccess()!)" target="_blank" rel="noopener">Compartir pedido confirmado por WhatsApp</a>
+          }
           <!-- Estimated Prep & Delivery Time Box (Requested by User) -->
           <div class="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-4 text-center space-y-1.5 shadow-xs">
             <div class="flex items-center justify-center gap-1.5 text-emerald-800 font-extrabold text-xs uppercase tracking-wider">

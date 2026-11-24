@@ -1,6 +1,6 @@
 import { Component, HostListener, inject, signal, OnInit, computed, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { EMPTY, expand, forkJoin, reduce, Subscription } from 'rxjs';
 import { OrderService } from '../../../core/services/order.service';
 import { RealtimeService } from '../../../core/services/realtime.service';
 import { RestaurantService } from '../../../core/services/restaurant.service';
@@ -48,7 +48,37 @@ export class OrdersComponent implements OnInit, OnDestroy {
   readonly errorMessage = signal<string | null>(null);
 
   // View settings
-  readonly viewMode = signal<'KANBAN' | 'LIST'>('LIST');
+  readonly viewMode = signal<'KANBAN' | 'LIST'>('KANBAN');
+  private historyPage = 0;
+  readonly moreHistory = signal(false);
+  readonly loadingHistory = signal(false);
+  readonly channel = signal<OrderType | 'ALL'>('ALL');
+  readonly columns = computed(() => [
+    { name: 'Pendientes', orders: this.pendingOrders() },
+    { name: 'En preparación', orders: this.inProgressOrders() },
+    { name: 'Listos', orders: this.deliveredOrders() },
+  ]);
+
+  loadOlder(): void {
+    if (this.loadingHistory() || !this.moreHistory()) return;
+    this.loadingHistory.set(true);
+    this.orderService.page(this.historyPage + 1, 50).subscribe({
+      next: rows => {
+        this.historyPage++;
+        this.moreHistory.set(rows.length === 50);
+        this.orders.update(current => this.mergeOrders(current, rows));
+        this.loadingHistory.set(false);
+      },
+      error: () => { this.loadingHistory.set(false); this.toast.error('No se pudo cargar el historial'); },
+    });
+  }
+
+  private mergeOrders(first: Order[], second: Order[]): Order[] {
+    const rows = new Map(second.map(o => [o.id, o]));
+    for (const order of first) rows.set(order.id, order);
+    return [...rows.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id - a.id);
+  }
+
   readonly searchQuery = signal('');
   readonly statusFilter = signal<OrderStatus | 'ALL'>('ALL');
   readonly soundEnabled = signal(true);
@@ -84,9 +114,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
     const query = this.searchQuery().trim().toLowerCase();
     const status = this.statusFilter();
 
-    return this.orders().filter((order) => {
-      if (!order) return false;
-      if (status !== 'ALL' && order.status !== status) {
+    return this.filterRows(this.orders(), query, status, this.channel());
+  });
+
+  private filterRows(rows: Order[], query: string, status: OrderStatus | 'ALL', channel: OrderType | 'ALL'): Order[] {
+    return rows.filter((order) => {
+      if (!order || (channel !== 'ALL' && channel !== order.orderType)) return false;
+      if (status !== 'ALL' && order.status !== status && !(status === 'CONFIRMED' && order.status === 'IN_PREPARATION')) {
         return false;
       }
       if (!query) return true;
@@ -99,13 +133,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
 
       return matchNum || matchName || matchTable || matchAddress || matchPhone;
     });
-  });
+  }
 
   /** Conteo para la pestaña "En preparación" (pedidos aceptados en cocina). */
-  readonly confirmedCount = computed(() => this.orders().filter((o) => o && o.status === 'CONFIRMED').length);
+  readonly confirmedCount = computed(() => this.orders().filter((o) => o && (o.status === 'CONFIRMED' || o.status === 'IN_PREPARATION')).length);
 
   /** Conteo para la pestaña "Listos" (pedidos listos para servir, servidos). */
-  readonly readyCount = computed(() => this.orders().filter((o) => o && (o.status === 'READY' || o.status === 'DELIVERED')).length);
+  readonly readyCount = computed(() => this.orders().filter((o) => o && o.status === 'READY').length);
 
   // --- Pedido manual (crear / editar) ---
   readonly manualModal = signal<'CREATE' | 'EDIT' | null>(null);
@@ -459,8 +493,28 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   /** Exporta los pedidos filtrados a CSV (compatible con Excel). */
+  readonly exporting = signal(false);
+
   exportCsv(): void {
-    const rows = this.filteredOrders();
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    const query = this.searchQuery().trim().toLowerCase();
+    const status = this.statusFilter();
+    const channel = this.channel();
+    let page = 0;
+    this.orderService.page(page, 200).pipe(
+      expand(batch => batch.length === 200 ? this.orderService.page(++page, 200) : EMPTY),
+      reduce((rows, batch) => {
+        for (const order of this.filterRows(batch, query, status, channel)) rows.set(order.id, order);
+        return rows;
+      }, new Map<number, Order>()),
+    ).subscribe({
+      next: rows => { this.downloadCsv([...rows.values()]); this.exporting.set(false); },
+      error: () => { this.toast.error('No se pudo exportar el historial'); this.exporting.set(false); },
+    });
+  }
+
+  private downloadCsv(rows: Order[]): void {
     const cell = (v: unknown): string => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [
       'Pedido,Fecha,Cliente,Mesa,Detalle,Total,Estado',
@@ -521,7 +575,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
   );
 
   readonly deliveredOrders = computed(() =>
-    this.filteredOrders().filter((o) => o.status === 'READY' || o.status === 'DELIVERED')
+    this.filteredOrders().filter((o) => o.status === 'READY')
   );
 
   readonly cancelledOrders = computed(() =>
@@ -531,12 +585,6 @@ export class OrdersComponent implements OnInit, OnDestroy {
   // Stats Counters
   readonly totalActiveCount = computed(() =>
     this.orders().filter((o) => o.status === 'PENDING' || o.status === 'CONFIRMED').length
-  );
-
-  readonly totalRevenueToday = computed(() =>
-    this.orders()
-      .filter((o) => o.status !== 'CANCELLED')
-      .reduce((sum, o) => sum + o.totalAmount, 0)
   );
 
   ngOnInit(): void {
@@ -623,10 +671,13 @@ export class OrdersComponent implements OnInit, OnDestroy {
   fetchOrders(): void {
     this.loading.set(true);
     this.errorMessage.set(null);
-    this.lastSyncIso = null;
-    this.orderService.listMine().subscribe({
+    const started = new Date().toISOString();
+    this.historyPage = 0;
+    forkJoin({ active: this.orderService.active(), recent: this.orderService.page(0, 50) }).subscribe({
       next: (data) => {
-        const arr = Array.isArray(data) ? data : [];
+        const arr = this.mergeOrders(data.active, data.recent);
+        this.moreHistory.set(data.recent.length === 50);
+        this.lastSyncIso = started;
         this.orders.set(arr);
         arr.forEach((o) => {
           if (o?.id != null) this.seenIds.add(o.id);
@@ -826,40 +877,26 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   private lastSyncIso: string | null = null;
-  private pollTicks = 0;
-  private readonly FULL_REFRESH_TICKS = 5;
+  private pollInFlight = false;
 
   private pollForNewOrders(): void {
-    if (this.loading()) return;
-    this.pollTicks += 1;
-
-    // Cada N sondeos se hace recarga completa para reconciliar pedidos borrados/ajustes.
-    const doFullRefresh = this.lastSyncIso === null || this.pollTicks % this.FULL_REFRESH_TICKS === 0;
-    const since = doFullRefresh ? undefined : this.lastSyncIso ?? undefined;
-
+    if (this.loading() || this.pollInFlight) return;
+    if (!this.lastSyncIso) { this.fetchOrders(); return; }
+    const since = this.lastSyncIso;
+    const started = new Date().toISOString();
+    this.pollInFlight = true;
     this.orderService.listMine(undefined, since).subscribe({
       next: (latest) => {
+        this.pollInFlight = false;
         this.sessionExpired.set(false);
         const wasOffline = this.offline();
         this.offline.set(false);
-        this.lastSyncIso = new Date().toISOString();
+        this.lastSyncIso = started;
 
         const current = this.orders();
-        let newOrders: Order[] = [];
-        let updatedList: Order[] = latest;
-
-        if (since) {
-          const byId = new Map<number, Order>(current.map((o) => [o.id, o]));
-          newOrders = latest.filter((o) => !byId.has(o.id));
-          for (const fresh of latest) byId.set(fresh.id, fresh);
-          updatedList = [...byId.values()].sort((a, b) =>
-            String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))
-          );
-        } else {
-          const currentIds = new Set(current.map((o) => o.id));
-          newOrders = latest.filter((o) => !currentIds.has(o.id));
-        }
-
+        const currentIds = new Set(current.map(o => o.id));
+        const newOrders = latest.filter(o => !currentIds.has(o.id));
+        const updatedList = this.mergeOrders(latest, current);
         this.orders.set(updatedList);
 
         // Cambios de estado detectados por polling (respaldo del WebSocket):
@@ -886,6 +923,7 @@ export class OrdersComponent implements OnInit, OnDestroy {
         }
       },
       error: (err) => {
+        this.pollInFlight = false;
         if (err?.status === 401) {
           this.sessionExpired.set(true);
           this.stopPolling(); // Stop polling until user re-logs in

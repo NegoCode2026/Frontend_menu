@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, catchError, forkJoin, map, of, tap } from 'rxjs';
+import { Observable, catchError, forkJoin, map, of } from 'rxjs';
 import { ApiService } from './api.service';
 
 export interface RestaurantTable {
@@ -47,59 +47,33 @@ export class TableService {
     return this.api.delete<void>(`/tables/${id}`);
   }
 
-  /**
-   * Migración única desde el formato anterior (localStorage por navegador):
-   * si el backend está vacío y hay mesas locales, las sube y limpia las
-   * llaves viejas. Devuelve cuántas migró.
-   */
-  migrateLegacy(backendEmpty: boolean): Observable<number> {
-    if (!backendEmpty) return of(0);
-    const legacy = this.readLegacy();
-    if (legacy.length === 0) return of(0);
-    const creations = legacy.map((t) =>
-      this.create(t.number, t.seats).pipe(catchError(() => of(null)))
-    );
-    return forkJoin(creations).pipe(
-      tap(() => this.clearLegacy()),
-      map((results) => results.filter((r) => r !== null).length)
-    );
-  }
-
-  /** Lee las mesas del formato viejo (todas las llaves tavita_tables_*). */
-  private readLegacy(): Array<{ number: string; seats: number }> {
-    const out: Array<{ number: string; seats: number }> = [];
+  migrateLegacy(restaurantId: number | null | undefined, existing: RestaurantTable[]): Observable<RestaurantTable[]> {
+    if (restaurantId == null) return of(existing);
+    const key = LEGACY_PREFIX + restaurantId;
+    let local: LegacyTable[];
     try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key || !key.startsWith(LEGACY_PREFIX)) continue;
-        const raw = localStorage.getItem(key);
-        if (!raw) continue;
-        const parsed = JSON.parse(raw) as LegacyTable[];
-        if (!Array.isArray(parsed)) continue;
-        for (const t of parsed) {
-          const number = typeof t?.number === 'string' ? t.number.trim() : '';
-          if (!number) continue;
-          const seats = typeof t?.seats === 'number' && Number.isFinite(t.seats) ? t.seats : 2;
-          out.push({ number, seats });
-        }
-      }
-    } catch {
-      // Sin almacenamiento: no hay nada que migrar
+      const parsed: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
+      if (!Array.isArray(parsed) || !parsed.length) return of(existing);
+      local = parsed;
+    } catch { return of(existing); }
+    const known = new Set(existing.map(t => t.number));
+    const missing = new Map<string, number>();
+    for (const row of local) {
+      const number = typeof row?.number === 'string' ? row.number.trim() : '';
+      if (number && !known.has(number)) missing.set(number, typeof row.seats === 'number' ? row.seats : 2);
     }
-    return out;
-  }
-
-  private clearLegacy(): void {
-    try {
-      const keys: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith(LEGACY_PREFIX)) keys.push(key);
-      }
-      keys.forEach((k) => localStorage.removeItem(k));
-    } catch {
-      // Ignorar errores de limpieza
-    }
+    const requests = [...missing].map(([number, seats]) => this.create(number, seats).pipe(catchError(() => of(null))));
+    return (requests.length ? forkJoin(requests) : of([])).pipe(map(results => {
+      const merged = [...existing, ...results.filter((t): t is RestaurantTable => t !== null)];
+      const confirmed = new Set(merged.map(t => t.number));
+      try {
+        const latest: LegacyTable[] = JSON.parse(localStorage.getItem(key) ?? '[]');
+        const pending = latest.filter(row => typeof row?.number !== 'string' || !confirmed.has(row.number.trim()));
+        if (pending.length) localStorage.setItem(key, JSON.stringify(pending));
+        else localStorage.removeItem(key);
+      } catch { /* El almacenamiento puede estar deshabilitado. */ }
+      return merged;
+    }));
   }
 
   /** Barre llaves de cachés ya eliminados del código (no se leen en ningún lado). */

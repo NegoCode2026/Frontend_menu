@@ -1,3 +1,4 @@
+import { forkJoin } from 'rxjs';
 import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import QRCode from 'qrcode';
@@ -226,8 +227,9 @@ export class DashboardComponent implements OnInit {
       error: () => undefined,
     });
 
-    this.orderService.listMine().subscribe({
-      next: (orders) => this.allOrders.set(Array.isArray(orders) ? orders : []),
+    const since = new Date(Date.now() - 7 * 86400000).toISOString();
+    forkJoin({ recent: this.orderService.page(0, 3), week: this.orderService.listMine(undefined, since), active: this.orderService.active() }).subscribe({
+      next: ({ recent, week, active }) => this.allOrders.set([...new Map([...recent, ...week, ...active].map(o => [o.id, o])).values()]),
       error: () => undefined,
     });
 

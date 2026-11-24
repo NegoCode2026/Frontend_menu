@@ -1,3 +1,5 @@
+import { forkJoin } from 'rxjs';
+import { adviseInventory } from '../../../shared/assistants/inventory-advisor';
 import { Component, computed, HostListener, inject, signal, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../../core/services/product.service';
@@ -20,6 +22,28 @@ export class InventoryComponent implements OnInit {
   private readonly confirm = inject(ConfirmService);
   private readonly toast = inject(ToastService);
   readonly user = this.auth.user;
+
+  readonly reviewing = signal(false);
+  readonly advice = signal<string[]>([]);
+  readonly reviewedAt = signal('');
+
+  review(question: string): void {
+    if (!question.trim() || this.reviewing()) return;
+    this.reviewing.set(true);
+    this.advice.set([]);
+    this.reviewedAt.set('');
+    forkJoin({ recipes: this.inventoryApi.capacities(), low: this.inventoryApi.lowStockIngredients() }).subscribe({
+      next: ({ recipes, low }) => {
+        this.advice.set(adviseInventory(question, recipes, low));
+        this.reviewedAt.set(new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }));
+        this.reviewing.set(false);
+      },
+      error: () => {
+        this.advice.set(['No se pudo consultar el inventario. Intenta nuevamente.']);
+        this.reviewing.set(false);
+      },
+    });
+  }
 
   readonly products = signal<Product[]>([]);
   readonly lowStock = signal<Product[]>([]);
