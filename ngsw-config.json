@@ -33,7 +33,8 @@
   "dataGroups": [
     {
       "name": "public-menu",
-      "urls": ["/api/public/**"],
+      "version": 2,
+      "urls": ["/api/public/menu/**"],
       "cacheConfig": {
         "strategy": "freshness",
         "maxSize": 50,

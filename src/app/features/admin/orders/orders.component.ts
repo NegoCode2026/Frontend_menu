@@ -1,3 +1,4 @@
+import { csvCell } from './csv-cell';
 import { Component, HostListener, inject, signal, OnInit, computed, OnDestroy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EMPTY, expand, forkJoin, reduce, Subscription } from 'rxjs';
@@ -515,18 +516,17 @@ export class OrdersComponent implements OnInit, OnDestroy {
   }
 
   private downloadCsv(rows: Order[]): void {
-    const cell = (v: unknown): string => `"${String(v ?? '').replace(/"/g, '""')}"`;
     const lines = [
       'Pedido,Fecha,Cliente,Mesa,Detalle,Total,Estado',
       ...rows.map((o) =>
         [
-          cell(o.orderNumber),
-          cell(o.createdAt),
-          cell(o.customerName),
-          cell(o.tableNumber ?? ''),
-          cell(this.orderItemsSummary(o)),
-          cell(o.totalAmount ?? 0),
-          cell(o.status),
+          csvCell(o.orderNumber),
+          csvCell(o.createdAt),
+          csvCell(o.customerName),
+          csvCell(o.tableNumber ?? ''),
+          csvCell(this.orderItemsSummary(o)),
+          csvCell(o.totalAmount ?? 0),
+          csvCell(o.status),
         ].join(',')
       ),
     ];

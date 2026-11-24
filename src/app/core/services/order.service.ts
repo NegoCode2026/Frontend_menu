@@ -5,9 +5,11 @@ import { ApiService } from './api.service';
 import { TenantBackendService } from './tenant-backend.service';
 import { CreateManualOrderRequest, CreateOrderRequest, Order, OrderStatus, PaymentMethod, UpdateOrderRequest } from '../models/models';
 
+import { TrackingRef, readTrackingRefs, trackingRef } from './tracked-orders';
+
 const TRACKED_ORDERS_KEY = 'tavita_tracked_orders';
 
-type TrackedOrdersMap = { [slug: string]: Order[] };
+type TrackedOrdersMap = Record<string, TrackingRef[]>;
 
 @Injectable({ providedIn: 'root' })
 export class OrderService {
@@ -24,7 +26,7 @@ export class OrderService {
   saveTrackedOrder(slug: string, order: Order): void {
     try {
       const map = this.readTracked();
-      map[slug] = [order, ...(map[slug] ?? [])];
+      map[slug] = [trackingRef(order), ...(map[slug] ?? [])];
       const seen = new Set<number>();
       map[slug] = map[slug]
         .filter((o) => (o?.id != null && !seen.has(o.id) ? (seen.add(o.id), true) : false))
@@ -35,7 +37,20 @@ export class OrderService {
     }
   }
 
-  listTrackedOrders(slug: string): Order[] {
+  updateTrackedStatus(slug: string, fresh: Order): void {
+    try {
+      const map = this.readTracked();
+      const orders = map[slug] ?? [];
+      map[slug] = fresh.status === 'DELIVERED' || fresh.status === 'CANCELLED'
+        ? orders.filter(order => order.id !== fresh.id)
+        : orders.map(order => order.id === fresh.id ? trackingRef(fresh) : order);
+      localStorage.setItem(TRACKED_ORDERS_KEY, JSON.stringify(map));
+    } catch {
+      // El seguimiento en pantalla también funciona sin almacenamiento local.
+    }
+  }
+
+  listTrackedOrders(slug: string): TrackingRef[] {
     try {
       return this.readTracked()[slug] ?? [];
     } catch {
@@ -46,9 +61,12 @@ export class OrderService {
   private readTracked(): TrackedOrdersMap {
     try {
       const raw = localStorage.getItem(TRACKED_ORDERS_KEY);
-      return raw ? (JSON.parse(raw) as TrackedOrdersMap) : {};
+      const refs = readTrackingRefs(raw);
+      const compact = JSON.stringify(refs);
+      if (raw && compact !== raw) localStorage.setItem(TRACKED_ORDERS_KEY, compact);
+      return refs;
     } catch {
-      return {};
+      return Object.create(null);
     }
   }
 
