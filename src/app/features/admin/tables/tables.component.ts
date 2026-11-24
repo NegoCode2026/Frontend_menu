@@ -81,7 +81,7 @@ export class TablesComponent implements OnInit {
       },
       error: () => undefined,
     });
-    this.orderService.listMine().subscribe({
+    this.orderService.active().subscribe({
       next: (orders) => this.allOrders.set(Array.isArray(orders) ? orders : []),
       error: () => undefined,
     });
@@ -92,32 +92,10 @@ export class TablesComponent implements OnInit {
     this.tableService.list().subscribe({
       next: (tables) => {
         const list = Array.isArray(tables) ? tables : [];
-        if (list.length > 0) {
-          this.tables.set(list);
-          this.loadingTables.set(false);
-          return;
-        }
-        // Primera vez con backend vacío: subir las mesas del formato
-        // anterior (localStorage) para no perderlas.
-        this.tableService.migrateLegacy(true).subscribe({
-          next: (migrated) => {
-            if (migrated > 0) {
-              this.tableService.list().subscribe({
-                next: (fresh) => {
-                  this.tables.set(Array.isArray(fresh) ? fresh : []);
-                  this.loadingTables.set(false);
-                },
-                error: () => this.loadingTables.set(false),
-              });
-            } else {
-              this.tables.set([]);
-              this.loadingTables.set(false);
-            }
-          },
-          error: () => {
-            this.tables.set([]);
-            this.loadingTables.set(false);
-          },
+        this.tables.set(list);
+        this.tableService.migrateLegacy(this.user()?.restaurantId, list).subscribe({
+          next: merged => { this.tables.set(merged); this.loadingTables.set(false); },
+          error: () => this.loadingTables.set(false),
         });
       },
       error: (err) => {

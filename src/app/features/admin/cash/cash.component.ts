@@ -60,9 +60,12 @@ export class CashComponent implements OnInit {
         }
         this.sessionExpired.set(false);
         this.today.set(t);
+        const selected = t.unpaidOrders?.find(order => order.id === this.payingOrder()?.id);
+        this.payingOrder.set(selected ?? t.unpaidOrders?.[0] ?? null);
+        if (!selected) this.payMethod.set('CASH');
         if (t.closing) {
           this.counted.set(t.closing.countedCash);
-          this.notes.set(t.closing.notes ?? '');
+          this.notes.set('');
         }
         this.loading.set(false);
       },

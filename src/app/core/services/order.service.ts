@@ -79,6 +79,14 @@ export class OrderService {
     return this.api.get<Order[]>(path);
   }
 
+  active(): Observable<Order[]> {
+    return this.api.get<Order[]>('/orders?activeOnly=true');
+  }
+
+  page(page: number, size: number): Observable<Order[]> {
+    return this.api.get<Order[]>(`/orders?page=${page}&size=${size}`);
+  }
+
   createMine(payload: CreateManualOrderRequest): Observable<Order> {
     return this.api.post<Order>('/orders', payload);
   }

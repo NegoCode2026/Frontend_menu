@@ -1,3 +1,4 @@
+import type { RecipeCapacity } from '../../shared/assistants/inventory-advisor';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
@@ -25,6 +26,10 @@ export class InventoryService {
   }
 
   /** Ingredientes del restaurante. */
+  capacities(): Observable<RecipeCapacity[]> {
+    return this.api.get<RecipeCapacity[]>('/inventory/recipe-capacities');
+  }
+
   ingredients(): Observable<Ingredient[]> {
     return this.api.get<Ingredient[]>('/inventory/ingredients');
   }

@@ -1,8 +1,8 @@
-<div class="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
+<div class="mx-auto max-w-6xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
   <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
-      <p class="text-xs font-extrabold uppercase tracking-widest text-stone-400">Caja</p>
-      <h1 class="landing-serif mt-1 text-[30px] font-medium text-[#1C1917]">Cierre del día</h1>
+      <p class="text-sm text-stone-600">{{ today()?.date }}</p>
+      <h1 class="landing-serif mt-1 text-[30px] font-medium text-[#1C1917]">Caja</h1>
     </div>
     <button (click)="reload()" class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 active:scale-[0.98]">
       Recargar
@@ -41,7 +41,7 @@
       }
     </div>
   } @else if (today(); as t) {
-    <p class="mt-4 text-sm font-semibold text-stone-500">{{ t.deliveredOrders }} entregados hoy · {{ t.unpaidDelivered }} sin cobrar</p>
+    <p class="mt-4 text-sm font-semibold text-stone-500">{{ paidOrders().length }} cobros del día · {{ t.unpaidDelivered }} sin cobrar</p>
     @if (t.unpaidDelivered > 0) {
       <p class="mt-2 rounded-xl bg-amber-50 px-4 py-3 text-[13px] font-bold text-amber-800">⚠️ Hay {{ t.unpaidDelivered }} pedido(s) entregado(s) sin pago. Regístralo en “Pendientes de cobro” antes de cerrar caja.</p>
     }
@@ -65,44 +65,33 @@
       </div>
     </div>
 
-    <!-- Pendientes de cobro: pedidos entregados que aún no se han pagado -->
-    <div class="mt-6 rounded-2xl border border-stone-900/10 bg-white p-5 sm:p-6">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="landing-serif text-[22px] font-medium text-[#1C1917]">Pendientes de cobro</h2>
-          <p class="mt-1 text-[13px] font-semibold text-stone-500">Pedidos entregados hoy que todavía no registran pago.</p>
-        </div>
-        @if (unpaidOrders().length > 0) {
-          <span class="rounded-full bg-amber-100 px-3 py-1.5 text-[11px] font-extrabold text-amber-800">{{ unpaidOrders().length }} sin cobrar</span>
-        }
-      </div>
-
-      @if (unpaidOrders().length === 0) {
-        <div class="mt-4 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-4 py-6 text-center">
-          <p class="text-sm font-extrabold text-stone-600">✅ Todo cobrado</p>
-          <p class="mt-1 text-xs font-medium text-stone-400">No hay pedidos entregados pendientes de pago.</p>
-        </div>
-      } @else {
-        <ul class="mt-4 divide-y divide-stone-100">
-          @for (order of unpaidOrders(); track order.id) {
-            <li class="flex flex-wrap items-center gap-3 py-3.5">
-              <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-50 text-base text-amber-700 ring-1 ring-amber-100" aria-hidden="true">🧾</span>
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-extrabold text-[#1C1917]">{{ destinationLabel(order) }} <span class="font-bold text-stone-400">· #{{ order.orderNumber }}</span></p>
-                <p class="truncate text-xs font-medium text-stone-500">{{ itemsSummary(order) }}</p>
-              </div>
-              <p class="admin-data shrink-0 text-sm font-black text-[#1C1917]">{{ formatCurrency(order.totalAmount) }}</p>
-              <button
-                type="button"
-                (click)="openPay(order)"
-                class="shrink-0 rounded-full bg-stone-900 px-4 py-2 text-xs font-extrabold text-white transition-colors hover:bg-stone-800 active:scale-95"
-              >
-                Registrar pago
-              </button>
-            </li>
-          }
-        </ul>
-      }
+    <div class="cash-workspace">
+      <section class="cash-panel">
+        <h2>Pendientes de cobro</h2>
+        @for (order of unpaidOrders(); track order.id) {
+          <button class="cash-row" type="button" (click)="openPay(order)" [attr.aria-pressed]="payingOrder()?.id === order.id">
+            <span><strong>{{ destinationLabel(order) }}</strong><small>{{ order.orderNumber }}</small></span>
+            <b>{{ formatCurrency(order.totalAmount) }}</b>
+          </button>
+        } @empty { <p>Todos los pedidos entregados están cobrados.</p> }
+      </section>
+      <section class="cash-panel" aria-live="polite">
+        @if (payingOrder(); as bill) {
+          <h2>Cobrar · {{ destinationLabel(bill) }}</h2><small>{{ bill.orderNumber }}</small>
+          <ul class="bill-items">@for (item of bill.items; track $index) {
+            <li><span>{{ item.quantity }} × {{ item.productName }}</span><b>{{ formatCurrency(item.subtotal) }}</b></li>
+          }</ul>
+          @if (bill.discountAmount) { <p>Descuento · {{ formatCurrency(bill.discountAmount) }}</p> }
+          @if (bill.tipAmount) { <p>Propina · {{ formatCurrency(bill.tipAmount) }}</p> }
+          <p class="bill-total">Total <strong>{{ formatCurrency(bill.totalAmount) }}</strong></p>
+          <fieldset class="bill-method"><legend>Medio de pago</legend>
+            @for (method of paymentMethods; track method.value) {
+              <label><input type="radio" name="method" [checked]="payMethod() === method.value" (change)="payMethod.set(method.value)" [disabled]="paySaving()" /> {{ method.label }}</label>
+            }
+          </fieldset>
+          <button type="button" class="tavita-primary" (click)="confirmPay()" [disabled]="paySaving()">{{ paySaving() ? 'Registrando…' : 'Registrar cobro' }}</button>
+        } @else { <h2>Detalle de la cuenta</h2><p>Selecciona una cuenta pendiente para ver sus productos y registrar el cobro.</p> }
+      </section>
     </div>
 
     <!-- Historial de cobros: qué se cobró hoy y por cuánto -->
@@ -153,83 +142,14 @@
           {{ formatCurrency(difference()) }}
         </span>
       </div>
-      <label class="field-label mt-4" for="cash-notes">Notas (opcional)</label>
+      <label class="field-label mt-4" for="cash-notes">{{ t.closing ? 'Motivo de la corrección' : 'Notas (opcional)' }}</label>
       <textarea id="cash-notes" rows="2" [ngModel]="notes()" (ngModelChange)="notes.set($event)"
         class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="Ej. faltante por domicilio..."></textarea>
-      <button (click)="close()" [disabled]="counted() == null || saving()" class="landing-btn-dark mt-4 w-full disabled:opacity-50">
+      <button (click)="close()" [disabled]="counted() == null || saving() || (!!t.closing && !notes().trim())" class="landing-btn-dark mt-4 w-full disabled:opacity-50">
         {{ saving() ? 'Guardando…' : t.closing ? 'Actualizar cierre' : 'Cerrar caja' }}
       </button>
     </div>
   }
 </div>
-
-<!-- Modal: registrar el pago de un pedido pendiente -->
-@if (payingOrder(); as orderToPay) {
-  <div
-    class="fixed inset-0 z-50 flex items-end justify-center bg-stone-950/70 p-0 backdrop-blur-sm anim-fade-in sm:items-center sm:p-4"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="pay-modal-title"
-    (click)="closePay()"
-  >
-    <div class="flex max-h-[92dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl anim-fade-in-up sm:rounded-3xl" (click)="$event.stopPropagation()">
-      <div class="flex shrink-0 items-start justify-between gap-3 border-b border-stone-100 px-6 pb-4 pt-6">
-        <div class="min-w-0">
-          <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#B85C32]">Caja</p>
-          <h3 id="pay-modal-title" class="landing-serif mt-1 truncate text-[22px] font-medium text-[#1C1917]">Registrar pago</h3>
-          <p class="mt-1 truncate text-[13px] font-semibold text-stone-500">{{ destinationLabel(orderToPay) }} · {{ orderToPay.orderNumber }}</p>
-          <p class="mt-1 truncate text-xs font-medium text-stone-400">{{ itemsSummary(orderToPay) }}</p>
-        </div>
-        <button
-          type="button"
-          (click)="closePay()"
-          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-stone-200 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-900"
-          aria-label="Cerrar"
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="h-4 w-4" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m6 6 12 12M18 6 6 18" /></svg>
-        </button>
-      </div>
-
-      <div class="sheet-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-4">
-        <p class="text-2xl font-black text-[#1C1917]">{{ formatCurrency(orderToPay.totalAmount) }}</p>
-
-        <p class="field-label mt-5">¿Cómo pagó la mesa?</p>
-        <div class="mt-2 space-y-2">
-          @for (m of paymentMethods; track m.value) {
-            <button
-              type="button"
-              (click)="payMethod.set(m.value)"
-              [attr.aria-pressed]="payMethod() === m.value"
-              class="flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-colors"
-              [class]="payMethod() === m.value ? 'border-[#D97745] bg-[#FFF7EF]' : 'border-stone-200 bg-white hover:bg-stone-50'"
-            >
-              <span class="min-w-0">
-                <span class="block text-sm font-extrabold text-[#1C1917]">{{ m.label }}</span>
-                <span class="block truncate text-[11px] font-semibold text-stone-400">{{ m.hint }}</span>
-              </span>
-              <span
-                class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
-                [class]="payMethod() === m.value ? 'border-[#D97745] bg-[#D97745] text-white' : 'border-stone-300 text-transparent'"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="h-3 w-3" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m5 12 4 4L19 6" /></svg>
-              </span>
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="shrink-0 border-t border-stone-100 px-6 py-4 safe-bottom-bar">
-        <div class="flex gap-2">
-          <button type="button" (click)="confirmPay()" [disabled]="paySaving()" class="landing-btn-dark flex-1 disabled:pointer-events-none disabled:opacity-50">
-            {{ paySaving() ? 'Guardando…' : 'Confirmar pago' }}
-          </button>
-          <button type="button" (click)="closePay()" [disabled]="paySaving()" class="btn-ghost disabled:pointer-events-none disabled:opacity-50">
-            Cancelar
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-}
 
 <app-business-mobile-nav active="none"></app-business-mobile-nav>

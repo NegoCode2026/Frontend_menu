@@ -1,4 +1,4 @@
-<div class="min-h-screen bg-stone-50 lg:flex">
+<div class="min-h-screen bg-[#faf8f4] lg:flex">
   <app-pwa-banner />
 
   <!-- Las vistas Super Admin y de negocio traen su propio header móvil
@@ -12,10 +12,9 @@
     ></div>
   }
 
-  <!-- Sidebar oscuro (Desktop static & Mobile slide-over drawer) -->
+  <!-- Navegación de escritorio y menú móvil -->
   <aside
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-[#1C1917] flex flex-col shrink-0 shadow-xl lg:shadow-none lg:static lg:z-auto transition-transform duration-300 ease-out"
-    style="background-image: repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 9px);"
+    class="fixed inset-y-0 left-0 z-50 w-64 border-r border-stone-200 bg-[#faf7f1] flex flex-col shrink-0 shadow-xl lg:shadow-none lg:static lg:z-auto transition-transform duration-300 ease-out"
     [class.-translate-x-full]="!mobileMenuOpen()"
     [class.translate-x-0]="mobileMenuOpen()"
     [class.lg:translate-x-0]="true"
@@ -23,14 +22,14 @@
     <!-- Brand -->
     <div class="px-5 py-5 flex items-center justify-between">
       <a routerLink="/admin" (click)="closeMobileMenu()" class="flex items-center gap-2.5">
-        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#D97745]">
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-[#ae4315]">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white" class="h-5 w-5" aria-hidden="true"><path d="M12 22c4.4 0 7.5-3 7.5-7.2 0-3.1-1.7-5.3-3.2-7C14.7 6 13.5 4.5 13 2c-3 2-4.5 4.3-5.3 6.5-.4-1-.6-2-.7-3.2C5.6 6.9 4.5 9.4 4.5 12 4.5 17 7.6 22 12 22z" /></svg>
         </span>
-        <span class="landing-serif text-[22px] font-bold tracking-tight text-white">Tavita</span>
+        <span class="landing-serif text-[22px] font-bold tracking-tight text-stone-900">Tavita</span>
       </a>
 
       <!-- Close button on mobile -->
-      <button (click)="closeMobileMenu()" class="lg:hidden text-stone-500 hover:text-white p-1">
+      <button (click)="closeMobileMenu()" class="lg:hidden text-stone-500 hover:text-stone-900 p-1">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
@@ -41,20 +40,20 @@
     @if (!isSuperAdmin()) {
       <div class="px-4 pb-2">
         @if (isAdmin()) {
-          <a routerLink="/admin/restaurant" (click)="closeMobileMenu()" class="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3 transition-colors hover:border-white/20 hover:bg-white/[0.07]">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D97745] text-[13px] font-extrabold text-white">{{ (restaurantName() ?? user()?.name ?? 'T').charAt(0).toUpperCase() }}</span>
+          <a routerLink="/admin/settings" (click)="closeMobileMenu()" class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3.5 py-3 transition-colors hover:border-orange-300 hover:bg-orange-50">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ae4315] text-[13px] font-extrabold text-white">{{ (restaurantName() ?? user()?.name ?? 'T').charAt(0).toUpperCase() }}</span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-[13px] font-bold text-white">{{ restaurantName() ?? 'Mi restaurante' }}</span>
-              <span class="block truncate text-[11px] font-normal text-stone-400">{{ planName() ?? 'Sin plan' }}</span>
+              <span class="block truncate text-[13px] font-bold text-stone-900">{{ restaurantName() ?? 'Mi restaurante' }}</span>
+              <span class="block truncate text-[11px] font-normal text-stone-600">{{ planName() ?? 'Sin plan' }}</span>
             </span>
             <span class="text-stone-500" aria-hidden="true">›</span>
           </a>
         } @else {
-          <div class="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3.5 py-3">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D97745] text-[13px] font-extrabold text-white">{{ (restaurantName() ?? user()?.name ?? 'T').charAt(0).toUpperCase() }}</span>
+          <div class="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3.5 py-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ae4315] text-[13px] font-extrabold text-white">{{ (restaurantName() ?? user()?.name ?? 'T').charAt(0).toUpperCase() }}</span>
             <span class="min-w-0 flex-1">
-              <span class="block truncate text-[13px] font-bold text-white">{{ restaurantName() ?? 'Mi restaurante' }}</span>
-              <span class="block truncate text-[11px] font-normal text-stone-400">Equipo</span>
+              <span class="block truncate text-[13px] font-bold text-stone-900">{{ restaurantName() ?? 'Mi restaurante' }}</span>
+              <span class="block truncate text-[11px] font-normal text-stone-600">Equipo</span>
             </span>
           </div>
         }
@@ -65,8 +64,8 @@
     <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
       @if (isSuperAdmin()) {
         <div class="mb-1 flex items-center gap-2 px-3 pb-2">
-          <span class="text-[10px] font-black uppercase tracking-[0.14em] text-amber-200/70">Gestión global</span>
-          <span class="ml-auto h-px flex-1 bg-gradient-to-r from-white/15 to-transparent"></span>
+          <span class="text-[10px] font-black uppercase tracking-[0.14em] text-stone-600">Gestión global</span>
+          <span class="ml-auto h-px flex-1 bg-gradient-to-r from-stone-300 to-transparent"></span>
         </div>
         @for (item of superNavItems; track item.path) {
           <a
@@ -75,7 +74,7 @@
             ariaCurrentWhenActive="page"
             [routerLinkActiveOptions]="{ exact: false }"
             (click)="closeMobileMenu()"
-            class="group relative flex items-center gap-3 rounded-xl border-l-[3px] border-transparent px-3.5 py-2.5 text-[13px] font-medium text-stone-400 transition-colors duration-200 hover:bg-white/5 hover:text-white"
+            class="group relative flex items-center gap-3 rounded-xl border-l-[3px] border-transparent px-3.5 py-2.5 text-[13px] font-medium text-stone-600 transition-colors duration-200 hover:bg-orange-50 hover:text-stone-900"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 shrink-0" aria-hidden="true" focusable="false">
               <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.icon" />
@@ -92,14 +91,14 @@
           ariaCurrentWhenActive="page"
           [routerLinkActiveOptions]="{ exact: false }"
           (click)="closeMobileMenu()"
-          class="group relative flex items-center gap-3 rounded-xl border-l-[3px] border-transparent px-3.5 py-2.5 text-[13px] font-medium text-stone-400 transition-colors duration-200 hover:bg-white/5 hover:text-white"
+          class="group relative flex items-center gap-3 rounded-xl border-l-[3px] border-transparent px-3.5 py-2.5 text-[13px] font-medium text-stone-600 transition-colors duration-200 hover:bg-orange-50 hover:text-stone-900"
         >
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor" class="h-5 w-5 shrink-0" aria-hidden="true" focusable="false">
             <path stroke-linecap="round" stroke-linejoin="round" [attr.d]="item.icon" />
           </svg>
           <span class="flex-1">{{ item.label }}</span>
           @if (item.path === '/admin/orders' && pendingOrders() > 0) {
-            <span class="admin-data flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#D97745] px-1.5 text-[10px] font-extrabold text-white">{{ pendingOrders() }}</span>
+            <span class="admin-data flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[#ae4315] px-1.5 text-[10px] font-extrabold text-white">{{ pendingOrders() }}</span>
           }
         </a>
       }
@@ -108,14 +107,14 @@
     <!-- User card -->
     <div class="px-4 pb-5">
       <div class="flex items-center gap-3 rounded-xl px-2 py-2">
-        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#D97745] text-[12px] font-extrabold text-white">{{ initials() }}</span>
+        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#ae4315] text-[12px] font-extrabold text-white">{{ initials() }}</span>
         <span class="min-w-0 flex-1">
-          <span class="block truncate text-[13px] font-bold text-white">{{ user()?.name }}</span>
+          <span class="block truncate text-[13px] font-bold text-stone-900">{{ user()?.name }}</span>
           <span class="block truncate text-[11px] font-normal text-stone-500">{{ roleLabel() }}</span>
         </span>
         <button
           (click)="logout()"
-          class="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-white/10 hover:text-white"
+          class="flex h-8 w-8 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-white/10 hover:text-stone-900"
           aria-label="Cerrar sesión"
           title="Cerrar sesión"
         >
