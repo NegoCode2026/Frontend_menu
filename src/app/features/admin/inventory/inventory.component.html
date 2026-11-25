@@ -1,285 +1,158 @@
-<div class="mx-auto max-w-5xl px-4 pb-28 pt-6 sm:px-6 lg:px-8">
-  <div class="flex flex-wrap items-end justify-between gap-3">
-    <div>
-      <p class="text-xs font-extrabold uppercase tracking-widest text-stone-400">Inventario</p>
-      <h1 class="landing-serif mt-1 text-[30px] font-medium text-[#1C1917]">Existencias y kardex</h1>
+<div class="inventory">
+  <header class="top">
+    <h1 class="text-[clamp(34px,4vw,48px)]">Inventario</h1>
+    <div class="actions">
+      <button class="button secondary" (click)="open('product')">Nuevo plato</button>
+      <button class="button primary" (click)="open('ingredient')"><span aria-hidden="true">＋</span> Nuevo ingrediente</button>
     </div>
-    <div class="flex gap-2">
-      <button (click)="openCreate()" class="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-extrabold text-white active:scale-[0.98]">
-        + Producto
-      </button>
-      <button (click)="reload()" class="rounded-full border border-stone-200 bg-white px-5 py-2.5 text-sm font-semibold text-stone-700 hover:bg-stone-50 active:scale-[0.98]">
-        Recargar
-      </button>
-    </div>
-  </div>
+  </header>
 
-  <details class="advisor-panel inventory-advisor">
-    <summary>Asistente de inventario</summary>
-    <form (submit)="$event.preventDefault(); review(stockQuestion.value)">
-      <label for="stock-question">Consulta las existencias del restaurante</label>
-      <div><input #stockQuestion id="stock-question" maxlength="180" placeholder="¿Cuántas porciones de pollo puedo preparar?" />
-        <button [disabled]="reviewing()">Consultar</button></div>
-    </form>
-    @for (prompt of ['Revisar antes de abrir', 'Ingredientes por reponer', 'Platos sin receta']; track prompt) {
-      <button type="button" class="advisor-example" [disabled]="reviewing()" (click)="stockQuestion.value = prompt; review(prompt)">{{ prompt }}</button>
+  <div class="summary" aria-label="Filtrar existencias por estado">
+    @for (item of filters; track item) {
+      <button class="stat" [attr.data-state]="item" [attr.aria-pressed]="section() === 'stock' && scope() === item"
+              (click)="chooseSummary(item)">
+        <span class="stat-label"><i aria-hidden="true"></i>{{ item === 'Todos' ? 'Total de artículos' : item === 'Agotado' ? 'Agotados' : item }}</span>
+        <strong>{{ loading() || catalogError() ? '—' : counts()[item] }}</strong>
+      </button>
     }
-    <section aria-live="polite">
-      @if (reviewing()) { <p>Consultando existencias…</p> }
-      @if (reviewedAt()) { <small>Inventario consultado a las {{ reviewedAt() }}</small> }
-      @for (line of advice(); track $index) { <p>{{ line }}</p> }
-    </section>
-  </details>
-
-  @if (errorMessage()) {
-    <p class="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
-  }
-
-  @if (lowStock().length > 0) {
-    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-      <p class="text-sm font-extrabold text-amber-800">[!] {{ lowStock().length }} producto(s) con stock bajo o agotado</p>
-      <p class="mt-1 text-[13px] text-amber-700">{{ lowStock().map(p => p.name).join(' · ') }}</p>
-    </div>
-  }
-
-  <h2 class="landing-serif mt-10 text-[22px] font-medium text-[#1C1917]">Platos y su stock</h2>
-
-  <div class="mt-3 flex flex-wrap items-center gap-3">
-    <input
-      type="text"
-      placeholder="Buscar producto…"
-      [ngModel]="searchQuery()"
-      (ngModelChange)="searchQuery.set($event)"
-      class="text-stone-900 w-full max-w-xs rounded-xl border border-stone-200 px-4 py-2.5 text-sm focus:outline-none input-glow"
-    />
-    <label class="flex items-center gap-2 text-sm font-semibold text-stone-600">
-      <input type="checkbox" [ngModel]="onlyTracked()" (ngModelChange)="onlyTracked.set($event)" class="h-4 w-4 accent-[#ff5c00]" />
-      Solo con control de stock
-    </label>
   </div>
 
-  @if (loading()) {
-    <div class="mt-6 space-y-0 overflow-hidden rounded-xl border border-stone-900/10 bg-white">
-      @for (i of [1,2,3,4]; track $index) {
-        <div class="flex animate-pulse items-center gap-4 border-b border-stone-100 px-6 py-4 last:border-0">
-          <div class="h-10 w-10 rounded-full bg-stone-100"></div>
-          <div class="h-4 w-40 rounded bg-stone-100"></div>
-        </div>
-      }
-    </div>
-  } @else {
-    <div class="mt-4 overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
-      @for (p of trackedProducts(); track p.id) {
-        <div class="flex flex-wrap items-center gap-3 border-b border-stone-100 px-4 py-3.5 last:border-0 sm:px-6">
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-[15px] font-extrabold text-[#1C1917]">{{ p.name }}</p>
-            <p class="text-xs text-stone-500">
-              {{ formatCurrency(p.price) }} · costo {{ formatCurrency(p.costPrice) }} · margen {{ margin(p) }}
-              @if (!p.trackStock) {
-                <span class="ml-1 rounded-full bg-stone-100 px-2 py-0.5 font-bold text-stone-500">sin control</span>
-              }
-            </p>
-          </div>
-          @if (p.trackStock) {
-            <span class="rounded-full px-3 py-1 text-xs font-extrabold"
-              [class]="p.lowStock ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'">
-              {{ p.stockQuantity }} disp. / avisa en {{ p.lowStockThreshold }}
-            </span>
-            <button (click)="openAdjust(p)" class="rounded-full bg-stone-900 px-4 py-2 text-xs font-extrabold text-white active:scale-95">Ajustar</button>
-          } @else {
-            <span class="text-xs font-semibold text-stone-400">Activa el control en Menú → editar</span>
-          }
-        </div>
-      } @empty {
-        <p class="px-6 py-10 text-center text-sm text-stone-500">Sin productos con ese filtro.</p>
-      }
-    </div>
+  <nav class="views" aria-label="Vistas del inventario">
+    <button [attr.aria-current]="section() === 'stock' ? 'page' : null" (click)="showStock()">Existencias</button>
+    <button [attr.aria-current]="section() === 'history' ? 'page' : null" (click)="loadHistory(0)">Movimientos</button>
+    <button class="refresh" (click)="reload()" [disabled]="loading() || historyLoading()" aria-label="Actualizar inventario">
+      <span aria-hidden="true">↻</span> Actualizar
+    </button>
+  </nav>
+  @if (catalogError()) {
+    <p class="notice" role="alert">{{ catalogError() }} <button (click)="reload()">Reintentar</button></p>
   }
 
-  @if (adjustId() !== null) {
-    <div class="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm anim-fade-in sm:items-center sm:p-4" (click)="closeAdjust()">
-      <div class="flex max-h-[92dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl anim-fade-in-up sm:rounded-3xl" (click)="$event.stopPropagation()">
-        <div class="shrink-0 px-6 pt-6">
-          <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#B85C32]">Inventario</p>
-          <h2 class="landing-serif mt-1 text-[22px] font-medium text-[#1C1917]">Ajustar existencias</h2>
-          <p class="mt-1 text-sm text-stone-500">Escribe la cantidad NUEVA (no lo que sumas).</p>
-          @if (errorMessage()) {
-            <p class="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
-          }
-        </div>
-        <div class="sheet-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-4">
-          <input type="number" min="0" step="1" [ngModel]="adjustQty()" (ngModelChange)="adjustQty.set($event)"
-            class="text-stone-900 bg-white w-full rounded-xl border border-stone-200 px-4 py-3 text-lg font-extrabold focus:outline-none input-glow" />
-          <select [ngModel]="adjustReason()" (ngModelChange)="adjustReason.set($event)"
-            class="text-stone-900 mt-3 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm">
-            <option value="RESTOCK">Reposición</option>
-            <option value="ADJUST">Ajuste / conteo / merma</option>
+  @if (section() === 'stock') {
+    <section class="panel" aria-label="Listado de existencias">
+      <div class="toolbar flex-wrap">
+        <h2>{{ scope() === 'Todos' ? 'Artículos' : scope() === 'Agotado' ? 'Artículos agotados' : 'Artículos por reponer' }}</h2>
+        <div class="tools">
+          <input type="search" aria-label="Buscar artículo por nombre" placeholder="Buscar por nombre…" [ngModel]="query()" (ngModelChange)="query.set($event); limit.set(30)">
+          <select aria-label="Tipo de artículo" [ngModel]="kind()" (ngModelChange)="kind.set($event); limit.set(30)">
+            <option value="Todos">Todos los tipos</option><option value="Ingrediente">Ingredientes</option><option value="Plato">Platos</option>
           </select>
         </div>
-        <div class="shrink-0 border-t border-stone-100 px-6 py-4 safe-bottom-bar">
-          <div class="flex gap-3">
-            <button (click)="submitAdjust()" [disabled]="saving()" class="landing-btn-dark flex-1 disabled:opacity-50">
-              {{ saving() ? 'Guardando…' : 'Guardar' }}
-            </button>
-            <button (click)="closeAdjust()" class="rounded-full border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700">Cancelar</button>
-          </div>
-        </div>
       </div>
-    </div>
-  }
-
-  @if (lowIngredients().length > 0) {
-    <div class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-      <p class="text-sm font-extrabold text-red-800">! {{ lowIngredients().length }} ingrediente(s) con stock bajo</p>
-      <p class="mt-1 text-[13px] text-red-700">{{ lowIngredients().map(p => p.name).join(', ') }}</p>
-    </div>
-  }
-
-  <div class="mt-6 flex flex-wrap items-end justify-between gap-3">
-    <h2 class="landing-serif text-[22px] font-medium text-[#1C1917]">Ingredientes</h2>
-    <button (click)="openIngCreate()" class="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-extrabold text-white active:scale-[0.98]">
-      + Ingrediente
-    </button>
-  </div>
-  <div class="mt-3 overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
-    @for (ing of ingredients(); track ing.id) {
-      <div class="flex flex-wrap items-center gap-2 border-b border-stone-100 px-4 py-3 last:border-0 sm:px-6">
-        <div class="min-w-0 flex-1">
-          <p class="truncate text-[15px] font-extrabold text-[#1C1917]">{{ ing.name }}</p>
-          <p class="text-xs text-stone-500">avisa en {{ ing.lowStockThreshold }} {{ ing.unit }}</p>
-        </div>
-        <span class="rounded-full px-3 py-1 text-xs font-extrabold"
-          [class]="ing.lowStock ? 'bg-red-50 text-red-700 ring-1 ring-red-200' : 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'">
-          {{ ing.stockQuantity }} {{ ing.unit }}
-        </span>
-        <div class="flex items-center gap-1">
-          <button (click)="adjustIng(ing, -1)" class="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-extrabold" title="Quitar 1">−1</button>
-          <button (click)="adjustIng(ing, 1)" class="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-extrabold" title="Sumar 1">+1</button>
-          <button (click)="openIngEdit(ing)" class="rounded-full bg-stone-100 px-3 py-1.5 text-xs font-extrabold">Editar</button>
-          <button (click)="removeIng(ing)" class="rounded-full bg-red-50 px-3 py-1.5 text-xs font-extrabold text-red-600">×</button>
-        </div>
-      </div>
-    } @empty {
-      <p class="px-6 py-8 text-center text-sm text-stone-500">Sin ingredientes. Crea el primero: queso, pan, carne…</p>
-    }
-  </div>
-
-  @if (showIngForm()) {
-    <div class="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm anim-fade-in sm:items-center sm:p-4" (click)="closeIngForm()">
-      <div class="flex max-h-[92dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl anim-fade-in-up sm:rounded-3xl" (click)="$event.stopPropagation()">
-        <div class="shrink-0 px-6 pt-6">
-          <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#B85C32]">Inventario</p>
-          <h2 class="landing-serif mt-1 text-[22px] font-medium text-[#1C1917]">{{ editingIng() ? 'Editar' : 'Nuevo' }} ingrediente</h2>
-          @if (errorMessage()) {
-            <p class="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
+      @if (loading()) { <p class="grid justify-items-center gap-2 px-4 py-8 text-center text-sm text-stone-600" role="status">Actualizando existencias…</p> }
+      @else if (!catalogError()) {
+        @if (filtered().length) {
+          <div class="stock-head stock-grid" aria-hidden="true"><span>Artículo</span><span>Existencias</span><span>Estado</span><span>Acciones</span></div>
+          <ul class="stock-list">
+          @for (r of filtered().slice(0, limit()); track r.kind + r.id) {
+            <li class="stock-row stock-grid">
+              <div class="item">
+                <strong>{{ r.name }}</strong>
+                <small>{{ r.kind }} @if (r.kind === 'Plato') { · {{ money(r.price ?? 0) }} }</small>
+              </div>
+              <div class="qty">
+                @if (r.trackStock) {
+                  <b>{{ number(r.stockQuantity) }} <span>{{ r.unit }}</span></b><small>Mínimo {{ number(r.lowStockThreshold) }} {{ r.unit }}</small>
+                } @else { <small>Sin conteo</small> }
+              </div>
+              <span class="badge" [attr.data-state]="r.state">{{ r.state }}</span>
+              <div class="row-actions">
+                @if (r.trackStock) { <button class="adjust" (click)="open('adjust', r)" [attr.aria-label]="'Ajustar existencias de ' + r.name">Ajustar</button> }
+                @if (r.kind === 'Ingrediente') {
+                  <button class="link" (click)="open('ingredient', r)" [attr.aria-label]="'Editar ' + r.name">Editar</button>
+                } @else {
+                  @if (!r.trackStock) { <a class="link" routerLink="/admin/products">Ir al menú</a> }
+                  <details class="cost"><summary>Costos</summary><small>Costo {{ money(r.costPrice ?? 0) }} · margen {{ margin(r) }}</small></details>
+                }
+              </div>
+            </li>
           }
-        </div>
-        <div class="sheet-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-4">
-        <label class="field-label" for="ig-name">Nombre *</label>
-        <input id="ig-name" type="text" [ngModel]="ingName()" (ngModelChange)="ingName.set($event)"
-          class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="Ej. Queso" />
-        <div class="mt-3 grid grid-cols-3 gap-3">
-          <div>
-            <label class="field-label" for="ig-unit">Unidad</label>
-            <input id="ig-unit" type="text" [ngModel]="ingUnit()" (ngModelChange)="ingUnit.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="und" />
+          </ul>
+          <div class="flex items-center justify-between gap-3 border-t border-stone-100 px-4 py-3"><small>{{ filtered().slice(0, limit()).length }} de {{ filtered().length }} artículos</small>
+            @if (filtered().length > limit()) { <button class="link" (click)="limit.set(limit() + 30)">Mostrar más</button> }
           </div>
-          <div>
-            <label class="field-label" for="ig-cost">Cuesta c/u</label>
-            <input id="ig-cost" type="number" min="0" step="any" [ngModel]="ingCost()" (ngModelChange)="ingCost.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm font-extrabold focus:outline-none input-glow" placeholder="600" />
+        } @else {
+          <div class="grid justify-items-center gap-2 px-4 py-8 text-center text-sm text-stone-600">
+            @if (!rows().length) { <strong>Aún no hay artículos en el inventario.</strong><button class="link" (click)="open('ingredient')">Crear el primer ingrediente</button> }
+            @else { <strong>No hay artículos con estos filtros.</strong><button class="link" (click)="chooseSummary('Todos')">Ver todos los artículos</button> }
           </div>
-          <div>
-            <label class="field-label" for="ig-stock">Stock</label>
-            <input id="ig-stock" type="number" min="0" step="any" [ngModel]="ingStock()" (ngModelChange)="ingStock.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm font-extrabold focus:outline-none input-glow" placeholder="0" />
-          </div>
-        </div>
-        <div class="mt-3">
-          <label class="field-label" for="ig-threshold">Avisar cuando queden</label>
-          <input id="ig-threshold" type="number" min="0" step="any" [ngModel]="ingThreshold()" (ngModelChange)="ingThreshold.set($event)"
-            class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="5" />
-        </div>
-        </div>
-        <div class="shrink-0 border-t border-stone-100 px-6 py-4 safe-bottom-bar">
-          <div class="flex gap-3">
-            <button (click)="submitIngForm()" [disabled]="saving()" class="landing-btn-dark flex-1 disabled:opacity-50">
-              {{ saving() ? 'Guardando…' : 'Guardar' }}
-            </button>
-            <button (click)="closeIngForm()" class="rounded-full border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  }
-  <h2 class="landing-serif mt-10 text-[22px] font-medium text-[#1C1917]">Últimos movimientos</h2>
-  <div class="mt-3 overflow-hidden rounded-2xl border border-stone-900/10 bg-white">
-    @for (m of movements(); track m.id) {
-      <div class="flex items-center gap-3 border-b border-stone-100 px-4 py-3 last:border-0 sm:px-6">
-        <span class="text-xs font-extrabold {{ m.quantity < 0 ? 'text-red-600' : 'text-emerald-600' }}">
-          {{ m.quantity > 0 ? '+' : '' }}{{ m.quantity }}
-        </span>
-        <span class="text-[13px] font-semibold text-stone-600">{{ reasonLabel(m.reason) }}</span>
-        @if (m.orderId) {
-          <span class="text-xs text-stone-400">pedido #{{ m.orderId }}</span>
         }
-        <span class="ml-auto text-xs text-stone-400">{{ formatDate(m.createdAt) }}</span>
-      </div>
-    } @empty {
-      <p class="px-6 py-8 text-center text-sm text-stone-500">Aún no hay movimientos.</p>
-    }
-  </div>
-  @if (showCreate()) {
-    <div class="fixed inset-0 z-[70] flex items-end justify-center bg-black/40 p-0 backdrop-blur-sm anim-fade-in sm:items-center sm:p-4" (click)="closeCreate()">
-      <div class="flex max-h-[92dvh] w-full max-w-sm flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl anim-fade-in-up sm:rounded-3xl" (click)="$event.stopPropagation()">
-        <div class="shrink-0 px-6 pt-6">
-          <p class="text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#B85C32]">Inventario</p>
-          <h2 class="landing-serif mt-1 text-[22px] font-medium text-[#1C1917]">Nuevo producto</h2>
-          <p class="mt-1 text-sm text-stone-500">Entra con control de stock activado.</p>
-          @if (errorMessage()) {
-            <p class="mt-3 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700">{{ errorMessage() }}</p>
-          }
-        </div>
-        <div class="sheet-scroll min-h-0 flex-1 overflow-y-auto px-6 pb-4 pt-4">
-        <label class="field-label" for="np-name">Nombre *</label>
-        <input id="np-name" type="text" [ngModel]="newName()" (ngModelChange)="newName.set($event)"
-          class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="Ej. Papa criolla" />
-        <div class="mt-3 grid grid-cols-2 gap-3">
-          <div>
-            <label class="field-label" for="np-price">Precio *</label>
-            <input id="np-price" type="number" min="0" step="100" [ngModel]="newPrice()" (ngModelChange)="newPrice.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm font-extrabold focus:outline-none input-glow" placeholder="0" />
-          </div>
-          <div>
-            <label class="field-label" for="np-cost">Costo</label>
-            <input id="np-cost" type="number" min="0" step="100" [ngModel]="newCost()" (ngModelChange)="newCost.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="0" />
-          </div>
-        </div>
-        <div class="mt-3 grid grid-cols-2 gap-3">
-          <div>
-            <label class="field-label" for="np-stock">Stock inicial</label>
-            <input id="np-stock" type="number" min="0" step="1" [ngModel]="newStock()" (ngModelChange)="newStock.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm font-extrabold focus:outline-none input-glow" placeholder="0" />
-          </div>
-          <div>
-            <label class="field-label" for="np-threshold">Avisar cuando queden</label>
-            <input id="np-threshold" type="number" min="0" step="1" [ngModel]="newThreshold()" (ngModelChange)="newThreshold.set($event)"
-              class="text-stone-900 bg-white mt-1 w-full rounded-xl border border-stone-200 px-4 py-3 text-sm focus:outline-none input-glow" placeholder="5" />
-          </div>
-        </div>
-        </div>
-        <div class="shrink-0 border-t border-stone-100 px-6 py-4 safe-bottom-bar">
-          <div class="flex gap-3">
-            <button (click)="submitCreate()" [disabled]="saving()" class="landing-btn-dark flex-1 disabled:opacity-50">
-              {{ saving() ? 'Guardando…' : 'Crear' }}
-            </button>
-            <button (click)="closeCreate()" class="rounded-full border border-stone-200 px-5 py-2.5 text-sm font-semibold text-stone-700">Cancelar</button>
-          </div>
-        </div>
-      </div>
-    </div>
+      }
+    </section>
+  } @else {
+    <section class="panel" aria-label="Historial de movimientos">
+      <div class="toolbar flex-wrap"><h2>Historial de movimientos</h2></div>
+      @if (historyLoading()) { <p class="grid justify-items-center gap-2 px-4 py-8 text-center text-sm text-stone-600" role="status">Cargando movimientos…</p> }
+      @else if (historyError()) { <p class="notice" role="alert">{{ historyError() }} <button (click)="loadHistory(historyPage())">Reintentar</button></p> }
+      @else {
+        <ul>
+        @for (m of movements(); track m.id) {
+          <li class="movement">
+            <div><strong>{{ movementItem(m)?.name ?? (m.ingredientId != null ? 'Ingrediente #' + m.ingredientId : 'Plato #' + m.productId) }}</strong>
+              <small>{{ reasonLabel(m.reason) }} @if (m.orderId) { · Pedido #{{ m.orderId }} }</small></div>
+            <div class="text-right"><b [class.text-emerald-800]="m.quantity > 0">{{ m.quantity > 0 ? '+' : '' }}{{ number(m.quantity) }} {{ movementItem(m)?.unit }}</b>
+              <small>{{ date(m.createdAt) }}</small></div>
+          </li>
+        } @empty { <li class="grid justify-items-center gap-2 px-4 py-8 text-center text-sm text-stone-600">Aún no se han registrado movimientos.</li> }
+        </ul>
+        @if (historyPages() > 1) {
+          <div class="flex items-center justify-between gap-3 border-t border-stone-100 px-4 py-3"><button class="link" [disabled]="!historyPage()" (click)="loadHistory(historyPage() - 1)">Anterior</button>
+            <small>Página {{ historyPage() + 1 }} de {{ historyPages() }}</small>
+            <button class="link" [disabled]="historyPage() + 1 >= historyPages()" (click)="loadHistory(historyPage() + 1)">Siguiente</button></div>
+        }
+      }
+    </section>
   }
-</div>
 
+  <details class="advisor mt-4 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+    <summary class="font-semibold">Asistente de inventario</summary>
+    <form class="mt-3" (submit)="$event.preventDefault(); review(question.value)">
+      <label for="question">¿Qué necesitas revisar?</label>
+      <div class="tools"><input class="flex-1" id="question" #question maxlength="180" placeholder="¿Cuántas porciones de pollo quedan?"><button class="button secondary" [disabled]="reviewing()">Consultar</button></div>
+    </form>
+    <div class="flex flex-wrap items-center gap-2">@for (prompt of ['Revisar antes de abrir', 'Ingredientes por reponer', 'Platos sin receta']; track prompt) {
+      <button class="link" [disabled]="reviewing()" (click)="question.value = prompt; review(prompt)">{{ prompt }}</button>
+    }</div>
+    <div aria-live="polite">@if (reviewing()) { <p>Consultando existencias…</p> }
+      @if (reviewedAt()) { <small>Consulta de las {{ reviewedAt() }}</small> }
+      @for (line of advice(); track $index) { <p>{{ line }}</p> }
+    </div>
+  </details>
+
+  <dialog class="m-auto w-[min(440px,calc(100vw-24px))] max-h-[90dvh] rounded-2xl border border-stone-200 bg-white p-0 text-stone-900 backdrop:bg-stone-950/50" #sheet aria-labelledby="sheet-title" (cancel)="$event.preventDefault(); close()">
+    <form class="flex max-h-[90dvh] flex-col" ngNativeValidate (submit)="$event.preventDefault(); submit()">
+      <header class="flex items-center justify-between gap-3 px-5 py-4"><h2 id="sheet-title">{{ dialog() === 'adjust' ? 'Ajustar existencias' : dialog() === 'delete' ? 'Eliminar ingrediente' : dialog() === 'product' ? 'Nuevo plato' : selected() ? 'Editar ingrediente' : 'Nuevo ingrediente' }}</h2>
+        <button type="button" class="h-10 w-10 shrink-0 rounded-full bg-stone-100 text-xl" aria-label="Cerrar" [disabled]="saving()" (click)="close()">×</button></header>
+      <div class="grid min-w-0 gap-4 overflow-y-auto px-5 pb-4">
+        @if (dialog() === 'adjust' && selected(); as row) {
+          <div class="rounded-lg bg-stone-100 p-3"><strong>{{ row.name }}</strong><span class="flex justify-between gap-3">Existencias actuales <b>{{ number(row.stockQuantity) }} {{ row.unit }}</b></span></div>
+          <label class="grid min-w-0 gap-1 text-sm font-semibold">Motivo<select name="reason" [(ngModel)]="form.reason"><option value="ADJUST">Conteo o merma</option><option value="RESTOCK">Reposición</option></select></label>
+          <label class="grid min-w-0 gap-1 text-sm font-semibold">Cantidad final ({{ row.unit }})<input name="qty" type="number" required min="0" [step]="row.kind === 'Plato' ? 1 : 0.01" placeholder="Total después del ajuste" [(ngModel)]="form.quantity"></label>
+          @if (form.quantity != null) {
+            <p class="flex justify-between gap-3 rounded-lg bg-stone-100 p-3" aria-live="polite">Cambio en inventario <b>{{ form.quantity > row.stockQuantity ? '+' : '' }}{{ number(form.quantity - row.stockQuantity) }} {{ row.unit }}</b></p>
+          }
+        } @else if (dialog() === 'delete') {
+          <p>Se eliminará <b>{{ selected()?.name }}</b> y se quitará de las recetas que lo usen. Esta acción es definitiva.</p>
+        } @else {
+          <label class="grid min-w-0 gap-1 text-sm font-semibold">Nombre<input name="name" required maxlength="160" [(ngModel)]="form.name" [placeholder]="dialog() === 'product' ? 'Ej. Almuerzo del día' : 'Ej. Queso mozzarella'"></label>
+          <div class="grid grid-cols-2 gap-3">
+            @if (dialog() === 'product') {
+              <label class="grid min-w-0 gap-1 text-sm font-semibold">Precio de venta (COP)<input name="price" type="number" min="0" step="0.01" required [(ngModel)]="form.price"></label>
+            } @else {
+              <label class="grid min-w-0 gap-1 text-sm font-semibold">Unidad de medida<input name="unit" required maxlength="20" list="units" [(ngModel)]="form.unit"></label>
+              <datalist id="units">@for (unit of ['und','kg','g','L','ml']; track unit) { <option [value]="unit"></option> }</datalist>
+            }
+            <label class="grid min-w-0 gap-1 text-sm font-semibold">Costo por unidad (COP)<input name="cost" type="number" min="0" step="0.01" required [(ngModel)]="form.cost"></label>
+            @if (!selected()) { <label class="grid min-w-0 gap-1 text-sm font-semibold">Existencias iniciales<input name="initial" type="number" min="0" [step]="dialog() === 'product' ? 1 : 0.01" required [(ngModel)]="form.quantity"></label> }
+            <label class="grid min-w-0 gap-1 text-sm font-semibold">Mínimo para avisar<input name="threshold" type="number" min="0" [step]="dialog() === 'product' ? 1 : 0.01" required [(ngModel)]="form.threshold"></label>
+          </div>
+          @if (selected()) { <button class="justify-self-start py-2 text-sm font-semibold text-red-800 underline" type="button" [disabled]="saving()" (click)="dialog.set('delete'); formError.set('')">Eliminar ingrediente</button> }
+        }
+        @if (formError()) { <p class="notice" role="alert">{{ formError() }}</p> }
+      </div>
+      <footer class="actions justify-end border-t border-stone-200 px-5 py-4"><button type="button" [disabled]="saving()" class="button secondary" (click)="close()">Cancelar</button>
+        <button [disabled]="saving()" class="button primary" [class.!bg-red-800]="dialog() === 'delete'">{{ saving() ? 'Guardando…' : dialog() === 'delete' ? 'Confirmar eliminación' : dialog() === 'adjust' ? 'Guardar ajuste' : 'Guardar' }}</button></footer>
+    </form>
+  </dialog>
+</div>
 <app-business-mobile-nav active="none"></app-business-mobile-nav>
