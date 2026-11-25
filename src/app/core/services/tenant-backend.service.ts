@@ -36,7 +36,8 @@ export class TenantBackendService {
   backendFor(slug: string): string | null {
     if (!slug) return null;
     const key = slug.trim().toLowerCase();
-    return this.remoteCache[key] ?? TENANT_BACKENDS[key] ?? null;
+    if (Object.hasOwn(this.remoteCache, key)) return this.remoteCache[key];
+    return Object.hasOwn(TENANT_BACKENDS, key) ? TENANT_BACKENDS[key] : null;
   }
 
   /**
@@ -61,8 +62,7 @@ export class TenantBackendService {
 
   /** Fija el backend del slug (llamar al entrar a /menu/:slug o crear pedido) */
   pinFor(slug: string): string {
-    const url = this.backendFor(slug);
-    if (url) this.set(url);
+    this.set(this.backendFor(slug) ?? DEFAULT_BACKEND);
     return this.apiBase();
   }
 

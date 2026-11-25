@@ -1,3 +1,7 @@
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TrackingView } from '../../core/services/tracked-orders';
+import { EMPTY, Subscription, catchError, finalize, fromEvent, map, merge, startWith, tap } from 'rxjs';
+import { pollWhileAvailable } from './tracking-poll';
 import { adviseMenu, Choice } from '../../shared/assistants/menu-advisor';
 import { Component, effect, inject, input, signal, computed, OnDestroy } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -72,8 +76,8 @@ export class PublicMenuComponent implements OnDestroy {
   // Seguimiento del pedido de esta sesión
   readonly trackingOpen = signal(false);
   readonly trackingLoading = signal(false);
-  readonly trackingOrder = signal<Order | null>(null);
-  readonly trackedOrders = signal<Order[]>([]);
+  readonly trackingOrder = signal<TrackingView | null>(null);
+  readonly trackedOrders = signal<TrackingView[]>([]);
 
   /** Pedidos visibles aquí: con QR de mesa, solo los de ESA mesa. En un
    *  dispositivo compartido no se muestra lo de otras mesas: cada quien
@@ -96,8 +100,11 @@ export class PublicMenuComponent implements OnDestroy {
   readonly activeTrackedOrders = computed(() =>
     this.visibleTrackedOrders().filter((o) => !this.isOrderFinal(o.status))
   );
-  private trackingTimer: ReturnType<typeof setInterval> | null = null;
-  private statusTimer: ReturnType<typeof setInterval> | null = null;
+  readonly trackingNotice = signal('');
+  private polling?: Subscription;
+  private readonly available = merge(
+    fromEvent(document, 'visibilitychange'), fromEvent(window, 'online'), fromEvent(window, 'offline'),
+  ).pipe(startWith(null), map(() => !document.hidden && navigator.onLine));
 
   // Order Type: DINE_IN, DELIVERY, TAKEAWAY
   readonly orderType = signal<OrderType>('DINE_IN');
@@ -181,10 +188,12 @@ export class PublicMenuComponent implements OnDestroy {
   constructor() {
     // El ?mesa= del QR se valida contra las mesas registradas cuando
     // llega el menú: si no existe, se avisa y se sigue con el flujo normal.
-    this.route.queryParamMap.subscribe((params) => {
+    this.route.queryParamMap.pipe(takeUntilDestroyed()).subscribe((params) => {
       const mesa = params.get('mesa') || params.get('table') || params.get('m');
-      if (mesa) {
-        this.pendingMesa.set(mesa);
+      this.pendingMesa.set(mesa);
+      if (this.menu()) {
+        this.applyPendingMesa();
+        if (this.trackingOpen()) this.closeTracking();
       }
 
       const q = params.get('q');
@@ -198,6 +207,19 @@ export class PublicMenuComponent implements OnDestroy {
       this.loading.set(true);
       this.errorMessage.set(null);
 
+      this.polling?.unsubscribe();
+      this.trackingOpen.set(false);
+      this.trackingOrder.set(null);
+      this.trackedOrders.set([]);
+      this.menu.set(null);
+      this.showInvoiceModal.set(false);
+      this.invoiceOrder.set(null);
+      this.showCartModal.set(false);
+      this.selectedDish.set(null);
+      this.submittingOrder.set(false);
+      this.orderErrorMessage.set(null);
+      this.orderForm.reset({ customerName: '', customerPhone: '', tableNumber: 'Mesa 1', deliveryAddress: '', notes: '' });
+      this.tipPercent.set(0);
       this.advisorQuestion.set('');
       this.cart.set([]);
       this.orderSuccess.set(null);
@@ -211,7 +233,7 @@ export class PublicMenuComponent implements OnDestroy {
           this.applyPendingMesa();
           const restaurantSlug = menuData.restaurant?.slug || slugVal;
           this.trackedOrders.set(this.orderService.listTrackedOrders(restaurantSlug));
-          this.startStatusPolling();
+          this.watchTracking(false);
           this.loading.set(false);
         },
         error: () => {
@@ -226,7 +248,8 @@ export class PublicMenuComponent implements OnDestroy {
   /** Aplica el ?mesa= del QR una vez conocido el menú (valida que exista). */
   private applyPendingMesa(): void {
     const mesa = this.pendingMesa();
-    this.pendingMesa.set(null);
+    this.invalidTable.set(null);
+    this.tableLocked.set(false);
     if (!mesa) return;
     if (!this.knownTable(mesa)) {
       this.invalidTable.set(mesa.trim());
@@ -472,8 +495,11 @@ export class PublicMenuComponent implements OnDestroy {
       const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
       this.attempt = { fingerprint, id: [hex.slice(0,8), hex.slice(8,12), hex.slice(12,16), hex.slice(16,20), hex.slice(20)].join('-') };
     }
-    this.orderService.createPublicOrder(targetSlug, { ...payload, requestId: this.attempt.id }).subscribe({
+    const requestId = this.attempt.id;
+    this.orderService.createPublicOrder(targetSlug, { ...payload, requestId }).subscribe({
       next: (order) => {
+        this.orderService.saveTrackedOrder(targetSlug, order);
+        if (this.attempt?.id !== requestId) return;
         this.attempt = null;
         this.submittingOrder.set(false);
         this.showCartModal.set(false);
@@ -481,10 +507,10 @@ export class PublicMenuComponent implements OnDestroy {
         this.cart.set([]);
         this.tipPercent.set(0);
         this.orderSuccess.set(order);
-        this.orderService.saveTrackedOrder(targetSlug, order);
-        this.trackedOrders.set(this.orderService.listTrackedOrders(targetSlug));
+        this.trackedOrders.update(orders => [order, ...orders.filter(item => item.id !== order.id)].slice(0, 5));
       },
       error: (err) => {
+        if (this.attempt?.id !== requestId) return;
         this.submittingOrder.set(false);
         this.orderErrorMessage.set(err.error?.message ?? 'No se pudo enviar el pedido. Intenta nuevamente.');
       },
@@ -502,104 +528,52 @@ export class PublicMenuComponent implements OnDestroy {
 
   // --- Seguimiento del pedido en tiempo real ---
 
-  openTracking(order?: Order): void {
-    const slug = this.slug().trim() || this.menu()?.restaurant.slug || '';
-    const stored = this.orderService.listTrackedOrders(slug);
-    this.trackedOrders.set(stored);
-    const visible = this.activeTrackedOrders();
-    const target = order ?? visible[0] ?? this.orderSuccess();
-    this.trackingOrder.set(target ?? null);
+  openTracking(order?: TrackingView): void {
+    const target = order ?? this.activeTrackedOrders()[0] ?? this.orderSuccess();
+    if (!target) return;
     this.trackingOpen.set(true);
-    this.stopTrackingPolling();
-    this.refreshTracking();
-    this.startTrackingPolling();
+    this.selectTrackedOrder(target);
   }
 
-  refreshTracking(): void {
-    const current = this.trackingOrder();
-    if (!current?.trackingCode) {
-      this.trackingLoading.set(false);
-      return;
-    }
-    this.trackingLoading.set(true);
-    this.orderService.trackOrder(current.trackingCode).subscribe({
-      next: (fresh) => {
-        const status = fresh.status;
-        this.trackingOrder.set(fresh);
-        this.trackedOrders.update((list) => {
-          const idx = list.findIndex((o) => o.id === fresh.id);
-          if (idx !== -1) {
-            const copy = [...list];
-            copy[idx] = fresh;
-            return copy;
+  private watchTracking(detail: boolean): void {
+    this.polling?.unsubscribe();
+    this.trackingNotice.set('');
+    this.polling = pollWhileAvailable(this.available.pipe(tap(active => {
+      if (detail && !active && !navigator.onLine) {
+        this.trackingNotice.set('Sin conexión. Mostramos el último estado recibido.');
+      }
+    })), detail ? 4000 : 6000, () => {
+      if (!detail && this.orderSuccess()) return EMPTY;
+      const order = detail ? this.trackingOrder() : this.activeTrackedOrders()[0];
+      if (!order?.trackingCode || this.isOrderFinal(order.status)) return EMPTY;
+      this.trackingLoading.set(detail);
+      return this.orderService.trackOrder(order.trackingCode).pipe(
+        tap(fresh => {
+          if (detail) this.trackingOrder.set(fresh);
+          this.trackedOrders.update(list => list.map(o => o.id === fresh.id ? fresh : o));
+          if (fresh.status !== order.status) {
+            this.orderService.updateTrackedStatus(this.menu()!.restaurant.slug, fresh);
           }
-          return [fresh, ...list];
-        });
-        this.trackingLoading.set(false);
-        if (status === 'DELIVERED' || status === 'CANCELLED') {
-          this.stopTrackingPolling();
-        }
-      },
-      error: () => this.trackingLoading.set(false),
-    });
-  }
-
-  private startTrackingPolling(): void {
-    this.stopTrackingPolling();
-    this.trackingTimer = setInterval(() => this.refreshTracking(), 4000);
-  }
-
-  private stopTrackingPolling(): void {
-    if (this.trackingTimer) {
-      clearInterval(this.trackingTimer);
-      this.trackingTimer = null;
-    }
-  }
-
-  /** Polling de fondo: mantiene actualizado el estado mostrado en la píldora
-   *  flotante sin tener abierta la vista de seguimiento. */
-  private startStatusPolling(): void {
-    this.stopStatusPolling();
-    this.statusTimer = setInterval(() => this.refreshFirstTracked(), 6000);
-  }
-
-  private stopStatusPolling(): void {
-    if (this.statusTimer) {
-      clearInterval(this.statusTimer);
-      this.statusTimer = null;
-    }
-  }
-
-  private refreshFirstTracked(): void {
-    if (this.trackingOpen() || this.orderSuccess()) return;
-    const first = this.activeTrackedOrders()[0];
-    if (!first?.trackingCode) return;
-    this.orderService.trackOrder(first.trackingCode).subscribe({
-      next: (fresh) => {
-        this.trackedOrders.update((list) => {
-          const idx = list.findIndex((o) => o.id === fresh.id);
-          if (idx !== -1) {
-            const copy = [...list];
-            copy[idx] = fresh;
-            return copy;
-          }
-          return [fresh, ...list];
-        });
-      },
-      error: () => undefined,
-    });
+          this.trackingNotice.set('');
+        }),
+        catchError(() => {
+          if (detail) this.trackingNotice.set('Mostramos el último estado recibido. Volveremos a consultar en unos segundos.');
+          return EMPTY;
+        }),
+        finalize(() => this.trackingLoading.set(false)),
+      );
+    }).subscribe();
   }
 
   closeTracking(): void {
-    this.stopTrackingPolling();
     this.trackingOpen.set(false);
     this.trackingOrder.set(null);
+    this.watchTracking(false);
   }
 
-  selectTrackedOrder(order: Order): void {
+  selectTrackedOrder(order: TrackingView): void {
     this.trackingOrder.set(order);
-    this.refreshTracking();
-    this.startTrackingPolling();
+    this.watchTracking(true);
   }
 
   isOrderFinal(status: OrderStatus | null | undefined): boolean {
@@ -631,8 +605,7 @@ export class PublicMenuComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.stopTrackingPolling();
-    this.stopStatusPolling();
+    this.polling?.unsubscribe();
   }
 
   // Invoice Actions
