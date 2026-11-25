@@ -9,7 +9,7 @@
 
   <div class="summary" aria-label="Filtrar existencias por estado">
     @for (item of filters; track item) {
-      <button class="stat" [attr.data-state]="item" [attr.aria-pressed]="section() === 'stock' && scope() === item"
+      <button class="stat flex flex-col justify-between" [attr.data-state]="item" [attr.aria-pressed]="section() === 'stock' && scope() === item"
               (click)="chooseSummary(item)">
         <span class="stat-label"><i aria-hidden="true"></i>{{ item === 'Todos' ? 'Total de artículos' : item === 'Agotado' ? 'Agotados' : item }}</span>
         <strong>{{ loading() || catalogError() ? '—' : counts()[item] }}</strong>
@@ -33,7 +33,7 @@
       <div class="toolbar flex-wrap">
         <h2>{{ scope() === 'Todos' ? 'Artículos' : scope() === 'Agotado' ? 'Artículos agotados' : 'Artículos por reponer' }}</h2>
         <div class="tools">
-          <input type="search" aria-label="Buscar artículo por nombre" placeholder="Buscar por nombre…" [ngModel]="query()" (ngModelChange)="query.set($event); limit.set(30)">
+          <input type="search" aria-label="Buscar artículo por nombre" placeholder="Buscar…" [ngModel]="query()" (ngModelChange)="query.set($event); limit.set(30)">
           <select aria-label="Tipo de artículo" [ngModel]="kind()" (ngModelChange)="kind.set($event); limit.set(30)">
             <option value="Todos">Todos los tipos</option><option value="Ingrediente">Ingredientes</option><option value="Plato">Platos</option>
           </select>
